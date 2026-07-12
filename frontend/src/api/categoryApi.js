@@ -1,4 +1,9 @@
-import api from "./auth.api"; // your existing axios instance
+import axios from "axios";
+
+const api = axios.create({
+    baseURL: "http://localhost:5000/api",
+    withCredentials: true
+});
 
 export const createCategory = async (categoryData) => {
     const response = await api.post(
@@ -22,3 +27,5 @@ export const getCategories = async () => {
 
     return response.data;
 };
+
+export default api;

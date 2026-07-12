@@ -1,38 +1,101 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import ProductFormModal from "../components/ProductFormModal";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { useSiteData } from "../../hooks/useSiteData";
+import toast from "react-hot-toast";
+import api from "../../api/productApi"; // adjust path if your shared axios instance lives elsewhere
 
 export default function AdminProducts() {
-  const { products, addProduct, updateProduct, deleteProduct, addNotification } = useSiteData();
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const filtered = products.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()));
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+
+      const res = await api.get("/api/products", {
+        params: { search: search || undefined, page, limit: 10 },
+      });
+
+      setProducts(res.data.data || []);
+      setPagination(res.data.pagination || null);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to load products.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Refetch when page changes; debounce search so we're not firing a request per keystroke
+  useEffect(() => {
+    fetchProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page]);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setPage(1);
+      fetchProducts();
+    }, 400);
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search]);
 
   const openAddModal = () => { setEditingProduct(null); setModalOpen(true); };
   const openEditModal = (product) => { setEditingProduct(product); setModalOpen(true); };
 
-  const handleSave = (data) => {
-    if (editingProduct) {
-      updateProduct(editingProduct.id, data);
-      addNotification({ title: "Product updated", body: `${data.name} was updated`, type: "product" });
-    } else {
-      addProduct(data);
-      addNotification({ title: "New product added", body: `${data.name} was added to the catalog`, type: "product" });
+  const handleSave = async (data) => {
+    try {
+      setSaving(true);
+
+      if (editingProduct) {
+        await api.put(`/api/products/${editingProduct.id}`, data);
+        toast.success(`${data.name} was updated.`);
+      } else {
+        await api.post("/api/products", data);
+        toast.success(`${data.name} was added to the catalog.`);
+      }
+
+      setModalOpen(false);
+      await fetchProducts();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to save product.");
+    } finally {
+      setSaving(false);
     }
-    setModalOpen(false);
   };
 
-  const confirmDelete = () => {
-    deleteProduct(deleteTarget.id);
-    addNotification({ title: "Product deleted", body: `${deleteTarget.name} was removed`, type: "product" });
-    setDeleteTarget(null);
+  const confirmDelete = async () => {
+    try {
+      await api.delete(`/api/products/${deleteTarget.id}`);
+      toast.success(`${deleteTarget.name} was removed.`);
+      setDeleteTarget(null);
+      await fetchProducts();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to delete product.");
+    }
   };
+
+    // add this state
+  const [categories, setCategories] = useState([]);
+
+  // add this effect, once on mount
+  useEffect(() => {
+    api.get("/api/categories")
+      .then((res) => setCategories(res.data.data || []))
+      .catch((err) => console.error("Failed to load categories for dropdown", err));
+  }, []);
 
   return (
     <AdminLayout>
@@ -76,7 +139,13 @@ export default function AdminProducts() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((p) => (
+              {loading && (
+                <tr>
+                  <td colSpan={4} className="px-6 py-12 text-center text-sm text-gray-400">Loading products...</td>
+                </tr>
+              )}
+
+              {!loading && products.map((p) => (
                 <tr key={p.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -118,7 +187,8 @@ export default function AdminProducts() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+
+              {!loading && products.length === 0 && (
                 <tr>
                   <td colSpan={4} className="px-6 py-12 text-center text-sm text-gray-400">No products found.</td>
                 </tr>
@@ -126,13 +196,41 @@ export default function AdminProducts() {
             </tbody>
           </table>
         </div>
-      </div>
 
+        {/* Pagination */}
+        {pagination && pagination.totalPages > 1 && (
+          <div className="flex items-center justify-between mt-5">
+            <p className="text-xs text-gray-400">
+              Page {pagination.page} of {pagination.totalPages} · {pagination.total} products
+            </p>
+            <div className="flex gap-2">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:border-gray-900 transition-colors"
+              >
+                Prev
+              </button>
+              <button
+                disabled={page >= pagination.totalPages}
+                onClick={() => setPage((p) => p + 1)}
+                className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-gray-200 disabled:opacity-40 hover:border-gray-900 transition-colors"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+      
+      // pass it to the modal
       <ProductFormModal
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         initialData={editingProduct}
+        categories={categories}
+        saving={saving}
       />
       <ConfirmDialog
         open={!!deleteTarget}

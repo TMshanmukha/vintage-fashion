@@ -29,6 +29,8 @@ import MyAccountPage from "./pages/MyAccountPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 
+import AdminCategories from "./admin/pages/CategoryPage";
+
 import { Toaster } from "react-hot-toast";
 
 
@@ -64,6 +66,14 @@ export default function App() {
             {/* Admin routes */}
             <Route path="/admin" element={<AdminRoot />} />
             <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+            <Route
+                path="/admin/categories"
+                element={
+                    <ProtectedRoute>
+                        <AdminCategories />
+                    </ProtectedRoute>
+                }
+            />
             <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
             <Route path="/admin/offers" element={<ProtectedRoute><AdminOffers /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />

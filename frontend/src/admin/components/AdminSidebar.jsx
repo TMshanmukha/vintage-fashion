@@ -9,6 +9,18 @@ const navItems = [
   { to: "/admin/dashboard", label: "Dashboard", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
   ) },
+  {
+    to: "/admin/categories",
+    label: "Categories",
+    icon: (
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={1.5}
+            d="M3.75 6.75h7.5v7.5h-7.5zm9 0h7.5v7.5h-7.5zm-9 9h7.5v7.5h-7.5zm9 0h7.5v7.5h-7.5z"
+        />
+    )
+  },
   { to: "/admin/products", label: "Products", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
   ) },
