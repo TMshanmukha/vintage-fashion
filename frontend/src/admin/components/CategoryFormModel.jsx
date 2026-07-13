@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import toast from "react-hot-toast";
 
 export default function CategoryFormModal({
     open,
@@ -8,50 +9,62 @@ export default function CategoryFormModal({
     saving = false
 }) {
 
+    const fileInputRef = useRef(null);
+
     const [form, setForm] = useState({
         name: "",
-        description: "",
-        sort_order: 0,
-        is_active: true
+        description: ""
     });
 
     const [image, setImage] = useState(null);
-
     const [preview, setPreview] = useState("");
 
     useEffect(() => {
+
+        if (!open) return;
 
         if (initialData) {
 
             setForm({
                 name: initialData.name || "",
-                description: initialData.description || "",
-                sort_order: initialData.sort_order ?? 0,
-                is_active: Boolean(initialData.is_active)
+                description: initialData.description || ""
             });
 
             setPreview(initialData.image_url || "");
-
             setImage(null);
 
         } else {
 
-            setForm({
-                name: "",
-                description: "",
-                sort_order: 0,
-                is_active: true
-            });
-
-            setPreview("");
-
-            setImage(null);
+            resetForm();
 
         }
 
-    }, [initialData, open]);
+    }, [open, initialData]);
 
-    if (!open) return null;
+    const resetForm = () => {
+
+        setForm({
+            name: "",
+            description: ""
+        });
+
+        setImage(null);
+        setPreview("");
+
+        if (fileInputRef.current) {
+            fileInputRef.current.value = "";
+        }
+
+    };
+
+    const handleClose = () => {
+
+        if (saving) return;
+
+        resetForm();
+        onClose();
+
+    };
 
     const handleChange = (e) => {
 
@@ -70,9 +83,46 @@ export default function CategoryFormModal({
 
         if (!file) return;
 
-        setImage(file);
+        if (!file.type.startsWith("image/")) {
 
+            toast.error("Please select a valid image.");
+
+            return;
+
+        }
+
+        if (file.size > 2 * 1024 * 1024) {
+
+            toast.error("Image size should be less than 2 MB.");
+
+            return;
+
+        }
+
+        setImage(file);
         setPreview(URL.createObjectURL(file));
+
+    };
+
+    const removeImage = () => {
+
+        setImage(null);
+
+        if (initialData) {
+
+            setPreview(initialData.image_url || "");
+
+        } else {
+
+            setPreview("");
+
+        }
+
+        if (fileInputRef.current) {
+
+            fileInputRef.current.value = "";
+
+        }
 
     };
 
@@ -80,15 +130,27 @@ export default function CategoryFormModal({
 
         e.preventDefault();
 
+        if (!form.name.trim()) {
+
+            toast.error("Category name is required.");
+
+            return;
+
+        }
+
+        if (form.name.trim().length < 3) {
+
+            toast.error("Category name must contain at least 3 characters.");
+
+            return;
+
+        }
+
         const formData = new FormData();
 
-        formData.append("name", form.name);
+        formData.append("name", form.name.trim());
 
-        formData.append("description", form.description);
-
-        formData.append("sort_order", form.sort_order);
-
-        formData.append("is_active", form.is_active);
+        formData.append("description", form.description.trim());
 
         if (image) {
 
@@ -100,40 +162,59 @@ export default function CategoryFormModal({
 
     };
 
+    if (!open) return null;
     return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
 
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-5">
-
-        <div className="w-full max-w-2xl bg-white rounded-2xl shadow-2xl overflow-hidden">
+        <div className="w-full max-w-lg max-h-[90vh] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col">
 
             {/* Header */}
 
-            <div className="px-8 py-6 border-b border-gray-200">
+            <div className="border-b border-gray-200 px-8 py-6 flex items-start justify-between">
 
-                <h2 className="text-2xl font-bold text-gray-900">
+                <div>
 
-                    {initialData ? "Edit Category" : "Add New Category"}
+                    <h2 className="text-2xl font-bold text-gray-900">
 
-                </h2>
+                        {initialData
+                            ? "Edit Category"
+                            : "Add Category"}
 
-                <p className="text-sm text-gray-500 mt-1">
+                    </h2>
 
-                    Organize products by creating categories.
+                    <p className="mt-1 text-sm text-gray-500">
 
-                </p>
+                        {initialData
+                            ? "Update your category details."
+                            : "Create a new category for your products."}
+
+                    </p>
+
+                </div>
+
+                <button
+                    type="button"
+                    disabled={saving}
+                    onClick={handleClose}
+                    className="rounded-lg p-2 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed"
+                >
+                    ✕
+                </button>
 
             </div>
 
+            {/* Form */}
+
             <form
                 onSubmit={handleSubmit}
-                className="p-8 space-y-6"
+                className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-6"
             >
 
                 {/* Category Name */}
 
                 <div>
 
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="mb-2 block text-sm font-semibold text-gray-700">
 
                         Category Name *
 
@@ -144,11 +225,16 @@ export default function CategoryFormModal({
                         name="name"
                         value={form.name}
                         onChange={handleChange}
-                        required
                         disabled={saving}
-                        placeholder="Example: Men"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                        placeholder="Example: Men's Fashion"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-pink-500 focus:ring-4 focus:ring-pink-100"
                     />
+
+                    <p className="mt-2 text-xs text-gray-400">
+
+                        This name will be visible to customers.
+
+                    </p>
 
                 </div>
 
@@ -156,79 +242,32 @@ export default function CategoryFormModal({
 
                 <div>
 
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <div className="mb-2 flex items-center justify-between">
 
-                        Description
+                        <label className="text-sm font-semibold text-gray-700">
 
-                    </label>
+                            Description
+
+                        </label>
+
+                        <span className="text-xs text-gray-400">
+
+                            {form.description.length}/300
+
+                        </span>
+
+                    </div>
 
                     <textarea
                         rows={4}
+                        maxLength={300}
                         name="description"
                         value={form.description}
                         onChange={handleChange}
-                        placeholder="Write a short description..."
                         disabled={saving}
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none resize-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
+                        placeholder="Write a short description..."
+                        className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-pink-500 focus:ring-4 focus:ring-pink-100"
                     />
-
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-
-                    {/* Sort Order */}
-
-                    <div>
-
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-
-                            Sort Order
-
-                        </label>
-
-                        <input
-                            type="number"
-                            name="sort_order"
-                            value={form.sort_order}
-                            onChange={handleChange}
-                            disabled={saving}
-                            className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100"
-                        />
-
-                    </div>
-
-                    {/* Status */}
-
-                    <div>
-
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-
-                            Status
-
-                        </label>
-
-                        <label className="flex items-center gap-3 h-[52px] px-4 rounded-xl border border-gray-300 cursor-pointer">
-
-                            <input
-                                type="checkbox"
-                                checked={form.is_active}
-                                onChange={(e) =>
-                                    setForm({
-                                        ...form,
-                                        is_active: e.target.checked
-                                    })
-                                }
-                            />
-
-                            <span className="text-sm font-medium">
-
-                                Active Category
-
-                            </span>
-
-                        </label>
-
-                    </div>
 
                 </div>
 
@@ -236,51 +275,99 @@ export default function CategoryFormModal({
 
                 <div>
 
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    <label className="mb-2 block text-sm font-semibold text-gray-700">
 
                         Category Image
 
                     </label>
 
-                    <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImage}
-                        disabled={saving}
-                        className="w-full rounded-xl border border-gray-300 p-3"
-                    />
+                    <div
+                        onClick={() => fileInputRef.current?.click()}
+                        className="cursor-pointer rounded-2xl border-2 border-dashed border-gray-300 p-8 text-center transition hover:border-pink-500 hover:bg-pink-50"
+                    >
+
+                        <div className="text-5xl">
+
+                            🖼️
+
+                        </div>
+
+                        <p className="mt-4 text-sm font-semibold text-gray-700">
+
+                            Click to upload an image
+
+                        </p>
+
+                        <p className="mt-1 text-xs text-gray-400">
+
+                            PNG, JPG, JPEG or WEBP (Max 2 MB)
+
+                        </p>
+
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleImage}
+                            hidden
+                        />
+
+                    </div>
 
                 </div>
+
+                {/* Preview */}
 
                 {preview && (
 
                     <div>
 
-                        <p className="text-sm font-semibold text-gray-700 mb-3">
+                        <div className="mb-3 flex items-center justify-between">
 
-                            Image Preview
+                            <h3 className="text-sm font-semibold text-gray-700">
 
-                        </p>
+                                Image Preview
 
-                        <img
-                            src={preview}
-                            alt="Preview"
-                            className="w-36 h-36 rounded-xl object-cover border shadow-sm"
-                        />
+                            </h3>
+
+                            <button
+                                type="button"
+                                disabled={saving}
+                                onClick={removeImage}
+                                className="text-sm font-medium text-red-500 transition hover:text-red-600"
+                            >
+                                Remove Image
+                            </button>
+
+                        </div>
+
+                        <div className="overflow-hidden rounded-2xl border border-gray-200">
+
+                            <img
+                                src={preview}
+                                alt="Preview"
+                                className="h-64 w-full object-cover"
+                            />
+
+                        </div>
 
                     </div>
 
                 )}
 
-                                {/* Footer */}
+                
 
-                <div className="flex justify-end gap-3 pt-6 border-t border-gray-200">
+            </form>
+
+            {/* Footer */}
+
+                <div className="flex items-center justify-center gap-4 border-t border-gray-200 bg-white px-6 py-5">
 
                     <button
                         type="button"
-                        onClick={onClose}
                         disabled={saving}
-                        className="px-6 py-3 rounded-xl border border-gray-300 text-gray-700 font-medium hover:bg-gray-100 transition disabled:opacity-50"
+                        onClick={handleClose}
+                        className="rounded-xl border border-gray-300 px-6 py-3 font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
                     >
                         Cancel
                     </button>
@@ -288,30 +375,25 @@ export default function CategoryFormModal({
                     <button
                         type="submit"
                         disabled={saving}
-                        className="px-6 py-3 rounded-xl bg-pink-500 hover:bg-pink-600 text-white font-semibold transition disabled:opacity-60 flex items-center gap-2"
+                        className="flex items-center gap-2 rounded-xl bg-pink-500 px-6 py-3 font-semibold text-white transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-60"
                     >
 
                         {saving && (
 
-                            <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
 
                         )}
 
                         {saving
-                            ? "Saving..."
-                            : initialData
-                            ? "Update Category"
-                            : "Create Category"}
+                            ? (initialData ? "Updating..." : "Creating...")
+                            : (initialData ? "Update Category" : "Create Category")}
 
                     </button>
 
                 </div>
 
-            </form>
-
         </div>
 
     </div>
-
 );
 }
