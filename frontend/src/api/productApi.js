@@ -7,19 +7,19 @@ const api = axios.create({
 
 // GET /api/products?search=&page=&limit=&category=
 export const getProducts = async (params = {}) => {
-  const res = await api.get("/api/products", { params });
+  const res = await api.get("/products", { params });
   return res.data; // { success, message, data, pagination }
 };
 
 // GET /api/products/:slug
 export const getProductBySlug = async (slug) => {
-  const res = await api.get(`/api/products/${slug}`);
+  const res = await api.get(`/products/${slug}`);
   return res.data; // { success, message, data }
 };
 
 // POST /api/products
 export const createProduct = async (payload) => {
-  const res = await api.post("/api/products", payload);
+  const res = await api.post("/products", payload);
   return res.data; // { success, message, data }
 };
 
