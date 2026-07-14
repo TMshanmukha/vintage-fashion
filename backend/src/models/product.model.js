@@ -296,6 +296,8 @@ export const getProductBySlug = async (slug) => {
             p.price,
             p.original_price,
             p.badge,
+            p.sku,
+            p.is_active,
             p.stock_quantity,
             p.average_rating,
             p.review_count,

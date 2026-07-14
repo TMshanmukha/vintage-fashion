@@ -129,11 +129,34 @@ export default function AdminProducts() {
 
     };
 
-    const openEditModal = (product) => {
+    const openEditModal = async (slug) => {
 
-        setEditingProduct(product);
+        try {
 
-        setModalOpen(true);
+            setLoading(true);
+
+            const res = await api.get(`/products/${slug}`);
+
+            setEditingProduct(res.data.data);
+
+            setModalOpen(true);
+
+        }
+
+        catch (error) {
+
+            toast.error(
+                error.response?.data?.message ||
+                "Failed to load product."
+            );
+
+        }
+
+        finally {
+
+            setLoading(false);
+
+        }
 
     };
 
@@ -376,7 +399,8 @@ export default function AdminProducts() {
 
                   <tr
                       key={product.product_id}
-                      className="transition hover:bg-gray-50"
+                      className="transition hover:bg-gray-50 cursor-pointer"
+                      onClick={() => openEditModal(product.slug)}
                   >
 
                       {/* Product */}
@@ -487,12 +511,12 @@ export default function AdminProducts() {
                           <div className="flex justify-end gap-2">
 
                               <button
-                                  onClick={() => openEditModal(product)}
-                                  className="rounded-lg p-2 text-gray-500 transition hover:bg-blue-50 hover:text-blue-600"
+                                  onClick={(e) => {
+                                      e.stopPropagation();
+                                      openEditModal(product.slug);
+                                  }}
                               >
-
                                   ✏️
-
                               </button>
 
                               <button
