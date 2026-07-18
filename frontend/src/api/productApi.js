@@ -1,9 +1,12 @@
 import axios from "axios";
+import { attachAuthInterceptors } from "../utils/authInterceptor";
 
 const api = axios.create({
     baseURL: "http://localhost:5000/api",
     withCredentials: true
 });
+
+attachAuthInterceptors(api);
 
 // GET /api/products?search=&page=&limit=&category=
 export const getProducts = async (params = {}) => {
@@ -25,13 +28,13 @@ export const createProduct = async (payload) => {
 
 // PUT /api/products/:id
 export const updateProduct = async (id, payload) => {
-  const res = await api.put(`/api/products/${id}`, payload);
+  const res = await api.put(`/products/${id}`, payload);
   return res.data; // { success, message, data }
 };
 
 // DELETE /api/products/:id
 export const deleteProduct = async (id) => {
-  const res = await api.delete(`/api/products/${id}`);
+  const res = await api.delete(`/products/${id}`);
   return res.data; // { success, message }
 };
 

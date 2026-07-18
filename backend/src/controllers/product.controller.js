@@ -25,38 +25,94 @@ export const updateProduct = async (req, res, next) => {
 
     try {
 
-        const product = await updateProductService(
-            req.params,
-            req.body
-        );
+        const body = {
+            ...req.body,
+
+            images: req.body.images
+                ? JSON.parse(req.body.images)
+                : [],
+
+            variants: req.body.variants
+                ? JSON.parse(req.body.variants)
+                : []
+        };
+
+        if (req.files?.length) {
+
+            body.images = req.files.map((file, index) => ({
+                image_url: file.path,
+                alt_text: body.name,
+                sort_order: index + 1,
+                is_primary: index === 0
+            }));
+
+        }
+
+        const product =
+            await updateProductService(
+                req.params,
+                body
+            );
 
         return res.status(200).json({
+
             success: true,
             message: "Product updated successfully.",
             data: product
+
         });
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         next(error);
 
     }
 
 };
-
 export const createProduct = async (req, res, next) => {
 
     try {
 
-        const product = await createProductService(req.body);
+        const body = {
+            ...req.body,
+
+            images: req.body.images
+                ? JSON.parse(req.body.images)
+                : [],
+
+            variants: req.body.variants
+                ? JSON.parse(req.body.variants)
+                : []
+        };
+
+        // Cloudinary uploaded images
+        if (req.files?.length) {
+
+            body.images = req.files.map((file, index) => ({
+                image_url: file.path,
+                alt_text: body.name,
+                sort_order: index + 1,
+                is_primary: index === 0
+            }));
+
+        }
+
+        const product =
+            await createProductService(body);
 
         return res.status(201).json({
+
             success: true,
             message: "Product created successfully.",
             data: product
+
         });
 
-    } catch (error) {
+    }
+
+    catch (error) {
 
         next(error);
 

@@ -425,6 +425,26 @@ export const getRelatedProducts = async (
     return rows;
 };
 
+export const updateProductStock = async (
+    connection,
+    productId,
+    stockQuantity
+) => {
+
+    await connection.query(
+        `
+        UPDATE products
+        SET stock_quantity = ?
+        WHERE product_id = ?
+        `,
+        [
+            stockQuantity,
+            productId
+        ]
+    );
+
+};
+
 export const createProduct = async (connection, product) => {
 
     const [result] = await connection.query(
@@ -555,7 +575,7 @@ export const updateProductSku = async (
 
 };
 
-export const getProductById = async (productId,connection) => {
+export const getProductById = async (connection,productId) => {
 
     const [rows] = await connection.query(
         `
@@ -639,5 +659,91 @@ export const getProductById = async (productId,connection) => {
     product.variants = variants;
 
     return product;
+
+};
+
+export const updateProductVariant = async (
+    connection,
+    variant
+) => {
+
+    await connection.query(
+        `
+        UPDATE product_variants
+        SET
+            size = ?,
+            color = ?,
+            color_hex = ?,
+            image_url = ?,
+            is_default = ?,
+            sku_variant = ?,
+            stock_quantity = ?,
+            price_modifier = ?
+        WHERE variant_id = ?
+        `,
+        [
+            variant.size,
+            variant.color,
+            variant.color_hex,
+            variant.image_url,
+            variant.is_default,
+            variant.sku_variant,
+            variant.stock_quantity,
+            variant.price_modifier,
+            variant.variant_id
+        ]
+    );
+
+};
+
+export const deleteProductVariant = async (
+    connection,
+    variantId
+) => {
+
+    await connection.query(
+        `
+        DELETE FROM product_variants
+        WHERE variant_id = ?
+        `,
+        [variantId]
+    );
+
+};
+
+export const createProductVariant = async (
+    connection,
+    productId,
+    variant
+) => {
+
+    await connection.query(
+        `
+        INSERT INTO product_variants
+        (
+            product_id,
+            size,
+            color,
+            color_hex,
+            image_url,
+            is_default,
+            sku_variant,
+            stock_quantity,
+            price_modifier
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `,
+        [
+            productId,
+            variant.size,
+            variant.color,
+            variant.color_hex,
+            variant.image_url,
+            variant.is_default ?? false,
+            variant.sku_variant,
+            variant.stock_quantity,
+            variant.price_modifier
+        ]
+    );
 
 };

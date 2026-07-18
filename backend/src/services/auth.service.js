@@ -26,6 +26,69 @@ import {
 
 import { sendResetPasswordEmail } from "../utils/mail.util.js";
 
+import { getSessionById, updateSessionRefreshToken } from "../models/session.model.js";
+import { findUserById } from "../models/user.model.js";
+
+export const refreshTokenService = async ({ sessionId, refreshToken }) => {
+
+    if (!sessionId || !refreshToken) {
+        throw new Error("Refresh token is required.");
+    }
+
+    const session = await getSessionById(sessionId);
+
+    if (!session) {
+        throw new Error("Invalid session.");
+    }
+
+    if (new Date(session.expires_at) < new Date()) {
+        await deleteSession(sessionId);
+        throw new Error("Session expired.");
+    }
+
+    const isValid = await bcrypt.compare(refreshToken, session.refresh_token_hash);
+
+    if (!isValid) {
+        // Token doesn't match what's on record — treat as compromised, kill the session
+        await deleteSession(sessionId);
+        throw new Error("Invalid refresh token.");
+    }
+
+    const user = await findUserById(session.user_id);
+
+    if (!user) {
+        await deleteSession(sessionId);
+        throw new Error("User not found.");
+    }
+
+    const accessToken = generateAccessToken({
+        userId: user.user_id,
+        email: user.email,
+        role: user.role
+    });
+
+    // Rotate the refresh token so a stolen old one becomes useless
+    const newRefreshToken = generateRefreshToken({
+        userId: user.user_id,
+        email: user.email,
+        role: user.role
+    });
+
+    const newRefreshTokenHash = await hashPassword(newRefreshToken);
+
+    await updateSessionRefreshToken(
+        sessionId,
+        newRefreshTokenHash,
+        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+    );
+
+    return {
+        accessToken,
+        refreshToken: newRefreshToken
+    };
+
+};
+
 export const resetPasswordService = async ({
     token,
     password

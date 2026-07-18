@@ -32,6 +32,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import AdminCategories from "./admin/pages/CategoryPage";
 
 import { Toaster } from "react-hot-toast";
+import AdminBrands from "./admin/pages/AdminBrands";
 
 
 function StoreFront() {
@@ -71,6 +72,14 @@ export default function App() {
                 element={
                     <ProtectedRoute>
                         <AdminCategories />
+                    </ProtectedRoute>
+                }
+            />
+            <Route
+                path="/admin/brands"
+                element={
+                    <ProtectedRoute>
+                        <AdminBrands />
                     </ProtectedRoute>
                 }
             />

@@ -1,5 +1,47 @@
 import { signupService,loginService,logoutService,forgotPasswordService,resetPasswordService } from "../services/auth.service.js";
 
+import { refreshTokenService } from "../services/auth.service.js";
+
+export const refresh = async (req, res) => {
+
+    try {
+
+        const sessionId = req.cookies.sessionId;
+        const refreshToken = req.cookies.refreshToken;
+
+        const result = await refreshTokenService({ sessionId, refreshToken });
+
+        res.cookie("refreshToken", result.refreshToken, {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+            maxAge: 30 * 24 * 60 * 60 * 1000
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: "Token refreshed successfully.",
+            data: {
+                accessToken: result.accessToken
+            }
+        });
+
+    } catch (error) {
+
+        console.error("Refresh Error:", error);
+
+        res.clearCookie("refreshToken");
+        res.clearCookie("sessionId");
+
+        return res.status(401).json({
+            success: false,
+            message: error.message || "Could not refresh session."
+        });
+
+    }
+
+};
+
 export const resetPassword = async (req, res) => {
 
     try {

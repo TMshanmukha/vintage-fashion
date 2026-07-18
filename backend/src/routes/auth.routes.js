@@ -1,8 +1,11 @@
 import express from "express";
-import { signup, login, logout,forgotPassword,resetPassword } from "../controllers/auth.controller.js";
+import { signup, login, logout,forgotPassword,resetPassword,refresh } from "../controllers/auth.controller.js";
 import upload from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
+
+// ...
+router.post("/refresh", refresh);
 
 router.post("/signup", (req, res, next) => {
   upload.single("avatar")(req, res, (err) => {

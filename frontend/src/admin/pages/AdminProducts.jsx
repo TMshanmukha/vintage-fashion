@@ -25,6 +25,11 @@ export default function AdminProducts() {
     const [deleteTarget, setDeleteTarget] = useState(null);
     const [totalItems, setTotalItems] = useState(0);
 
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+
+    const LIMIT = 10;
+
     // ===========================
     // Fetch Data
     // ===========================
@@ -35,10 +40,24 @@ export default function AdminProducts() {
 
             setLoading(true);
 
-            const res = await api.get("/products");
+            const res = await api.get("/products", {
+                params: {
+                    page: currentPage,
+                    limit: LIMIT,
+                },
+            });
 
             setProducts(res.data.data.products || []);
-            setTotalItems(res.data.data.totalItems || 0);
+
+            setTotalItems(
+                res.data.pagination?.totalItems ??
+                res.data.data.totalItems ??
+                0
+            );
+
+            setTotalPages(
+                res.data.pagination?.totalPages ?? 1
+            );
 
         }
 
@@ -98,13 +117,13 @@ export default function AdminProducts() {
     };
 
     useEffect(() => {
-
         fetchProducts();
+    }, [currentPage]);
+
+    useEffect(() => {
         fetchCategories();
         fetchBrands();
-
     }, []);
-
     // ===========================
     // Search
     // ===========================
@@ -164,68 +183,59 @@ export default function AdminProducts() {
     // Save
     // ===========================
 
-    const handleSave = async (formData) => {
+    const buildFormData = (data) => {
+        const fd = new FormData();
 
+        fd.append("category_id", data.category_id);
+        fd.append("brand_id", data.brand_id);
+        fd.append("name", data.name);
+        fd.append("description", data.description || "");
+        fd.append("price", data.price);
+
+        if (data.original_price !== "" && data.original_price != null) {
+            fd.append("original_price", data.original_price);
+        }
+        if (data.badge) {
+            fd.append("badge", data.badge);
+        }
+
+        //fd.append("stock_quantity", data.stock_quantity);
+        fd.append("variants", JSON.stringify(data.variants || []));
+
+        if (data.newImages && data.newImages.length > 0) {
+            data.newImages.forEach((file) => fd.append("images", file));
+        } else if (data.existingImages && data.existingImages.length > 0) {
+            fd.append("images", JSON.stringify(data.existingImages));
+        }
+
+        return fd;
+        };
+
+        const handleSave = async (formData) => {
         try {
-
             setSaving(true);
 
+            const fd = buildFormData(formData);
+
             if (editingProduct) {
-
-                await api.put(
-                    `/products/${editingProduct.product_id}`,
-                    formData,
-                    {
-                        headers: {
-                            "Content-Type": "multipart/form-data"
-                        }
-                    }
-                );
-
-                toast.success("Product updated successfully.");
-
-            }
-
-            else {
-
-                await api.post(
-                    "/products",
-                    formData,
-                    {
-                        headers: {
-                            "Content-Type": "multipart/form-data"
-                        }
-                    }
-                );
-
-                toast.success("Product created successfully.");
-
+            // Don't set Content-Type manually — axios needs to generate
+            // the multipart boundary itself for the browser's FormData.
+            await api.put(`/products/${editingProduct.product_id}`, fd);
+            toast.success("Product updated successfully.");
+            } else {
+            await api.post("/products", fd);
+            toast.success("Product created successfully.");
             }
 
             setModalOpen(false);
-
             fetchProducts();
-
-        }
-
-        catch (error) {
-
+        } catch (error) {
             console.error(error);
-
-            toast.error(
-                error.response?.data?.message ||
-                "Failed to save product."
-            );
-
-        }
-
-        finally {
-
+            toast.error(error.response?.data?.message || "Failed to save product.");
+        } finally {
             setSaving(false);
-
         }
-
-    };
+        };
 
     // ===========================
     // Delete
@@ -520,8 +530,11 @@ export default function AdminProducts() {
                               </button>
 
                               <button
-                                  onClick={() => setDeleteTarget(product)}
-                                  className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
+                                  onClick={(e) => {
+                                        e.stopPropagation();
+                                        setDeleteTarget(product);
+                                    }}
+                                    className="rounded-lg p-2 text-gray-500 transition hover:bg-red-50 hover:text-red-600"
                               >
 
                                   🗑️
@@ -586,9 +599,61 @@ export default function AdminProducts() {
 
           </tbody>
 
-      </table>
+        </table>
 
-  </div>
+    </div>
+
+    <div className="mt-6 flex items-center justify-between">
+
+        <p className="text-sm text-gray-500">
+            Showing page {currentPage} of {totalPages}
+        </p>
+
+        <div className="flex items-center gap-2">
+
+            <button
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage((p) => p - 1)}
+                className={`rounded-lg border px-4 py-2 text-sm ${
+                    currentPage === 1
+                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                        : "hover:bg-pink-50"
+                }`}
+            >
+                Previous
+            </button>
+
+            {Array.from({ length: totalPages }, (_, i) => (
+
+                <button
+                    key={i + 1}
+                    onClick={() => setCurrentPage(i + 1)}
+                    className={`h-10 w-10 rounded-lg ${
+                        currentPage === i + 1
+                            ? "bg-pink-500 text-white"
+                            : "border hover:bg-pink-50"
+                    }`}
+                >
+                    {i + 1}
+                </button>
+
+            ))}
+
+            <button
+                disabled={currentPage === totalPages}
+                onClick={() => setCurrentPage((p) => p + 1)}
+                className={`rounded-lg border px-4 py-2 text-sm ${
+                    currentPage === totalPages
+                        ? "cursor-not-allowed bg-gray-100 text-gray-400"
+                        : "hover:bg-pink-50"
+                }`}
+            >
+                Next
+            </button>
+
+        </div>
+
+    </div>
 
         </div>
 

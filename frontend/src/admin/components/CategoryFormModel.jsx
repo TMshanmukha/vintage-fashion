@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
+import { getThumbnail } from "../../utils/cloudinary";
+
 export default function CategoryFormModal({
     open,
     onClose,
@@ -166,7 +168,7 @@ export default function CategoryFormModal({
     return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
 
-        <div className="w-full max-w-lg max-h-[90vh] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col">
+        <div className="w-full max-w-lg max-h-[90vh] rounded-2xl bg-white shadow-2xl flex flex-col">
 
             {/* Header */}
 
@@ -207,6 +209,7 @@ export default function CategoryFormModal({
 
             <form
                 onSubmit={handleSubmit}
+                id="category-form"
                 className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-6"
             >
 
@@ -344,7 +347,11 @@ export default function CategoryFormModal({
                         <div className="overflow-hidden rounded-2xl border border-gray-200">
 
                             <img
-                                src={preview}
+                                src={
+                                    preview?.startsWith("blob:")
+                                        ? preview
+                                        : getThumbnail(preview)
+                                }
                                 alt="Preview"
                                 className="h-64 w-full object-cover"
                             />
@@ -355,11 +362,7 @@ export default function CategoryFormModal({
 
                 )}
 
-                
-
-            </form>
-
-            {/* Footer */}
+                {/* Footer */}
 
                 <div className="flex items-center justify-center gap-4 border-t border-gray-200 bg-white px-6 py-5">
 
@@ -374,6 +377,7 @@ export default function CategoryFormModal({
 
                     <button
                         type="submit"
+                        id="category-form"
                         disabled={saving}
                         className="flex items-center gap-2 rounded-xl bg-pink-500 px-6 py-3 font-semibold text-white transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-60"
                     >
@@ -391,6 +395,10 @@ export default function CategoryFormModal({
                     </button>
 
                 </div>
+
+            </form>
+
+            
 
         </div>
 

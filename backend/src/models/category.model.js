@@ -15,7 +15,6 @@ export const getAllCategories = async () => {
             created_at,
             updated_at
         FROM categories
-        WHERE is_active = TRUE
         ORDER BY sort_order ASC, name ASC
         `
     );
@@ -23,34 +22,62 @@ export const getAllCategories = async () => {
     return rows;
 };
 
-export const getCategoryByName = async (name) => {
+export const getCategoryByName = async (
+    name,
+    excludeCategoryId = null
+) => {
 
-    const [rows] = await pool.query(
-        `
+    let query = `
         SELECT category_id
         FROM categories
         WHERE LOWER(name)=LOWER(?)
-        LIMIT 1
-        `,
-        [name]
-    );
+    `;
 
-    return rows[0];
+    const params = [name];
+
+    if (excludeCategoryId) {
+
+        query += " AND category_id != ?";
+
+        params.push(excludeCategoryId);
+
+    }
+
+    query += " LIMIT 1";
+
+    const [rows] = await pool.query(query, params);
+
+    return rows[0] || null;
+
 };
 
-export const getCategoryBySlug = async (slug) => {
+export const getCategoryBySlug = async (
+    slug,
+    excludeCategoryId = null
+) => {
 
-    const [rows] = await pool.query(
-        `
+    let query = `
         SELECT category_id
         FROM categories
-        WHERE slug=?
-        LIMIT 1
-        `,
-        [slug]
-    );
+        WHERE slug = ?
+    `;
 
-    return rows[0];
+    const params = [slug];
+
+    if (excludeCategoryId) {
+
+        query += " AND category_id != ?";
+
+        params.push(excludeCategoryId);
+
+    }
+
+    query += " LIMIT 1";
+
+    const [rows] = await pool.query(query, params);
+
+    return rows[0] || null;
+
 };
 
 export const createCategory = async (category) => {
@@ -89,12 +116,87 @@ export const getCategoryById = async (categoryId) => {
         SELECT *
         FROM categories
         WHERE category_id = ?
-        AND is_active = TRUE
         LIMIT 1
         `,
         [categoryId]
     );
 
     return rows[0] || null;
+
+};
+
+export const updateCategory = async (categoryId, category) => {
+
+    const [result] = await pool.query(
+        `
+        UPDATE categories
+        SET
+            name = ?,
+            slug = ?,
+            image_url = ?,
+            description = ?,
+            updated_at = NOW()
+        WHERE category_id = ?
+        `,
+        [
+            category.name,
+            category.slug,
+            category.image_url,
+            category.description,
+            categoryId
+        ]
+    );
+
+    return result.affectedRows;
+
+};
+
+export const softDeleteCategory = async (categoryId) => {
+
+    const [result] = await pool.query(
+        `
+        UPDATE categories
+        SET
+            is_active = FALSE,
+            updated_at = NOW()
+        WHERE category_id = ?
+        `,
+        [categoryId]
+    );
+
+    return result.affectedRows;
+
+};
+
+export const getActiveProductCountByCategory = async (categoryId) => {
+
+    const [rows] = await pool.query(
+        `
+        SELECT COUNT(*) AS total
+        FROM products
+        WHERE category_id = ?
+        AND is_active = TRUE
+        `,
+        [categoryId]
+    );
+
+    return rows[0].total;
+
+};
+
+export const restoreCategory = async (categoryId) => {
+
+    const [result] = await pool.query(
+        `
+        UPDATE categories
+        SET
+            is_active = TRUE,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE category_id = ?
+        `,
+        [categoryId]
+    );
+
+    return result.affectedRows;
 
 };
