@@ -19,7 +19,7 @@ import Collection from "./pages/Collection";
 import AdminRoot from "./admin/pages/AdminRoot";
 import AdminDashboard from "./admin/pages/AdminDashboard";
 import AdminProducts from "./admin/pages/AdminProducts";
-import AdminOffers from "./admin/pages/AdminOffers";
+import AdminMarketing from "./admin/pages/AdminMarketing";
 import AdminUsers from "./admin/pages/AdminUsers";
 import AdminNotifications from "./admin/pages/AdminNotifications";
 import AdminEmails from "./admin/pages/AdminEmails";
@@ -33,7 +33,6 @@ import AdminCategories from "./admin/pages/CategoryPage";
 
 import { Toaster } from "react-hot-toast";
 import AdminBrands from "./admin/pages/AdminBrands";
-
 
 function StoreFront() {
   return (
@@ -84,7 +83,7 @@ export default function App() {
                 }
             />
             <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
-            <Route path="/admin/offers" element={<ProtectedRoute><AdminOffers /></ProtectedRoute>} />
+            <Route path="/admin/offers" element={<ProtectedRoute><AdminMarketing /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/notifications" element={<ProtectedRoute><AdminNotifications /></ProtectedRoute>} />
             <Route path="/admin/emails" element={<ProtectedRoute><AdminEmails /></ProtectedRoute>} />
