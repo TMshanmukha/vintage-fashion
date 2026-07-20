@@ -1,9 +1,24 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { useSiteData } from "../../hooks/useSiteData";
+import { getNotifications } from "../../api/notificationApi";
 
 export default function AdminTopbar({ title, subtitle }) {
-  const { notifications } = useSiteData();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  useEffect(() => {
+    const loadUnreadCount = async () => {
+      try {
+        const notifications = await getNotifications();
+        setUnreadCount(notifications.filter((n) => !n.is_read).length);
+      } catch (err) {
+        console.error(err);
+      }
+    };
+
+    loadUnreadCount();
+    const interval = setInterval(loadUnreadCount, 30000); // poll every 30s
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <header className="bg-white border-b border-gray-100 px-8 py-5 flex items-center justify-between sticky top-0 z-10">

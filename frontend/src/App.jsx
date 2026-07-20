@@ -23,6 +23,7 @@ import AdminMarketing from "./admin/pages/AdminMarketing";
 import AdminUsers from "./admin/pages/AdminUsers";
 import AdminNotifications from "./admin/pages/AdminNotifications";
 import AdminEmails from "./admin/pages/AdminEmails";
+import AdminOrders from "./admin/pages/AdminOrders";
 import AuthPage from "./pages/AuthPage";
 import LikedClothesPage from "./pages/LikedClothesPage";
 import MyAccountPage from "./pages/MyAccountPage";
@@ -83,6 +84,7 @@ export default function App() {
                 }
             />
             <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
+            <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
             <Route path="/admin/offers" element={<ProtectedRoute><AdminMarketing /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/notifications" element={<ProtectedRoute><AdminNotifications /></ProtectedRoute>} />
