@@ -18,6 +18,8 @@ import {
   deleteBrandSchema
 } from "../validators/brand.validator.js";
 
+import * as NotificationService from "./notificationService.js";
+
 export const getBrandsService = async (query) => {
   const filters = getBrandsSchema.parse(query);
   const offset = (filters.page - 1) * filters.limit;
@@ -50,7 +52,17 @@ export const createBrandService = async (body) => {
   validated.slug = slugify(validated.name, { lower: true, strict: true });
 
   const brandId = await createBrand(validated);
-  return await getBrandById(brandId);
+
+  const brandID = await getBrandById(brandId);
+
+  await NotificationService.createNotification({
+      title: "Brand Added",
+      body: `${brand_name} was added.`,
+      type: "content",
+      referenceId: brandID
+  });
+
+  return brandID;
 };
 
 export const updateBrandService = async (params, body) => {
@@ -70,7 +82,16 @@ export const updateBrandService = async (params, body) => {
   }
 
   await updateBrand(parsed);
-  return await getBrandById(parsed.brand_id);
+
+  const brandID = await getBrandById(parsed.brand_id);
+  await NotificationService.createNotification({
+      title: "Brand Updated",
+      body: `${brand_name} was updated.`,
+      type: "content",
+      referenceId: brandID
+  });
+
+  return brandID;
 };
 
 export const deleteBrandService = async (params) => {
@@ -80,4 +101,11 @@ export const deleteBrandService = async (params) => {
   if (!existing) throw new Error("Brand not found.");
 
   await softDeleteBrand(brand_id);
+
+  await NotificationService.createNotification({
+      title: "Brand Deleted",
+      body: `${brand_name} was removed.`,
+      type: "content",
+      referenceId: existing
+  });
 };

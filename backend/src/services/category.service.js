@@ -13,6 +13,8 @@ import {
 import { createCategorySchema } from "../validators/category.validator.js";
 import { generateSlug } from "../utils/slug.js";
 
+import * as NotificationService from "./notificationService.js";
+
 export const getCategoriesService = async () => {
     const categories = await getAllCategories();
 
@@ -52,6 +54,13 @@ export const createCategoryService = async (categoryData) => {
     };
 
     const insertId = await createCategory(category);
+
+    await NotificationService.createNotification({
+        title: "Category Added",
+        body: `${name} category was created.`,
+        type: "content",
+        referenceId: insertId
+    });
 
     return {
         category_id: insertId,
@@ -119,6 +128,13 @@ export const updateCategoryService = async (
         updatedCategory
     );
 
+    await NotificationService.createNotification({
+        title: "Category Updated",
+        body: `${name} category was updated.`,
+        type: "content",
+        referenceId: categoryId
+    });
+
     return {
         category_id: categoryId,
         ...updatedCategory
@@ -146,6 +162,13 @@ export const deleteCategoryService = async (categoryId) => {
     }
 
     await softDeleteCategory(categoryId);
+
+    await NotificationService.createNotification({
+        title: "Category Deleted",
+        body: `${categoryName} category was removed.`,
+        type: "content",
+        referenceId: categoryId
+    });
 
 };
 

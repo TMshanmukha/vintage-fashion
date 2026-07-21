@@ -36,6 +36,8 @@ import {
 import { getCategoryById } from "../models/category.model.js";
 import { getBrandById } from "../models/brand.model.js";
 
+import * as NotificationService from "./notificationService.js";
+
 export const deleteProductService = async (params) => {
 
     const connection = await pool.getConnection();
@@ -63,6 +65,13 @@ export const deleteProductService = async (params) => {
         );
 
         await connection.commit();
+
+        await NotificationService.createNotification({
+            title: "Product Removed",
+            body: `${product.name} was removed.`,
+            type: "product",
+            referenceId: productId
+        });
 
         return;
 
@@ -207,6 +216,13 @@ export const updateProductService = async (params, body) => {
                     connection,
                     variant.variant_id
                 );
+
+                await NotificationService.createNotification({
+                    title: "Product Updated",
+                    body: `${body.name} was updated.`,
+                    type: "product",
+                    referenceId: productId
+                });
 
             }
 
@@ -360,6 +376,13 @@ export const createProductService = async (productData, files) => {
             connection,
             validatedData
         );
+
+        await NotificationService.createNotification({
+            title: "Product Added",
+            body: `${productData.name} was added successfully.`,
+            type: "product",
+            referenceId: productId
+        });
 
         // Generate Product SKU
         const productSku = generateSku(productId);

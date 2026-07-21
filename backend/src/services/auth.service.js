@@ -29,6 +29,8 @@ import { sendResetPasswordEmail } from "../utils/mail.util.js";
 import { getSessionById, updateSessionRefreshToken } from "../models/session.model.js";
 import { findUserById } from "../models/user.model.js";
 
+import * as NotificationService from "./notificationService.js";
+
 export const refreshTokenService = async ({ sessionId, refreshToken }) => {
 
     if (!sessionId || !refreshToken) {
@@ -261,6 +263,13 @@ export const signupService = async ({
     });
 
     const userId = result.insertId;
+
+     await NotificationService.createNotification({
+        title: "New User Registered",
+        body: `${name} created a new account.`,
+        type: "user",
+        referenceId: userId
+    });
 
     // 4. Generate Tokens
 
