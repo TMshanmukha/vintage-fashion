@@ -1,9 +1,4 @@
-import axios from "axios";
-
-const API = axios.create({
-    baseURL: "http://localhost:5000/api",
-    withCredentials: true
-});
+import API from "./AdminApi";
 
 export const getFlashSales = () => API.get("/admin/marketing/flash-sales");
 

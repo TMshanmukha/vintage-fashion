@@ -1,4 +1,4 @@
-import axiosAdmin from "./axiosAdmin";
+import axiosAdmin from "./AdminApi";
 
 export const getCustomers = async () => {
     const { data } = await axiosAdmin.get("/admin/users");

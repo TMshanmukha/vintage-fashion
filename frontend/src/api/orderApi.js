@@ -1,4 +1,4 @@
-import axiosAdmin from "./axiosAdmin";
+import axiosAdmin from "./AdminApi";
 
 export const getOrders = async (params = {}) => {
     const { data } = await axiosAdmin.get("/admin/orders", { params });

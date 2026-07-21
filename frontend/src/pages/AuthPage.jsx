@@ -98,36 +98,36 @@ export default function AuthPage() {
   };
 
   const handleSubmit = async (event) => {
-    event.preventDefault();
-    setLoading(true);
+  event.preventDefault();
 
-    try {
-      if (isLogin) {
-        const response = await login({
-          email: form.email,
-          password: form.password,
-        });
-        saveLoggedInUser(response);
-        toast.success("Welcome back", toastOptions);
-        navigate("/account");
-        return;
-      }
-      await signup(createSignupPayload());
+  setLoading(true);
 
-      const loginResponse = await login({
-        email: form.email,
-        password: form.password,
-      });
+  try {
 
-      saveLoggedInUser(loginResponse);
-      toast.success("Account created successfully", toastOptions);
-      navigate("/account");
-    } catch (err) {
-      toast.error(getFriendlyError(err), toastOptions);
-    } finally {
-      setLoading(false);
-    }
-  };
+
+    const response = await login({
+      email: form.email,
+      password: form.password,
+    });
+
+    
+
+    saveLoggedInUser(response);
+
+    navigate("/account");
+    toast.success("Welcome back");
+
+  } catch (err) {
+
+    console.log("ERROR");
+    console.log(err);
+
+  } finally {
+
+    setLoading(false);
+
+  }
+};
 
   return (
     <>

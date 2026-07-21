@@ -1,4 +1,4 @@
-import axiosAdmin from "./axiosAdmin";
+import axiosAdmin from "./AdminApi";
 
 export const sendBulkEmail = async ({ subject, body }) => {
     const { data } = await axiosAdmin.post("/admin/emails/send", {

@@ -1,12 +1,4 @@
-import axios from "axios";
-import { attachAuthInterceptors } from "../utils/authInterceptor";
-
-const api = axios.create({
-    baseURL: "http://localhost:5000/api",
-    withCredentials: true
-});
-
-attachAuthInterceptors(api);
+import api from "./AdminApi";
 
 // GET /api/products?search=&page=&limit=&category=
 export const getProducts = async (params = {}) => {

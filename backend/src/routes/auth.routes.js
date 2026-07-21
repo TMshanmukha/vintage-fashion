@@ -1,5 +1,17 @@
 import express from "express";
-import { signup, login, logout,forgotPassword,resetPassword,refresh } from "../controllers/auth.controller.js";
+import {
+    signup,
+    login,
+    logout,
+    refresh,
+    forgotPassword,
+    resetPassword,
+
+    adminLogin,
+    adminLogout,
+    adminRefresh
+
+} from "../controllers/auth.controller.js";
 import upload from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
@@ -27,5 +39,11 @@ router.post( "/logout",logout);
 router.post("/forgot-password", forgotPassword);
 
 router.post("/reset-password", resetPassword);
+
+router.post("/admin/login", adminLogin);
+
+router.post("/admin/logout", adminLogout);
+
+router.post("/admin/refresh", adminRefresh);
 
 export default router;

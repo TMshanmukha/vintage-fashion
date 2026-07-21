@@ -71,14 +71,13 @@ const statusStyles = {
 
 
 export default function MyAccountPage() {
-  const auth = useAuth();
+ 
   const navigate = useNavigate();
 
   const {
-    user,
-    setUser,
-    setAccessToken
-} = useAuth();
+      user,
+      logoutLocal
+  } = useAuth();
 
   const [orders, setOrders] = useState(demoOrders);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -94,21 +93,19 @@ export default function MyAccountPage() {
     return <Navigate to="/auth" replace />;
   }
 
-  const handleLogout = async()=>{
-    console.log("logout function");
-      try{
-          await logout();
-          localStorage.removeItem("user");
-          localStorage.removeItem("accessToken");
+  const handleLogout = async () => {
+      try {
 
-          setUser(null);
-          setAccessToken(null);
+          await logout();
+
+          logoutLocal();
 
           navigate("/auth", { replace: true });
-      }catch(error){
+
+      } catch (error) {
           console.log(error);
       }
-  }
+  };
 
   const handleCancelOrder = (order) => {
     const confirmed = window.confirm(`Do you want to cancel order ${order.id}?`);

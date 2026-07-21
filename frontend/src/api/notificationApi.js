@@ -1,4 +1,4 @@
-import axiosAdmin from "./axiosAdmin";
+import axiosAdmin from "./AdminApi";
 
 export const getNotifications = async () => {
     const { data } = await axiosAdmin.get("/admin/notifications");

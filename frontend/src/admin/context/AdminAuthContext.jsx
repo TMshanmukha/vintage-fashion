@@ -1,9 +1,11 @@
 import { createContext, useContext, useState } from "react";
 import axios from "axios";
 
+
 const AdminAuthContext = createContext();
 
 export function AdminAuthProvider({ children }) {
+
 
     const [admin, setAdmin] = useState(() => {
 
@@ -49,22 +51,7 @@ export function AdminAuthProvider({ children }) {
 
     };
 
-    const logout = async () => {
-       try {
-
-            await axios.post(
-                "http://localhost:5000/api/auth/logout",
-                {},
-                {
-                    withCredentials: true
-                }
-            );
-
-        } catch (error) {
-
-            console.error(error);
-
-        }
+    const logoutLocal = () => {
 
         setAdmin(null);
 
@@ -75,8 +62,26 @@ export function AdminAuthProvider({ children }) {
         localStorage.removeItem("admin");
 
         localStorage.removeItem("adminAccessToken");
-      
-    }
+
+    };
+
+    const logout = async () => {
+        try {
+            await axios.post(
+                "http://localhost:5000/api/auth/admin/logout",
+                {},
+                {
+                    withCredentials: true
+                }
+            );
+        } catch (error) {
+            console.error(error);
+        }
+
+        logoutLocal();
+    };
+
+    
 
     return (
         <AdminAuthContext.Provider
@@ -85,7 +90,8 @@ export function AdminAuthProvider({ children }) {
                 accessToken,
                 isAuthenticated,
                 login,
-                logout
+                logout,
+                logoutLocal
             }}
         >
             {children}

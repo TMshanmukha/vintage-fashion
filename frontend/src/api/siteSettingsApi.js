@@ -1,11 +1,6 @@
-import axios from "axios";
-
-const API = axios.create({
-    baseURL: "http://localhost:5000/api",
-    withCredentials: true
-});
+import API from "./AdminApi";
 
 export const getSiteSettings = () => API.get("/admin/marketing/settings");
 
 export const updateSiteSettings = (data) =>
-  API.patch("/admin/marketing/settings", data);
+    API.patch("/admin/marketing/settings", data);

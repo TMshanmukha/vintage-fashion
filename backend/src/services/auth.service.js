@@ -76,15 +76,21 @@ export const refreshTokenService = async ({ sessionId, refreshToken }) => {
 
     const newRefreshTokenHash = await hashPassword(newRefreshToken);
 
+    const sessionDuration =
+        user.role === "admin"
+            ? 8 * 60 * 60 * 1000
+            : 30 * 24 * 60 * 60 * 1000;
+
     await updateSessionRefreshToken(
         sessionId,
         newRefreshTokenHash,
-        new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+        new Date(Date.now() + sessionDuration)
     );
 
     return {
         accessToken,
-        refreshToken: newRefreshToken
+        refreshToken: newRefreshToken,
+        role: user.role
     };
 
 };
@@ -353,22 +359,18 @@ export const loginService = async ({
 
     const sessionId =  uuidv4();
 
+    const sessionDuration =
+        user.role === "admin"
+            ? 8 * 60 * 60 * 1000
+            : 30 * 24 * 60 * 60 * 1000;
+
     await createSession({
-
         session_id: sessionId,
-
         userId: user.user_id,
-
         refreshTokenHash,
-
         userAgent,
-
         ipAddress,
-
-        expiresAt: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000
-        )
-
+        expiresAt: new Date(Date.now() + sessionDuration)
     });
 
     return {
