@@ -13,10 +13,23 @@ import orderRoutes from "./routes/orderRoutes.js";
 
 const app = express();
 
-app.use(cors({
-    origin: "http://localhost:5173",
-    credentials: true
-}));
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://10.174.123.209:5173",
+];
+
+app.use(
+    cors({
+        origin: function (origin, callback) {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
+        credentials: true,
+    })
+);
 app.use(cookieParser());
 app.use(express.json());
 
