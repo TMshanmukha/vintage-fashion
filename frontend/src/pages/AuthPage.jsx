@@ -47,6 +47,9 @@ export default function AuthPage() {
       case "Invalid email or password":
         return "Incorrect email or password.";
 
+      case "Your account has been blocked by admin":
+        return "Your account has been blocked by the admin. Please contact support.";
+
       case "Network Error":
         return "No Internet Connection.";
 

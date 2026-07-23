@@ -10,12 +10,12 @@ import adminUserRoutes from "./routes/adminUserRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import emailRoutes from "./routes/emailRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
+import myOrderRoutes from "./routes/customerOrder.routes.js";
 
 const app = express();
 
 const allowedOrigins = [
     "http://localhost:5173",
-    "http://10.174.123.209:5173",
 ];
 
 app.use(
@@ -47,5 +47,6 @@ app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/notifications", notificationRoutes);
 app.use("/api/admin/emails", emailRoutes);
 app.use("/api/admin/orders", orderRoutes);
+app.use("/api/orders", myOrderRoutes);
 
 export default app;

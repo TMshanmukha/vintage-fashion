@@ -144,3 +144,33 @@ export const getOrderStats = async () => {
 
     return stats;
 };
+
+export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) => {
+  const offset = (page - 1) * limit;
+ 
+  const [rows] = await pool.query(
+    `SELECT order_id, order_number, subtotal, discount_amount, shipping_fee,
+            tax_amount, total_amount, order_status, payment_status, ordered_at
+     FROM orders
+     WHERE user_id = ?
+     ORDER BY ordered_at DESC
+     LIMIT ? OFFSET ?`,
+    [userId, Number(limit), Number(offset)]
+  );
+ 
+  const [[{ total }]] = await pool.query(
+    `SELECT COUNT(*) AS total FROM orders WHERE user_id = ?`,
+    [userId]
+  );
+ 
+  return { rows, total };
+};
+ 
+// Confirms the order belongs to this user before letting them touch it
+export const getOrderOwnedByUser = async (orderId, userId) => {
+  const [rows] = await pool.query(
+    `SELECT order_id, order_status, user_id FROM orders WHERE order_id = ? AND user_id = ?`,
+    [orderId, userId]
+  );
+  return rows[0] || null;
+};

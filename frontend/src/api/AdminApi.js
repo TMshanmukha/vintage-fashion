@@ -2,7 +2,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 const API = axios.create({
-    baseURL: "http://10.174.123.209:5000/api",
+    baseURL: "http://localhost:5000/api",
     withCredentials: true
 });
 
@@ -110,8 +110,8 @@ API.interceptors.response.use(
 
                 window.location.href = "/admin";
                 toast.error(
-                            "Your session has expired. Please log in again."
-                        );
+                    "Your session has expired. Please log in again."
+                );
 
                 return Promise.reject(refreshError);
 

@@ -2,16 +2,19 @@ import { v4 as uuidv4 } from "uuid";
 
 import {
     findUserByEmail,
-    createUser} from "../models/user.model.js";
+    createUser
+} from "../models/user.model.js";
 
-import {createSession,deleteSession} from "../models/session.model.js";
+import { createSession, deleteSession } from "../models/session.model.js";
 
 import {
-    hashPassword,comparePassword } from "../utils/hash.js";
+    hashPassword, comparePassword
+} from "../utils/hash.js";
 
 import {
     generateAccessToken,
-    generateRefreshToken } from "../utils/jwt.js";
+    generateRefreshToken
+} from "../utils/jwt.js";
 
 import crypto from "crypto";
 import bcrypt from "bcrypt";
@@ -112,7 +115,7 @@ export const resetPasswordService = async ({
 
     for (const reset of resetTokens) {
 
-       console.log("Checking token:", reset.reset_id);
+        console.log("Checking token:", reset.reset_id);
 
         const matched = await bcrypt.compare(
             token,
@@ -176,7 +179,7 @@ export const forgotPasswordService = async (email) => {
         return;
     }
 
-    const token =crypto.randomBytes(32).toString("hex");
+    const token = crypto.randomBytes(32).toString("hex");
 
     const tokenHash = await hashPassword(token);
 
@@ -187,8 +190,8 @@ export const forgotPasswordService = async (email) => {
     const expiresAt = new Date(
         Date.now() + 15 * 60 * 1000
     );
-    
-    const result =await createPasswordReset({
+
+    const result = await createPasswordReset({
 
         userId: user.user_id,
 
@@ -264,7 +267,7 @@ export const signupService = async ({
 
     const userId = result.insertId;
 
-     await NotificationService.createNotification({
+    await NotificationService.createNotification({
         title: "New User Registered",
         body: `${name} created a new account.`,
         type: "user",
@@ -287,7 +290,7 @@ export const signupService = async ({
 
     // 5. Create Session
 
-    const sessionId =  uuidv4();
+    const sessionId = uuidv4();
 
     await createSession({
         session_id: sessionId,
@@ -339,6 +342,10 @@ export const loginService = async ({
         throw new Error("Invalid email or password");
     }
 
+    if (user.account_status === "BLOCKED") {
+        throw new Error("Your account has been blocked by admin");
+    }
+
     // Compare password
     const isMatch = await comparePassword(
         password,
@@ -366,7 +373,7 @@ export const loginService = async ({
 
     // Save Session
 
-    const sessionId =  uuidv4();
+    const sessionId = uuidv4();
 
     const sessionDuration =
         user.role === "admin"
@@ -395,8 +402,8 @@ export const loginService = async ({
             phone: user.phone,
 
             avatarUrl: user.avatar_url,
-            
-            role:user.role,
+
+            role: user.role,
 
         },
 
