@@ -261,7 +261,7 @@ export default function AdminDashboard() {
             <p className="text-sm font-bold mb-1">+ Add New Product</p>
             <p className="text-xs text-gray-400">List a new item in your catalog</p>
           </Link>
-          <Link to="/admin/marketing" className="bg-pink-500 text-white rounded-xl p-6 hover:bg-pink-600 transition-colors">
+          <Link to="/admin/offers" className="bg-pink-500 text-white rounded-xl p-6 hover:bg-pink-600 transition-colors">
             <p className="text-sm font-bold mb-1">Update Homepage Offer</p>
             <p className="text-xs text-pink-100">Edit banners, cards and flash sales</p>
           </Link>

@@ -5,9 +5,8 @@ import { getBanners } from "../../api/marketingApi";
 // Fixed curated backdrop — always rotates regardless of admin banner count.
 const HERO_IMAGES = [
   "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=1600&h=800&fit=crop", // menswear rack
-  "https://images.unsplash.com/photo-1490114538077-0a7f8cb49891?w=1600&h=800&fit=crop", // vintage denim
   "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1600&h=800&fit=crop", // clothing store interior
-  "https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1600&h=800&fit=crop", // fashion model street style
+  "https://images.unsplash.com/photo-1562263689-1001cf97d149?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // fashion model street style
   "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1600&h=800&fit=crop", // vintage jacket flatlay
 ];
 

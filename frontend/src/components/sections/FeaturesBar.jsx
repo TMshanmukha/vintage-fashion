@@ -30,7 +30,7 @@ const features = [
 
 export default function FeaturesBar() {
   return (
-    <section className="border-b border-gray-100">
+    <section>
       <div className="max-w-7xl mx-auto px-6">
         <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100">
           {features.map((f) => (
