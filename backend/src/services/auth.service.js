@@ -342,6 +342,10 @@ export const loginService = async ({
         throw new Error("Invalid email or password");
     }
 
+    if (user.role !== "customer") {
+        throw new Error("Admin cannot login here");
+    }
+
     if (user.account_status === "BLOCKED") {
         throw new Error("Your account has been blocked by admin");
     }
@@ -411,6 +415,84 @@ export const loginService = async ({
 
         refreshToken,
 
+        sessionId
+    };
+
+};
+
+export const adminLoginService = async ({
+ email,
+ password,
+ userAgent,
+ ipAddress
+}) => {
+
+    const user = await findUserByEmail(email);
+
+
+    if(!user){
+        throw new Error("Invalid email or password");
+    }
+
+
+    if(user.role !== "admin"){
+        throw new Error("Only admins can login here");
+    }
+
+
+    const isMatch = await comparePassword(
+        password,
+        user.password_hash
+    );
+
+
+    if(!isMatch){
+        throw new Error("Invalid email or password");
+    }
+
+
+    const accessToken = generateAccessToken({
+        userId:user.user_id,
+        email:user.email,
+        role:user.role
+    });
+
+
+    const refreshToken = generateRefreshToken({
+        userId:user.user_id,
+        email:user.email,
+        role:user.role
+    });
+
+
+    const refreshTokenHash =
+        await hashPassword(refreshToken);
+
+
+    const sessionId = uuidv4();
+
+
+    await createSession({
+        session_id:sessionId,
+        userId:user.user_id,
+        refreshTokenHash,
+        userAgent,
+        ipAddress,
+        expiresAt:new Date(
+            Date.now()+8*60*60*1000
+        )
+    });
+
+
+    return {
+        user:{
+            id:user.user_id,
+            name:user.name,
+            email:user.email,
+            role:user.role
+        },
+        accessToken,
+        refreshToken,
         sessionId
     };
 

@@ -19,6 +19,8 @@ export const listOrders = async (req, res) => {
 };
 
 export const getOrder = async (req, res) => {
+    console.log("===== GET MY ORDERS =====");
+    console.log("req.user =", req.user);
     try {
         const { orderId } = req.params;
 
@@ -34,11 +36,12 @@ export const getOrder = async (req, res) => {
 
 // body: { status }
 export const changeOrderStatus = async (req, res) => {
+
     try {
         const { orderId } = req.params;
         const { status } = req.body;
 
-        const valid = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "returned"];
+        const valid = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "return_requested", "returned"];
         if (!valid.includes(status)) {
             return res.status(400).json({ message: "Invalid order status." });
         }
@@ -47,9 +50,15 @@ export const changeOrderStatus = async (req, res) => {
         if (!order) return res.status(404).json({ message: "Order not found." });
 
         res.json({ message: "Order status updated." });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Failed to update order status." });
+    } catch (error) {
+
+        console.error("Update Order Status Error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "We couldn't update the order status right now. Please try again in a moment."
+        });
+
     }
 };
 
@@ -73,11 +82,11 @@ export const changePaymentStatus = async (req, res) => {
 };
 
 export const getStats = async (req, res) => {
-    try {
-        const stats = await OrderService.getStats();
-        res.json({ stats });
-    } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Failed to fetch order stats." });
-    }
+  try {
+    const stats = await OrderService.getStats();
+    res.json(stats); // fixed: was res.json({ stats })
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Failed to fetch order stats." });
+  }
 };

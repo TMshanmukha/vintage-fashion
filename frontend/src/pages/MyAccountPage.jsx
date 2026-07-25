@@ -17,14 +17,18 @@ const statusStyles = {
   Shipped: "bg-blue-50 text-blue-700 border-blue-200",
   Delivered: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Cancelled: "bg-gray-100 text-gray-600 border-gray-200",
+  "Return requested": "bg-pink-50 text-pink-700 border-pink-200",
   Returned: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
 const CANCELLABLE = ["pending", "confirmed", "processing"];
 const RETURNABLE = ["delivered"];
+const RETURN_PENDING = ["return_requested"];
 
 const toDisplayStatus = (status) =>
-  status ? status.charAt(0).toUpperCase() + status.slice(1) : "Pending";
+  status
+    ? status.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")
+    : "Pending";
 
 const formatINR = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -53,8 +57,6 @@ export default function MyAccountPage() {
       try {
         setLoading(true);
         const response = await getMyOrders({ limit: 50 });
-
-        console.log("getMyOrders response:", response);
 
         const { orders: fetched } = response;
         if (!cancelled) setOrders(fetched || []);
@@ -135,14 +137,24 @@ export default function MyAccountPage() {
   };
 
   const handleReturnOrder = async (order) => {
+    const confirmed = window.confirm(
+      `Request a return for order #${order.order_number || order.order_id}?`
+    );
+    if (!confirmed) return;
+
     try {
       await requestReturn(order.order_id);
+      // Goes to "return_requested" first — an admin reviews it before it's marked "returned".
       setOrders((current) =>
         current.map((o) =>
-          o.order_id === order.order_id ? { ...o, order_status: "returned" } : o
+          o.order_id === order.order_id ? { ...o, order_status: "return_requested" } : o
         )
       );
-      setMessage(`Return requested for order #${order.order_number || order.order_id}.`);
+      setSelectedOrder(null);
+      setOrderDetail(null);
+      setMessage(
+        `Return requested for order #${order.order_number || order.order_id}. We'll review it shortly.`
+      );
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Couldn't request a return.");
@@ -212,6 +224,7 @@ export default function MyAccountPage() {
                 const displayStatus = toDisplayStatus(order.order_status);
                 const canCancel = CANCELLABLE.includes(order.order_status);
                 const canReturn = RETURNABLE.includes(order.order_status);
+                const returnPending = RETURN_PENDING.includes(order.order_status);
 
                 return (
                   <article key={order.order_id} className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
@@ -252,6 +265,11 @@ export default function MyAccountPage() {
                           >
                             Return item
                           </button>
+                        )}
+                        {returnPending && (
+                          <span className="rounded-md border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-bold text-pink-500">
+                            Return pending review
+                          </span>
                         )}
                       </div>
                     </div>
@@ -342,6 +360,11 @@ export default function MyAccountPage() {
                       >
                         Request return
                       </button>
+                    )}
+                    {RETURN_PENDING.includes(selectedOrder.order_status) && (
+                      <p className="w-full rounded-md bg-pink-50 px-4 py-3 text-center text-sm font-bold text-pink-500">
+                        Return pending review
+                      </p>
                     )}
                   </div>
                 </>

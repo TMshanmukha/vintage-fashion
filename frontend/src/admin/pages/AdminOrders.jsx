@@ -4,7 +4,7 @@ import AdminTopbar from "../components/AdminTopbar";
 import toast from "react-hot-toast";
 import { getOrders, updateOrderStatus, updatePaymentStatus, getOrderStats } from "../../api/orderApi";
 
-const ORDER_STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "returned"];
+
 const PAYMENT_STATUSES = ["pending", "success", "failed", "refunded"];
 
 // Only these forward moves are allowed from a given status — plus the current
@@ -13,12 +13,15 @@ const PAYMENT_STATUSES = ["pending", "success", "failed", "refunded"];
 // here is manual (you hand the parcel to the post office yourself) and the
 // status should always reflect a truthful, ordered history rather than
 // whatever an admin clicks.
+const ORDER_STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "return_requested", "returned"];
+
 const ALLOWED_NEXT_STATUSES = {
   pending: ["pending", "confirmed", "cancelled"],
   confirmed: ["confirmed", "processing", "cancelled"],
   processing: ["processing", "shipped", "cancelled"],
   shipped: ["shipped", "delivered"],
-  delivered: ["delivered", "returned"],
+  delivered: ["delivered", "return_requested"],
+  return_requested: ["return_requested", "returned", "delivered"], // approve -> returned, reject -> back to delivered
   cancelled: ["cancelled"],
   returned: ["returned"],
 };
@@ -30,7 +33,8 @@ const orderStatusStyles = {
   shipped: "bg-indigo-50 text-indigo-600",
   delivered: "bg-green-50 text-green-600",
   cancelled: "bg-red-50 text-red-500",
-  returned: "bg-gray-100 text-gray-600"
+  return_requested: "bg-pink-50 text-pink-600",
+  returned: "bg-gray-100 text-gray-600",
 };
 
 const paymentStatusStyles = {
@@ -89,9 +93,9 @@ export default function AdminOrders() {
   const handleOrderStatusChange = async (order, newStatus) => {
     if (newStatus === order.order_status) return;
 
-    if (newStatus === "cancelled" || newStatus === "delivered" || newStatus === "returned") {
+    if (["cancelled", "delivered", "returned", "return_requested"].includes(newStatus)) {
       const confirmed = window.confirm(
-        `Mark order #${order.order_number} as "${newStatus}"? This can't be easily undone.`
+        `Mark order #${order.order_number} as "${newStatus.replace("_", " ")}"? This can't be easily undone.`
       );
       if (!confirmed) return;
     }
@@ -106,6 +110,9 @@ export default function AdminOrders() {
       console.error(err);
     }
   };
+
+  const formatStatusLabel = (s) => s.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
+// use formatStatusLabel(s) instead of s[0].toUpperCase() + s.slice(1) in both <option> maps
 
   const handlePaymentStatusChange = async (orderId, newStatus) => {
     try {
@@ -145,6 +152,10 @@ export default function AdminOrders() {
               <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Revenue</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(stats.total_revenue)}</p>
             </div>
+            <div className="bg-white border border-gray-100 rounded-xl p-5">
+          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Return Requests</p>
+          <p className="text-2xl font-bold text-pink-500 mt-1">{stats.return_requested_orders ?? 0}</p>
+        </div>
           </div>
         )}
 

@@ -5,6 +5,7 @@ const CANCELLABLE_STATUSES = ["pending", "confirmed", "processing"];
 const RETURNABLE_STATUSES = ["delivered"];
 
 export const listMyOrders = async (userId, { page, limit }) => {
+  console.log(typeof (userId));
   return OrderModel.getOrdersByUserId(userId, { page, limit });
 };
 

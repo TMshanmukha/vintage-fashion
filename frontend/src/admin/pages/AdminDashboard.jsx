@@ -18,6 +18,22 @@ const formatINR = (value) =>
     maximumFractionDigits: 0,
   }).format(value || 0);
 
+const statusStyles = {
+  Pending: "bg-gray-100 text-gray-600",
+  Confirmed: "bg-sky-50 text-sky-700",
+  Processing: "bg-amber-50 text-amber-700",
+  Shipped: "bg-blue-50 text-blue-700",
+  Delivered: "bg-emerald-50 text-emerald-700",
+  Cancelled: "bg-gray-100 text-gray-600",
+  "Return requested": "bg-pink-50 text-pink-700",
+  Returned: "bg-purple-50 text-purple-700",
+};
+
+const toDisplayStatus = (status) =>
+  status
+    ? status.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")
+    : "Pending";
+
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -122,8 +138,8 @@ export default function AdminDashboard() {
       <AdminLayout>
         <AdminTopbar title="Dashboard" subtitle="Loading your store overview..." />
         <div className="p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {[...Array(4)].map((_, i) => (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+            {[...Array(5)].map((_, i) => (
               <div key={i} className="h-24 rounded-xl bg-gray-100 animate-pulse" />
             ))}
           </div>
@@ -138,7 +154,7 @@ export default function AdminDashboard() {
 
       <div className="p-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
           <StatCard
             label="Revenue"
             value={formatINR(stats?.total_revenue)}
@@ -164,6 +180,13 @@ export default function AdminDashboard() {
             positive={lowStockProducts.length === 0}
             icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />}
           />
+          <StatCard
+            label="Return Requests"
+            value={stats?.return_requested_orders ?? 0}
+            change="Awaiting review"
+            positive={(stats?.return_requested_orders ?? 0) === 0}
+            icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />}
+          />
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -177,21 +200,30 @@ export default function AdminDashboard() {
               <p className="text-sm text-gray-400 py-6 text-center">No orders yet.</p>
             ) : (
               <div className="space-y-3">
-                {recentOrders.map((o) => (
-                  <div key={o.order_id} className="flex items-center gap-4 py-2">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-gray-800 truncate">
-                        #{o.order_number}
-                      </p>
-                      <p className="text-xs text-gray-400">
-                        {o.customer_name || "Customer"} · {o.order_status}
-                      </p>
+                {recentOrders.map((o) => {
+                  const displayStatus = toDisplayStatus(o.order_status);
+                  return (
+                    <div key={o.order_id} className="flex items-center gap-4 py-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          #{o.order_number}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          {o.customer_name || "Customer"}
+                        </p>
+                      </div>
+                      <span
+                        className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${statusStyles[displayStatus] || statusStyles.Pending
+                          }`}
+                      >
+                        {displayStatus}
+                      </span>
+                      <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
+                        {formatINR(o.total_amount)}
+                      </span>
                     </div>
-                    <span className="text-sm font-semibold text-gray-700">
-                      {formatINR(o.total_amount)}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>

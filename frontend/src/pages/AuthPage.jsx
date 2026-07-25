@@ -52,6 +52,8 @@ export default function AuthPage() {
 
       case "Network Error":
         return "No Internet Connection.";
+      case "Admin cannot login here":
+        return "Incorrect email or password."
 
       default:
         return "Something went wrong. Please try again.";

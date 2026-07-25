@@ -53,9 +53,10 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
     return { rows, total };
 };
 
+
+
 export const getOrderById = async (orderId) => {
 
-    console.log("Searching orders for userId =", userId);
 
     const [rows] = await pool.query(
         `
@@ -148,31 +149,50 @@ export const getOrderStats = async () => {
 };
 
 export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) => {
-  const offset = (page - 1) * limit;
- 
-  const [rows] = await pool.query(
-    `SELECT order_id, order_number, subtotal, discount_amount, shipping_fee,
+    console.log("Fetching orders for user:", userId);
+    const offset = (page - 1) * limit;
+
+    const [rows] = await pool.query(
+        `SELECT order_id, order_number, subtotal, discount_amount, shipping_fee,
             tax_amount, total_amount, order_status, payment_status, ordered_at
      FROM orders
      WHERE user_id = ?
      ORDER BY ordered_at DESC
      LIMIT ? OFFSET ?`,
-    [userId, Number(limit), Number(offset)]
-  );
- 
-  const [[{ total }]] = await pool.query(
-    `SELECT COUNT(*) AS total FROM orders WHERE user_id = ?`,
-    [userId]
-  );
- 
-  return { rows, total };
+        [userId, Number(limit), Number(offset)]
+    );
+
+    const [[{ total }]] = await pool.query(
+        `SELECT COUNT(*) AS total FROM orders WHERE user_id = ?`,
+        [userId]
+    );
+    console.log(rows);
+
+    return { rows, total };
 };
- 
+
 // Confirms the order belongs to this user before letting them touch it
 export const getOrderOwnedByUser = async (orderId, userId) => {
+    const [rows] = await pool.query(
+        `SELECT order_id, order_status, user_id FROM orders WHERE order_id = ? AND user_id = ?`,
+        [orderId, userId]
+    );
+    return rows[0] || null;
+};
+
+// Scoped to a specific customer — never trust orderId alone without checking ownership
+export const getOrderByIdForUser = async (orderId, userId) => {
   const [rows] = await pool.query(
-    `SELECT order_id, order_status, user_id FROM orders WHERE order_id = ? AND user_id = ?`,
+    `SELECT * FROM orders WHERE order_id = ? AND user_id = ? LIMIT 1`,
     [orderId, userId]
   );
   return rows[0] || null;
+};
+
+export const setOrderStatusForUser = async (orderId, userId, status) => {
+  const [result] = await pool.query(
+    `UPDATE orders SET order_status = ? WHERE order_id = ? AND user_id = ?`,
+    [status, orderId, userId]
+  );
+  return result.affectedRows > 0;
 };

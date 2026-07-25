@@ -1,4 +1,4 @@
-import { signupService,loginService,logoutService,forgotPasswordService,resetPasswordService } from "../services/auth.service.js";
+import { signupService,loginService,logoutService,forgotPasswordService,resetPasswordService,adminLoginService } from "../services/auth.service.js";
 
 import { refreshTokenService } from "../services/auth.service.js";
 
@@ -289,7 +289,7 @@ export const adminLogin = async (req, res) => {
 
     try {
 
-        const result = await loginService({
+        const result = await adminLoginService({
 
             ...req.body,
 
