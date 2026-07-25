@@ -79,6 +79,7 @@ export const getCartItems = async (cartId) => {
 
             v.size,
             v.color,
+            v.sku_variant,
             v.stock_quantity AS variant_stock,
 
             pi.image_url

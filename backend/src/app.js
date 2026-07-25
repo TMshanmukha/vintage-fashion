@@ -14,6 +14,10 @@ import myOrderRoutes from "./routes/customerOrder.routes.js";
 import wishlistRoutes from "./routes/wishlist.routes.js";
 import cartRoutes from "./routes/cart.routes.js";
 
+import settingsRoutes from "./routes/settings.routes.js";
+import addressRoutes from "./routes/address.routes.js";
+import checkoutRoutes from "./routes/checkout.routes.js";
+
 const app = express();
 
 const allowedOrigins = [
@@ -54,4 +58,7 @@ app.use("/api/orders", myOrderRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 
+app.use("/api/settings", settingsRoutes);
+app.use("/api/addresses", addressRoutes);
+app.use("/api/checkout", checkoutRoutes);
 export default app;

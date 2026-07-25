@@ -26,25 +26,27 @@ export default function ProductDetail() {
 
       try {
         const res = await getProductBySlug(slug);
-        const data = res.data;
 
-        // console.log("Slug:", slug);
-        // console.log("Response:", res.data);
+        const product = res.data;
 
-        setProduct(res.data);
+        setProduct(product);
 
-        if (data.variants?.length) {
-          setSelectedSize(data.variants[0].size);
-          setSelectedColor(data.variants[0].color);
+        if (product.variants?.length) {
+            setSelectedSize(product.variants[0].size);
+            setSelectedColor(product.variants[0].color);
         }
 
-        if (data.category_id) {
-          const relatedRes = await getProducts({ category: data.category_id, limit: 6 });
-          setRelated(
-            (relatedRes.data || [])
-              .filter((p) => p.product_id !== data.product_id)
-              .slice(0, 5)
-          );
+        if (product.category_id) {
+            const relatedRes = await getProducts({
+                category: product.category_id,
+                limit: 6,
+            });
+
+            setRelated(
+                (relatedRes.data || [])
+                    .filter((p) => p.product_id !== product.product_id)
+                    .slice(0, 5)
+            );
         }
       } catch (err) {
         console.error("Failed to load product:", err);

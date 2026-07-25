@@ -32,10 +32,13 @@ export default function ProductCard({ product }) {
     setAddingToCart(true);
 
     try {
+      console.log("Product:", product);
+      console.log("Slug:", product.slug);
       // The listing endpoint doesn't include variants, so fetch full detail
       // to resolve a real variant_id before adding to cart.
       const res = await getProductBySlug(product.slug);
-      const variants = res.data?.variants || [];
+
+      const variants = res.data.variants || [];
 
       if (variants.length === 0) {
         toast.error("This product has no purchasable options yet.");

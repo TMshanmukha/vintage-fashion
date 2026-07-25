@@ -12,17 +12,28 @@ export async function getAllFeatured() {
       f.display_order,
       f.is_active,
       f.created_at,
+
       p.name AS product_name,
+      p.slug,
       p.price,
+
       pi.image_url
+
     FROM featured_products f
-    JOIN products p ON p.product_id = f.product_id
+
+    JOIN products p
+      ON p.product_id = f.product_id
+
     LEFT JOIN product_images pi
       ON pi.product_id = p.product_id
       AND pi.is_primary = TRUE
+
+    WHERE p.is_active = TRUE
+
     ORDER BY f.display_order ASC, f.featured_id DESC
     `
   );
+
   return rows;
 }
 
@@ -36,12 +47,25 @@ export async function setFeaturedProducts(productIds) {
 
     await conn.query(`DELETE FROM featured_products`);
 
-    if (productIds.length > 0) {
-      const values = productIds.map((id, index) => [id, index + 1, true]);
+        if (productIds.length > 0) {
+          const uniqueProductIds = [...new Set(productIds)];
+
+    if (uniqueProductIds.length > 0) {
+      const values = uniqueProductIds.map((id, index) => [
+        id,
+        index + 1,
+        true
+      ]);
+
       await conn.query(
-        `INSERT INTO featured_products (product_id, display_order, is_active) VALUES ?`,
+        `
+        INSERT INTO featured_products
+        (product_id, display_order, is_active)
+        VALUES ?
+        `,
         [values]
       );
+}
     }
 
     await conn.commit();

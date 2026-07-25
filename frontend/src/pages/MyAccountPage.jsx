@@ -52,7 +52,11 @@ export default function MyAccountPage() {
     async function loadOrders() {
       try {
         setLoading(true);
-        const { orders: fetched } = await getMyOrders({ limit: 50 });
+        const response = await getMyOrders({ limit: 50 });
+
+        console.log("getMyOrders response:", response);
+
+        const { orders: fetched } = response;
         if (!cancelled) setOrders(fetched || []);
       } catch (err) {
         console.error(err);

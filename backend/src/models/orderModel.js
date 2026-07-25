@@ -55,6 +55,8 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
 
 export const getOrderById = async (orderId) => {
 
+    console.log("Searching orders for userId =", userId);
+
     const [rows] = await pool.query(
         `
         SELECT

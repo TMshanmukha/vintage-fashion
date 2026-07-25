@@ -2,12 +2,12 @@ import axiosAdmin from "./AdminApi";
 
 export const getOrders = async (params = {}) => {
     const { data } = await axiosAdmin.get("/admin/orders", { params });
-    return data; // { orders, total, page, limit }
+    return data.data || data; // { orders, total, page, limit }
 };
 
 export const getOrderById = async (orderId) => {
     const { data } = await axiosAdmin.get(`/admin/orders/${orderId}`);
-    return data; // { order, items, payment }
+    return data.data || data; // { order, items, payment }
 };
 
 export const updateOrderStatus = async (orderId, status) => {
@@ -22,5 +22,5 @@ export const updatePaymentStatus = async (orderId, status) => {
 
 export const getOrderStats = async () => {
     const { data } = await axiosAdmin.get("/admin/orders/stats");
-    return data.stats;
+    return data.data || data; // { total_orders, pending_orders, delivered_orders, total_revenue }
 };

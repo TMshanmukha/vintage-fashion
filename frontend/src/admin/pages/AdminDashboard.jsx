@@ -43,7 +43,7 @@ export default function AdminDashboard() {
           emailsRes,
         ] = await Promise.allSettled([
           getOrderStats(),
-          getOrders({ limit: 5, sort: "-createdAt" }),
+          getOrders({ limit: 5 }),
           getProducts({ limit: 100 }), // pulled client-side to derive low-stock; swap for a real ?lowStock=true param if backend supports it
           getCustomers(),
           getNotifications(),
@@ -57,22 +57,20 @@ export default function AdminDashboard() {
         }
 
         if (ordersRes.status === "fulfilled") {
-          setRecentOrders(ordersRes.value?.orders || ordersRes.value?.data || []);
+          setRecentOrders(ordersRes.value?.orders || []);
         }
 
         if (productsRes.status === "fulfilled") {
           const raw = productsRes.value;
-          // Handles a few possible backend shapes:
-          // { data: [...] }  |  { data: { products: [...] } }  |  [...] directly
           const allProducts = Array.isArray(raw)
             ? raw
             : Array.isArray(raw?.data)
-            ? raw.data
-            : Array.isArray(raw?.data?.products)
-            ? raw.data.products
-            : Array.isArray(raw?.products)
-            ? raw.products
-            : [];
+              ? raw.data
+              : Array.isArray(raw?.data?.products)
+                ? raw.data.products
+                : Array.isArray(raw?.products)
+                  ? raw.products
+                  : [];
 
           if (allProducts.length === 0 && raw && !Array.isArray(raw)) {
             console.warn("getProducts() returned an unexpected shape:", raw);
@@ -80,9 +78,7 @@ export default function AdminDashboard() {
 
           setLowStockProducts(
             allProducts
-              .filter(
-                (p) => (p.stock_quantity ?? p.stock ?? p.quantity ?? 0) <= 5
-              )
+              .filter((p) => (p.stock_quantity ?? 0) <= 5)
               .slice(0, 5)
           );
         }
@@ -101,7 +97,6 @@ export default function AdminDashboard() {
           );
         }
 
-        // Surface any failed calls without blocking the whole dashboard
         [statsRes, ordersRes, productsRes, customersRes, notificationsRes, emailsRes]
           .filter((r) => r.status === "rejected")
           .forEach((r) => console.error("Dashboard fetch failed:", r.reason));
@@ -120,7 +115,7 @@ export default function AdminDashboard() {
   }, []);
 
   const activeCustomers = customers.filter((c) => c.status === "Active").length;
-  const unreadNotifications = notifications.filter((n) => !n.read).length;
+  const unreadNotifications = notifications.filter((n) => !n.is_read).length;
 
   if (loading) {
     return (
@@ -146,14 +141,14 @@ export default function AdminDashboard() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
           <StatCard
             label="Revenue"
-            value={formatINR(stats?.totalRevenue)}
-            change={stats?.revenueChangeLabel || "All-time"}
+            value={formatINR(stats?.total_revenue)}
+            change="All-time"
             icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
           />
           <StatCard
             label="Orders"
-            value={stats?.totalOrders ?? 0}
-            change={`${stats?.pendingOrders ?? 0} pending`}
+            value={stats?.total_orders ?? 0}
+            change={`${stats?.pending_orders ?? 0} pending`}
             icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />}
           />
           <StatCard
@@ -183,17 +178,17 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-3">
                 {recentOrders.map((o) => (
-                  <div key={o._id || o.id} className="flex items-center gap-4 py-2">
+                  <div key={o.order_id} className="flex items-center gap-4 py-2">
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-800 truncate">
-                        #{o.orderNumber || o._id || o.id}
+                        #{o.order_number}
                       </p>
                       <p className="text-xs text-gray-400">
-                        {o.customerName || o.user?.name || "Customer"} · {o.status}
+                        {o.customer_name || "Customer"} · {o.order_status}
                       </p>
                     </div>
                     <span className="text-sm font-semibold text-gray-700">
-                      {formatINR(o.totalAmount || o.total)}
+                      {formatINR(o.total_amount)}
                     </span>
                   </div>
                 ))}
@@ -212,11 +207,11 @@ export default function AdminDashboard() {
             ) : (
               <div className="space-y-4">
                 {notifications.slice(0, 4).map((n) => (
-                  <div key={n._id || n.id} className="flex items-start gap-3">
-                    <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.read ? "bg-gray-200" : "bg-pink-500"}`} />
+                  <div key={n.notification_id} className="flex items-start gap-3">
+                    <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.is_read ? "bg-gray-200" : "bg-pink-500"}`} />
                     <div>
                       <p className="text-xs font-semibold text-gray-800">{n.title}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{n.time || n.createdAt}</p>
+                      <p className="text-xs text-gray-400 mt-0.5">{n.created_at}</p>
                     </div>
                   </div>
                 ))}
@@ -234,18 +229,18 @@ export default function AdminDashboard() {
             </div>
             <div className="space-y-3">
               {lowStockProducts.map((p) => (
-                <div key={p._id || p.id} className="flex items-center gap-4 py-2">
-                  {p.images?.[0]?.image_url && (
+                <div key={p.product_id} className="flex items-center gap-4 py-2">
+                  {p.image_url && (
                     <img
-                      src={p.images[0].image_url}
-                      alt={p.images[0].alt_text || p.name}
+                      src={p.image_url}
+                      alt={p.name}
                       className="w-11 h-11 rounded-lg object-cover bg-gray-50"
                     />
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
                     <p className="text-xs text-red-500 font-medium">
-                      {p.stock_quantity ?? p.stock ?? p.quantity ?? 0} left
+                      {p.stock_quantity ?? 0} left
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-gray-700">{formatINR(p.price)}</span>

@@ -7,6 +7,22 @@ import { getOrders, updateOrderStatus, updatePaymentStatus, getOrderStats } from
 const ORDER_STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "returned"];
 const PAYMENT_STATUSES = ["pending", "success", "failed", "refunded"];
 
+// Only these forward moves are allowed from a given status — plus the current
+// value itself so the <select> always has something to display. This stops
+// an accidental jump straight to "delivered" from "pending", since shipping
+// here is manual (you hand the parcel to the post office yourself) and the
+// status should always reflect a truthful, ordered history rather than
+// whatever an admin clicks.
+const ALLOWED_NEXT_STATUSES = {
+  pending: ["pending", "confirmed", "cancelled"],
+  confirmed: ["confirmed", "processing", "cancelled"],
+  processing: ["processing", "shipped", "cancelled"],
+  shipped: ["shipped", "delivered"],
+  delivered: ["delivered", "returned"],
+  cancelled: ["cancelled"],
+  returned: ["returned"],
+};
+
 const orderStatusStyles = {
   pending: "bg-amber-50 text-amber-600",
   confirmed: "bg-blue-50 text-blue-600",
@@ -70,14 +86,23 @@ export default function AdminOrders() {
     loadStats();
   }, []);
 
-  const handleOrderStatusChange = async (orderId, newStatus) => {
+  const handleOrderStatusChange = async (order, newStatus) => {
+    if (newStatus === order.order_status) return;
+
+    if (newStatus === "cancelled" || newStatus === "delivered" || newStatus === "returned") {
+      const confirmed = window.confirm(
+        `Mark order #${order.order_number} as "${newStatus}"? This can't be easily undone.`
+      );
+      if (!confirmed) return;
+    }
+
     try {
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(order.order_id, newStatus);
       toast.success("Order status updated.");
       loadOrders();
       loadStats();
     } catch (err) {
-      toast.error("Failed to update order status.");
+      toast.error(err.response?.data?.message || "Failed to update order status.");
       console.error(err);
     }
   };
@@ -87,6 +112,7 @@ export default function AdminOrders() {
       await updatePaymentStatus(orderId, newStatus);
       toast.success("Payment status updated.");
       loadOrders();
+      loadStats();
     } catch (err) {
       toast.error("Failed to update payment status.");
       console.error(err);
@@ -164,36 +190,41 @@ export default function AdminOrders() {
               {loading && (
                 <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-400">Loading orders...</td></tr>
               )}
-              {!loading && orders.map((o) => (
-                <tr key={o.order_id} className="hover:bg-gray-50/50 transition-colors">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-800">#{o.order_number}</td>
-                  <td className="px-6 py-4">
-                    <p className="text-sm text-gray-800">{o.customer_name}</p>
-                    <p className="text-xs text-gray-400">{o.customer_email}</p>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{o.item_count}</td>
-                  <td className="px-6 py-4 text-sm font-semibold text-gray-800">{formatCurrency(o.total_amount)}</td>
-                  <td className="px-6 py-4">
-                    <select
-                      value={o.order_status}
-                      onChange={(e) => handleOrderStatusChange(o.order_id, e.target.value)}
-                      className={`text-xs font-semibold px-2.5 py-1.5 rounded-full outline-none border-0 cursor-pointer ${orderStatusStyles[o.order_status] || orderStatusStyles.pending}`}
-                    >
-                      {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-6 py-4">
-                    <select
-                      value={o.payment_status === "paid" ? "success" : o.payment_status}
-                      onChange={(e) => handlePaymentStatusChange(o.order_id, e.target.value)}
-                      className={`text-xs font-semibold px-2.5 py-1.5 rounded-full outline-none border-0 cursor-pointer ${paymentStatusStyles[o.payment_status] || paymentStatusStyles.pending}`}
-                    >
-                      {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
-                    </select>
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">{formatDate(o.ordered_at)}</td>
-                </tr>
-              ))}
+              {!loading && orders.map((o) => {
+                const allowedNext = ALLOWED_NEXT_STATUSES[o.order_status] || [o.order_status];
+
+                return (
+                  <tr key={o.order_id} className="hover:bg-gray-50/50 transition-colors">
+                    <td className="px-6 py-4 text-sm font-medium text-gray-800">#{o.order_number}</td>
+                    <td className="px-6 py-4">
+                      <p className="text-sm text-gray-800">{o.customer_name}</p>
+                      <p className="text-xs text-gray-400">{o.customer_email}</p>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{o.item_count}</td>
+                    <td className="px-6 py-4 text-sm font-semibold text-gray-800">{formatCurrency(o.total_amount)}</td>
+                    <td className="px-6 py-4">
+                      <select
+                        value={o.order_status}
+                        onChange={(e) => handleOrderStatusChange(o, e.target.value)}
+                        disabled={allowedNext.length === 1}
+                        className={`text-xs font-semibold px-2.5 py-1.5 rounded-full outline-none border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${orderStatusStyles[o.order_status] || orderStatusStyles.pending}`}
+                      >
+                        {allowedNext.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-6 py-4">
+                      <select
+                        value={o.payment_status === "paid" ? "success" : o.payment_status}
+                        onChange={(e) => handlePaymentStatusChange(o.order_id, e.target.value)}
+                        className={`text-xs font-semibold px-2.5 py-1.5 rounded-full outline-none border-0 cursor-pointer ${paymentStatusStyles[o.payment_status] || paymentStatusStyles.pending}`}
+                      >
+                        {PAYMENT_STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+                      </select>
+                    </td>
+                    <td className="px-6 py-4 text-sm text-gray-500">{formatDate(o.ordered_at)}</td>
+                  </tr>
+                );
+              })}
               {!loading && orders.length === 0 && (
                 <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-400">No orders found.</td></tr>
               )}

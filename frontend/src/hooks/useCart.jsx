@@ -4,13 +4,10 @@ import toast from "react-hot-toast";
 import { getCart, addToCartApi, updateCartItemApi, removeCartItemApi } from "../api/cartApi";
 import { getWishlist, addToWishlist, removeFromWishlistApi } from "../api/wishlistApi";
 
-import useAuth from "../hooks/useAuth";
-
 const CartContext = createContext();
+
 function isLoggedIn() {
-  const token = localStorage.getItem("accessToken");
-  console.log("Access Token:", token);
-  return Boolean(token);
+  return Boolean(localStorage.getItem("accessToken"));
 }
 
 function mapCartItem(row) {
@@ -40,15 +37,11 @@ function mapWishlistItem(row) {
 }
 
 export function CartProvider({ children }) {
-  const { accessToken } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [wishlist, setWishlist] = useState([]);
 
   const loadCart = useCallback(async () => {
-    if (!accessToken) {
-        setCartItems([]);
-        return;
-    }
+    if (!isLoggedIn()) return;
     try {
       const res = await getCart();
       setCartItems((res.data || []).map(mapCartItem));
@@ -58,10 +51,7 @@ export function CartProvider({ children }) {
   }, []);
 
   const loadWishlist = useCallback(async () => {
-    if (!accessToken) {
-        setWishlist([]);
-        return;
-    }
+    if (!isLoggedIn()) return;
     try {
       const res = await getWishlist();
       setWishlist((res.data || []).map(mapWishlistItem));
@@ -70,18 +60,10 @@ export function CartProvider({ children }) {
     }
   }, []);
 
-
   useEffect(() => {
-
-    if (accessToken) {
-        loadCart();
-        loadWishlist();
-    } else {
-        setCartItems([]);
-        setWishlist([]);
-    }
-
-  }, [accessToken, loadCart, loadWishlist]);
+    loadCart();
+    loadWishlist();
+  }, [loadCart, loadWishlist]);
 
   // --- CART ---
 
@@ -132,6 +114,7 @@ export function CartProvider({ children }) {
   const clearCart = () => setCartItems([]);
 
   const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
 
   // --- WISHLIST ---
 
@@ -180,6 +163,7 @@ export function CartProvider({ children }) {
         removeFromCart,
         clearCart,
         cartTotal,
+        cartCount,
 
         wishlist,
         toggleWishlist,

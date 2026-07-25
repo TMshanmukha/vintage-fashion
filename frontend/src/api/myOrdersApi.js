@@ -2,12 +2,12 @@ import API from "./API";
 
 export const getMyOrders = async (params = {}) => {
   const { data } = await API.get("/orders/my", { params });
-  return data; // { orders, total, page, limit }
+  return data;
 };
 
 export const getMyOrderDetail = async (orderId) => {
   const { data } = await API.get(`/orders/my/${orderId}`);
-  return data; // { order, items, payment }
+  return data;
 };
 
 export const cancelMyOrder = async (orderId) => {
