@@ -1,23 +1,78 @@
-import { useState } from "react";
-import { useSiteData } from "../hooks/useSiteData";
+import { useEffect, useState } from "react";
 import ProductCard from "../components/ui/ProductCard";
+import { getProducts } from "../api/productApi";
+import { getCategoriesUser as getCategories } from "../api/categoryApi";
 
-const categories = ["All", "T-Shirts", "Jeans", "Jackets", "Accessories", "Shoes"];
-const sortOptions = ["Default", "Price: Low to High", "Price: High to Low", "Newest"];
+// Placeholder ceiling for the price slider — adjust to fit your catalog.
+const PRICE_MAX = 10000;
+
+// Display label -> backend sort enum (must match getProductsSchema's `sort` enum exactly)
+const sortOptions = [
+  { label: "Default", value: "newest" },
+  { label: "Price: Low to High", value: "price_low_to_high" },
+  { label: "Price: High to Low", value: "price_high_to_low" },
+  { label: "Newest", value: "newest" },
+];
 
 export default function Shop() {
-  const { products } = useSiteData();
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [sort, setSort] = useState("Default");
-  const [priceRange, setPriceRange] = useState(200);
+  const [categories, setCategories] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const filtered = [...products]
-    .filter((p) => priceRange >= p.price)
-    .sort((a, b) => {
-      if (sort === "Price: Low to High") return a.price - b.price;
-      if (sort === "Price: High to Low") return b.price - a.price;
-      return 0;
-    });
+  const [activeCategory, setActiveCategory] = useState("All"); // "All" or category_id
+  const [sort, setSort] = useState(sortOptions[0].label);
+  const [priceRange, setPriceRange] = useState(PRICE_MAX);
+
+  const [page, setPage] = useState(1);
+  const [pagination, setPagination] = useState({ totalProducts: 0, totalPages: 1 });
+
+  // Load categories once
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getCategories();
+        setCategories(res.data || []);
+      } catch (err) {
+        console.error("Failed to load categories:", err);
+      }
+    })();
+  }, []);
+
+  // Reset to page 1 whenever a filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [activeCategory, sort, priceRange]);
+
+  // Load products whenever filters/page change
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+
+      const sortValue = sortOptions.find((o) => o.label === sort)?.value || "newest";
+
+      try {
+        const res = await getProducts({
+          page,
+          limit: 12,
+          category: activeCategory === "All" ? undefined : activeCategory,
+          maxPrice: priceRange === PRICE_MAX ? undefined : priceRange,
+          sort: sortValue,
+        });
+
+        setProducts(res.data || []);
+        setPagination({
+          totalProducts: res.pagination?.totalProducts || 0,
+          totalPages: res.pagination?.totalPages || 1,
+        });
+      } catch (err) {
+        console.error("Failed to load products:", err);
+        setProducts([]);
+        setPagination({ totalProducts: 0, totalPages: 1 });
+      }
+
+      setLoading(false);
+    })();
+  }, [activeCategory, sort, priceRange, page]);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
@@ -35,15 +90,25 @@ export default function Shop() {
           <div className="mb-8">
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-4">Categories</h3>
             <ul className="space-y-2">
+              <li>
+                <button
+                  onClick={() => setActiveCategory("All")}
+                  className={`text-sm w-full text-left transition-colors ${
+                    activeCategory === "All" ? "text-pink-500 font-semibold" : "text-gray-500 hover:text-pink-500"
+                  }`}
+                >
+                  All
+                </button>
+              </li>
               {categories.map((cat) => (
-                <li key={cat}>
+                <li key={cat.category_id}>
                   <button
-                    onClick={() => setActiveCategory(cat)}
+                    onClick={() => setActiveCategory(cat.category_id)}
                     className={`text-sm w-full text-left transition-colors ${
-                      activeCategory === cat ? "text-pink-500 font-semibold" : "text-gray-500 hover:text-pink-500"
+                      activeCategory === cat.category_id ? "text-pink-500 font-semibold" : "text-gray-500 hover:text-pink-500"
                     }`}
                   >
-                    {cat}
+                    {cat.name}
                   </button>
                 </li>
               ))}
@@ -56,13 +121,13 @@ export default function Shop() {
             <input
               type="range"
               min={0}
-              max={200}
+              max={PRICE_MAX}
               value={priceRange}
               onChange={(e) => setPriceRange(Number(e.target.value))}
               className="w-full accent-pink-500"
             />
             <p className="text-xs text-gray-500 mt-2">
-              Price: <span className="font-semibold text-gray-800">${priceRange}</span>
+              Price: <span className="font-semibold text-gray-800">₹{priceRange}</span>
             </p>
           </div>
 
@@ -86,7 +151,7 @@ export default function Shop() {
         <div className="flex-1">
           {/* Toolbar */}
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
-            <p className="text-sm text-gray-400">Showing {filtered.length} results</p>
+            <p className="text-sm text-gray-400">Showing {pagination.totalProducts} results</p>
             <div className="flex items-center gap-3">
               <label className="text-xs text-gray-500">Sort by:</label>
               <select
@@ -94,33 +159,60 @@ export default function Shop() {
                 onChange={(e) => setSort(e.target.value)}
                 className="text-xs border border-gray-200 px-3 py-1.5 outline-none focus:border-pink-500 bg-white"
               >
-                {sortOptions.map((o) => <option key={o}>{o}</option>)}
+                {sortOptions.map((o) => (
+                  <option key={o.label}>{o.label}</option>
+                ))}
               </select>
             </div>
           </div>
 
           {/* Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-            {filtered.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
-          </div>
+          {loading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+              {[...Array(8)].map((_, i) => (
+                <div key={i} className="bg-gray-100 animate-pulse h-72" />
+              ))}
+            </div>
+          ) : products.length > 0 ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
+              {products.map((product) => (
+                <ProductCard
+                  key={product.product_id}
+                  product={{
+                    id: product.product_id,
+                    slug: product.slug,
+                    name: product.name,
+                    price: Number(product.price),
+                    originalPrice: product.original_price ? Number(product.original_price) : null,
+                    image: product.image_url,
+                    images: product.image_url ? [product.image_url] : [],
+                    rating: product.average_rating || 0,
+                  }}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="text-sm text-gray-400 py-16 text-center">No products found.</p>
+          )}
 
           {/* Pagination */}
-          <div className="flex justify-center mt-12 gap-2">
-            {[1, 2, 3].map((n) => (
-              <button
-                key={n}
-                className={`w-8 h-8 text-sm border transition-colors ${
-                  n === 1
-                    ? "bg-gray-900 text-white border-gray-900"
-                    : "border-gray-200 text-gray-500 hover:border-pink-500 hover:text-pink-500"
-                }`}
-              >
-                {n}
-              </button>
-            ))}
-          </div>
+          {pagination.totalPages > 1 && (
+            <div className="flex justify-center mt-12 gap-2">
+              {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((n) => (
+                <button
+                  key={n}
+                  onClick={() => setPage(n)}
+                  className={`w-8 h-8 text-sm border transition-colors ${
+                    n === page
+                      ? "bg-gray-900 text-white border-gray-900"
+                      : "border-gray-200 text-gray-500 hover:border-pink-500 hover:text-pink-500"
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>

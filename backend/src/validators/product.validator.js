@@ -47,56 +47,39 @@ export const getProductBySlugSchema = z.object({
         .min(1, "Product slug is required.")
 
 });
+const emptyToUndefined = (val) => (val === "" ? undefined : val);
 
 export const getProductsSchema = z.object({
 
-    page: z.coerce
-        .number()
-        .int()
-        .min(1)
-        .default(1),
+    page: z.coerce.number().int().min(1).default(1),
+    limit: z.coerce.number().int().min(1).max(100).default(12),
 
-    limit: z.coerce
-        .number()
-        .int()
-        .min(1)
-        .max(100)
-        .default(12),
+    search: z.preprocess(emptyToUndefined, z.string().trim().optional()),
 
-    search: z.string()
-        .trim()
-        .optional(),
+    category: z.preprocess(
+        emptyToUndefined,
+        z.coerce.number().int().positive().optional()
+    ),
 
-    category: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional(),
+    brand: z.preprocess(
+        emptyToUndefined,
+        z.coerce.number().int().positive().optional()
+    ),
 
-    brand: z.coerce
-        .number()
-        .int()
-        .positive()
-        .optional(),
+    minPrice: z.preprocess(emptyToUndefined, z.coerce.number().min(0).optional()),
+    maxPrice: z.preprocess(emptyToUndefined, z.coerce.number().min(0).optional()),
 
-    minPrice: z.coerce
-        .number()
-        .min(0)
-        .optional(),
-
-    maxPrice: z.coerce
-        .number()
-        .min(0)
-        .optional(),
-
-    sort: z.enum([
-        "newest",
-        "oldest",
-        "price_low_to_high",
-        "price_high_to_low",
-        "name_asc",
-        "name_desc"
-    ]).default("newest")
+    sort: z.preprocess(
+        emptyToUndefined,
+        z.enum([
+            "newest",
+            "oldest",
+            "price_low_to_high",
+            "price_high_to_low",
+            "name_asc",
+            "name_desc"
+        ]).default("newest")
+    )
 
 });
 

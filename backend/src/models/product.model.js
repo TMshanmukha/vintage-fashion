@@ -128,7 +128,7 @@ export const countProducts = async (filters) => {
         values.push(maxPrice);
     }
 
-    
+
 
     const [rows] = await pool.query(sql, values);
 
@@ -189,12 +189,12 @@ export const getProducts = async ({
     }
 
     if (category) {
-        sql += ` AND c.slug = ?`;
+        sql += ` AND p.category_id = ?`;
         values.push(category);
     }
 
     if (brand) {
-        sql += ` AND b.slug = ?`;
+        sql += ` AND p.brand_id = ?`;
         values.push(brand);
     }
 
@@ -210,19 +210,27 @@ export const getProducts = async ({
 
     switch (sort) {
 
-        case "price_asc":
+        case "price_low_to_high":
             sql += ` ORDER BY p.price ASC`;
             break;
 
-        case "price_desc":
+        case "price_high_to_low":
             sql += ` ORDER BY p.price DESC`;
             break;
 
-        case "rating":
-            sql += ` ORDER BY p.average_rating DESC`;
+        case "name_asc":
+            sql += ` ORDER BY p.name ASC`;
             break;
 
-        default:
+        case "name_desc":
+            sql += ` ORDER BY p.name DESC`;
+            break;
+
+        case "oldest":
+            sql += ` ORDER BY p.created_at ASC`;
+            break;
+
+        default: // "newest"
             sql += ` ORDER BY p.created_at DESC`;
 
     }
@@ -236,53 +244,8 @@ export const getProducts = async ({
 
     const [rows] = await pool.query(sql, values);
 
-    let countSql = `
-        SELECT COUNT(*) AS total
-
-        FROM products p
-
-        LEFT JOIN categories c
-            ON p.category_id=c.category_id
-
-        LEFT JOIN brands b
-            ON p.brand_id=b.brand_id
-
-        WHERE p.is_active=TRUE
-    `;
-
-    const countValues = [];
-
-    if (search) {
-        countSql += ` AND p.name LIKE ?`;
-        countValues.push(`%${search}%`);
-    }
-    if (category) {
-        countSql += ` AND c.slug=?`;
-        countValues.push(category);
-    }
-    if (brand) {
-        countSql += ` AND b.slug=?`;
-        countValues.push(brand);
-    }
-    if (minPrice) {
-        countSql += ` AND p.price>=?`;
-        countValues.push(minPrice);
-    }
-    if (maxPrice) {
-        countSql += ` AND p.price<=?`;
-        countValues.push(maxPrice);
-    }
-
-    const [[countResult]] = await pool.query(countSql, countValues);
-
-    return {
-
-        products: rows,
-
-        totalItems: countResult.total
-
-    };
-}
+    return rows;
+};
 
 export const getProductBySlug = async (slug) => {
 
@@ -319,8 +282,19 @@ export const getProductBySlug = async (slug) => {
         LEFT JOIN brands b
             ON p.brand_id = b.brand_id
 
+        LEFT JOIN (
+            SELECT product_id, MIN(image_id) AS image_id
+            FROM product_images
+            WHERE is_primary = TRUE
+            GROUP BY product_id
+        ) primary_img
+            ON primary_img.product_id = p.product_id
+
+        LEFT JOIN product_images pi
+            ON pi.image_id = primary_img.image_id
+
         WHERE p.slug = ?
-          AND p.is_active = TRUE
+        AND p.is_active = TRUE
 
         LIMIT 1
         `,
@@ -575,7 +549,7 @@ export const updateProductSku = async (
 
 };
 
-export const getProductById = async (connection,productId) => {
+export const getProductById = async (connection, productId) => {
 
     const [rows] = await connection.query(
         `

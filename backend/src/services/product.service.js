@@ -278,7 +278,7 @@ export const getProductBySlugService = async (params) => {
     const product = await getProductBySlug(slug);
 
     if (!product) {
-        throw new Error("Product not found.");
+        throw new Error("PRODUCT_NOT_FOUND");
     }
 
     // Get all images

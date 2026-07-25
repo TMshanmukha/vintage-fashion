@@ -11,6 +11,8 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import emailRoutes from "./routes/emailRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import myOrderRoutes from "./routes/customerOrder.routes.js";
+import wishlistRoutes from "./routes/wishlist.routes.js";
+import cartRoutes from "./routes/cart.routes.js";
 
 const app = express();
 
@@ -48,5 +50,8 @@ app.use("/api/admin/notifications", notificationRoutes);
 app.use("/api/admin/emails", emailRoutes);
 app.use("/api/admin/orders", orderRoutes);
 app.use("/api/orders", myOrderRoutes);
+
+app.use("/api/wishlist", wishlistRoutes);
+app.use("/api/cart", cartRoutes);
 
 export default app;

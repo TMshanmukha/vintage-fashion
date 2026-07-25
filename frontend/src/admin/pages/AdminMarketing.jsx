@@ -341,6 +341,10 @@ export default function AdminMarketing() {
         if (value !== undefined && value !== null) formData.append(key, value);
       });
 
+      if (flashImageFile) {
+        formData.append("banner_image", flashImageFile);
+      }
+
       if (activeFlashSale) {
         await flashSaleApi.updateFlashSale(activeFlashSale.flash_sale_id, formData);
       } else {

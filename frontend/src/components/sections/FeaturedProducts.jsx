@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { getFeaturedProducts } from "../../api/marketingApi";
 import ProductCard from "../ui/ProductCard";
-import SectionTitle from "../ui/SectionTitle";
 import SectionWrapper from "../ui/SectionWrapper";
 
 export default function FeaturedProducts() {
@@ -9,9 +9,15 @@ export default function FeaturedProducts() {
 
   useEffect(() => {
     let mounted = true;
+
     getFeaturedProducts()
-      .then((res) => mounted && setItems(res.data?.data || []))
+      .then((res) => {
+        if (mounted) {
+          setItems(res.data?.data || []);
+        }
+      })
       .catch(() => {});
+
     return () => {
       mounted = false;
     };
@@ -20,9 +26,65 @@ export default function FeaturedProducts() {
   if (!items.length) return null;
 
   return (
-    <SectionWrapper>
-      <SectionTitle title="⭐ Featured products" subtitle="Hand-picked pieces our team loves right now." />
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
+  <SectionWrapper>
+    <section className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6 md:p-10">
+
+      {/* Header */}
+      <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 pb-8 border-b border-gray-100">
+
+        <div>
+          <span className="inline-flex items-center rounded-full bg-pink-100 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-pink-600">
+            ⭐ Editor's Choice
+          </span>
+
+          <h2 className="mt-4 text-4xl font-extrabold tracking-tight text-gray-900">
+            Featured Products
+          </h2>
+
+          <p className="mt-3 max-w-2xl text-[15px] leading-7 text-gray-500">
+            Discover carefully selected vintage collections loved by our
+            customers. Every piece is chosen for its quality, style and timeless appeal.
+          </p>
+        </div>
+
+        <div className="flex items-center gap-5">
+
+          <div className="hidden sm:flex flex-col items-end">
+            <span className="text-4xl font-black text-gray-900">
+              {items.length}
+            </span>
+
+            <span className="text-xs uppercase tracking-[0.18em] text-gray-500">
+              Products
+            </span>
+          </div>
+
+          <Link
+            to="/shop"
+            className="group inline-flex items-center gap-2 rounded-full bg-gray-900 px-6 py-3 text-sm font-semibold text-white transition-all duration-300 hover:bg-pink-600"
+          >
+            View Collection
+
+            <svg
+              className="h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17 8l4 4m0 0l-4 4m4-4H3"
+              />
+            </svg>
+          </Link>
+
+        </div>
+      </div>
+
+      {/* Products */}
+      <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {items.map((item) => (
           <ProductCard
             key={item.featured_id}
@@ -37,6 +99,8 @@ export default function FeaturedProducts() {
           />
         ))}
       </div>
-    </SectionWrapper>
-  );
+
+    </section>
+  </SectionWrapper>
+);
 }

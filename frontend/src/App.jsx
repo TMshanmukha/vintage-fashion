@@ -42,11 +42,11 @@ function StoreFront() {
         <Route path="/" element={<Home />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/account" element={<MyAccountPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />}/>
-        <Route path="/reset-password" element={<ResetPasswordPage />}/>
-        <Route path="/liked" element={<LikedClothesPage />} />
+        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
+        <Route path="/wishlist" element={<LikedClothesPage />} />
         <Route path="/shop" element={<Shop />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
+        <Route path="/product/:slug" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/about" element={<About />} />
@@ -68,20 +68,20 @@ export default function App() {
             <Route path="/admin" element={<AdminRoot />} />
             <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
             <Route
-                path="/admin/categories"
-                element={
-                    <ProtectedRoute>
-                        <AdminCategories />
-                    </ProtectedRoute>
-                }
+              path="/admin/categories"
+              element={
+                <ProtectedRoute>
+                  <AdminCategories />
+                </ProtectedRoute>
+              }
             />
             <Route
-                path="/admin/brands"
-                element={
-                    <ProtectedRoute>
-                        <AdminBrands />
-                    </ProtectedRoute>
-                }
+              path="/admin/brands"
+              element={
+                <ProtectedRoute>
+                  <AdminBrands />
+                </ProtectedRoute>
+              }
             />
             <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
             <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
@@ -103,6 +103,6 @@ export default function App() {
         </AdminAuthProvider>
       </SiteDataProvider>
     </>
-      
+
   );
 }

@@ -1,83 +1,190 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
 
-const CartContext = createContext(null);
+import { getCart, addToCartApi, updateCartItemApi, removeCartItemApi } from "../api/cartApi";
+import { getWishlist, addToWishlist, removeFromWishlistApi } from "../api/wishlistApi";
+
+import useAuth from "../hooks/useAuth";
+
+const CartContext = createContext();
+function isLoggedIn() {
+  const token = localStorage.getItem("accessToken");
+  console.log("Access Token:", token);
+  return Boolean(token);
+}
+
+function mapCartItem(row) {
+  return {
+    id: row.cart_item_id,
+    variantId: row.variant_id,
+    productId: row.product_id,
+    name: row.name,
+    price: Number(row.price),
+    image: row.image_url,
+    qty: row.quantity,
+    size: row.size,
+    color: row.color,
+    slug: row.slug,
+  };
+}
+
+function mapWishlistItem(row) {
+  return {
+    id: row.product_id,
+    name: row.name,
+    image: row.image_url,
+    price: Number(row.price),
+    slug: row.slug,
+    path: `/product/${row.slug}`,
+  };
+}
 
 export function CartProvider({ children }) {
+  const { accessToken } = useAuth();
   const [cartItems, setCartItems] = useState([]);
   const [wishlist, setWishlist] = useState([]);
 
-  const addToCart = (product, qty = 1) => {
-    setCartItems((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
+  const loadCart = useCallback(async () => {
+    if (!accessToken) {
+        setCartItems([]);
+        return;
+    }
+    try {
+      const res = await getCart();
+      setCartItems((res.data || []).map(mapCartItem));
+    } catch (err) {
+      console.error("Failed to load cart:", err);
+    }
+  }, []);
 
-      if (existing) {
-        return prev.map((i) =>
-          i.id === product.id ? { ...i, qty: i.qty + qty } : i
-        );
-      }
+  const loadWishlist = useCallback(async () => {
+    if (!accessToken) {
+        setWishlist([]);
+        return;
+    }
+    try {
+      const res = await getWishlist();
+      setWishlist((res.data || []).map(mapWishlistItem));
+    } catch (err) {
+      console.error("Failed to load wishlist:", err);
+    }
+  }, []);
 
-      return [...prev, { ...product, qty }];
-    });
-  };
 
-  const removeFromCart = (id) => {
-    setCartItems((prev) => prev.filter((i) => i.id !== id));
-  };
+  useEffect(() => {
 
-  const updateQty = (id, qty) => {
-    if (qty < 1) {
-      removeFromCart(id);
+    if (accessToken) {
+        loadCart();
+        loadWishlist();
+    } else {
+        setCartItems([]);
+        setWishlist([]);
+    }
+
+  }, [accessToken, loadCart, loadWishlist]);
+
+  // --- CART ---
+
+  // variantId is required (cart_items references product_variants, not products)
+  const addToCart = async (variantId, qty = 1) => {
+    if (!isLoggedIn()) {
+      toast.error("Please log in to add items to your cart.");
+      window.location.href = "/auth";
       return;
     }
 
-    setCartItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty } : i))
-    );
+    if (!variantId) {
+      toast.error("Please select a size and color first.");
+      return;
+    }
+
+    try {
+      const res = await addToCartApi(variantId, qty);
+      setCartItems((res.data || []).map(mapCartItem));
+      toast.success("Added to cart.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to add to cart.");
+    }
   };
 
-  const clearCart = () => {
-    setCartItems([]);
+  const removeFromCart = async (cartItemId) => {
+    try {
+      const res = await removeCartItemApi(cartItemId);
+      setCartItems((res.data || []).map(mapCartItem));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove item.");
+    }
   };
 
-  const toggleWishlist = (product) => {
-    setWishlist((prev) => {
-      const exists = prev.some((item) => item.id === product.id);
+  const updateQty = async (cartItemId, newQty) => {
+    if (newQty < 1) {
+      return removeFromCart(cartItemId);
+    }
 
-      if (exists) {
-        return prev.filter((item) => item.id !== product.id);
+    try {
+      const res = await updateCartItemApi(cartItemId, newQty);
+      setCartItems((res.data || []).map(mapCartItem));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update quantity.");
+    }
+  };
+
+  const clearCart = () => setCartItems([]);
+
+  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+
+  // --- WISHLIST ---
+
+  const isWishlisted = (productId) => wishlist.some((w) => w.id === productId);
+
+  // Accepts either a product-like object { id, name, image, price, slug } or a raw productId
+  const toggleWishlist = async (product) => {
+    if (!isLoggedIn()) {
+      toast.error("Please log in to save items.");
+      window.location.href = "/auth";
+      return;
+    }
+
+    const productId = typeof product === "object" ? product.id : product;
+
+    try {
+      if (isWishlisted(productId)) {
+        await removeFromWishlistApi(productId);
+        setWishlist((prev) => prev.filter((w) => w.id !== productId));
+        toast.success("Removed from wishlist.");
+      } else {
+        await addToWishlist(productId);
+        await loadWishlist();
+        toast.success("Added to wishlist.");
       }
-
-      return [...prev, product];
-    });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update wishlist.");
+    }
   };
 
-  const isWishlisted = (id) => {
-    return wishlist.some((item) => item.id === id);
+  const removeFromWishlist = async (productId) => {
+    try {
+      await removeFromWishlistApi(productId);
+      setWishlist((prev) => prev.filter((w) => w.id !== productId));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove from wishlist.");
+    }
   };
-
-  const removeFromWishlist = (id) => {
-    setWishlist((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
-  const wishlistCount = wishlist.length;
-  const cartTotal = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
 
   return (
     <CartContext.Provider
       value={{
         cartItems,
         addToCart,
-        removeFromCart,
         updateQty,
+        removeFromCart,
         clearCart,
+        cartTotal,
+
         wishlist,
         toggleWishlist,
-        isWishlisted,
         removeFromWishlist,
-        cartCount,
-        wishlistCount,
-        cartTotal,
+        isWishlisted,
       }}
     >
       {children}
@@ -85,4 +192,8 @@ export function CartProvider({ children }) {
   );
 }
 
-export const useCart = () => useContext(CartContext);
+export function useCart() {
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within a CartProvider");
+  return ctx;
+}

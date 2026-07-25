@@ -1,51 +1,38 @@
 import jwt from "jsonwebtoken";
 
 export const authenticate = (req, res, next) => {
+    console.log("========== AUTH ==========");
+    console.log("Authorization:", req.headers.authorization);
 
     try {
-
         const authHeader = req.headers.authorization;
 
-        console.log(authHeader);
-
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
+            console.log("No Bearer token");
             return res.status(401).json({
                 success: false,
                 message: "Access token is required."
             });
         }
-        console.log("Header:", JSON.stringify(authHeader));
 
-        const parts = authHeader.split(" ");
+        const token = authHeader.split(" ")[1];
 
-        console.log(parts);
-        console.log(parts.length);
+        console.log("JWT Secret:", process.env.JWT_ACCESS_SECRET);
 
-        const token = parts[1];
+        const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
 
-        console.log("Token:", JSON.stringify(token));
-        console.log("Secret:", process.env.JWT_ACCESS_SECRET);
-
-        const decoded = jwt.verify(
-            token,
-            process.env.JWT_ACCESS_SECRET
-        );
-
-        console.log(decoded);
+        console.log("Decoded:", decoded);
 
         req.user = decoded;
 
         next();
 
-    } catch (error) {
-
-        console.log(error);
+    } catch (err) {
+        console.log("JWT ERROR:", err);
 
         return res.status(401).json({
             success: false,
             message: "Invalid or expired access token."
         });
-
     }
-
 };

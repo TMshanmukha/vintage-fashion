@@ -33,4 +33,12 @@ export const restoreCategory = async (id) => {
 
 };
 
+// GET /api/categories
+// Public endpoint — no auth required. Returns all active categories.
+export const getCategoriesUser = async () => {
+  const response = await api.get("/categories");
+  return response.data; // { success, message, data }
+};
+
+
 export default api;
