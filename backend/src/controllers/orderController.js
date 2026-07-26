@@ -106,7 +106,7 @@ export const listReturns = async (req, res) => {
 };
 
 // PATCH /admin/returns/:returnId/status
-// body: { action } — "approve" | "reject" | "picked_up" | "received" | "refunded"
+// body: { action } — "approve" | "reject" | "schedule_pickup" | "picked_up" | "received" | "process_refund"
 export const changeReturnStatus = async (req, res) => {
     try {
         const { returnId } = req.params;
@@ -119,6 +119,12 @@ export const changeReturnStatus = async (req, res) => {
         }
         if (result.error === "INVALID_ACTION") {
             return res.status(400).json({ message: "Invalid return action." });
+        }
+        if (result.error === "NO_PAYMENT_ON_RECORD") {
+            return res.status(400).json({ message: "No payment record found for this order — can't process a refund." });
+        }
+        if (result.error === "REFUND_FAILED") {
+            return res.status(502).json({ message: "Razorpay couldn't process this refund right now. Please try again." });
         }
 
         res.json({ message: "Return status updated.", status: result.status });

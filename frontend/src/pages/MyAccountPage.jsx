@@ -38,7 +38,7 @@ const statusStyles = {
 
 const RETURN_STATUS_LABELS = {
   pending: "Return requested — awaiting review",
-  approved: "Return approved",
+  approved: "Return accepted",
   rejected: "Return rejected",
   pickup_scheduled: "Pickup scheduled",
   picked_up: "Picked up by courier",
@@ -120,6 +120,11 @@ export default function MyAccountPage() {
         current && current.order?.order_id === orderId
           ? { ...current, order: { ...current.order, order_status } }
           : current
+      );
+    },
+    "order:payment-status-changed": ({ orderId, payment_status }) => {
+      setOrders((current) =>
+        current.map((o) => (o.order_id === orderId ? { ...o, payment_status } : o))
       );
     },
     "return:status-changed": ({ returnId, status }) => {
@@ -306,6 +311,11 @@ export default function MyAccountPage() {
                       >
                         {displayStatus}
                       </span>
+                      {order.payment_status === "refunded" && (
+                        <span className="ml-2 w-fit rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
+                          Refunded
+                        </span>
+                      )}
                     </div>
 
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

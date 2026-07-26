@@ -231,17 +231,19 @@ export const verifyPaymentService = async (userId, body) => {
                     })
                     .join("\n");
 
-                await sendAdminEmail({
-                    to: customer.email,
-                    subject: `Order Confirmed — #${order.order_number}`,
-                    body: `Hi ${customer.name || "there"},\n\nYour order #${order.order_number} has been confirmed and payment received.\n\n${itemLines}\n\nTotal: ₹${Number(order.total_amount).toFixed(2)}\n\nWe'll notify you once it ships.`
+                await sendOrderConfirmationEmail({
+                    to: user.email,
+                    customerName: user.name,
+                    orderNumber: order.order_number,
+                    items: orderItems, // the array of line items you just inserted
+                    totalAmount: order.total_amount,
                 });
 
             }
 
         } catch (emailError) {
 
-            console.error("Order confirmation email failed:", emailError);
+            console.warn("Order confirmation email failed to send:", err.message);
 
         }
 

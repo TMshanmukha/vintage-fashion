@@ -25,6 +25,16 @@ export default function useAdminSocket(handlers = {}) {
 
         socketRef.current = socket;
 
+        socket.on("connect", () => {
+            console.log("[admin socket] connected:", socket.id);
+        });
+
+        // TEMPORARY — same debug visibility as the customer socket hook.
+        // Remove once live updates are confirmed working end-to-end.
+        socket.onAny((event, payload) => {
+            console.log("[admin socket] event received:", event, payload);
+        });
+
         Object.entries(handlers).forEach(([event, handler]) => {
             socket.on(event, handler);
         });

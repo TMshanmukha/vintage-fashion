@@ -29,6 +29,21 @@ export default function useSocket(handlers = {}) {
 
         socketRef.current = socket;
 
+        socket.on("connect", () => {
+            console.log("[socket] connected:", socket.id);
+        });
+
+        // TEMPORARY debug visibility — logs every event this socket
+        // receives, regardless of whether a handler is registered for it.
+        // If you change a status in the admin panel and DON'T see a line
+        // here in the customer tab's console, the event isn't reaching
+        // the browser at all (server-side emit/room issue). If you DO see
+        // it here but the UI doesn't update, the bug is in the handler
+        // logic instead. Remove this once things are confirmed working.
+        socket.onAny((event, payload) => {
+            console.log("[socket] event received:", event, payload);
+        });
+
         Object.entries(handlers).forEach(([event, handler]) => {
             socket.on(event, handler);
         });

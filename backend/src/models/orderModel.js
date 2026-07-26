@@ -154,7 +154,8 @@ export const getOrderStats = async () => {
             COUNT(*) AS total_orders,
             SUM(CASE WHEN order_status = 'pending' THEN 1 ELSE 0 END) AS pending_orders,
             SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END) AS delivered_orders,
-            COALESCE(SUM(total_amount), 0) AS total_revenue
+            COALESCE(SUM(CASE WHEN payment_status != 'refunded' THEN total_amount ELSE 0 END), 0) AS total_revenue,
+            COALESCE(SUM(CASE WHEN payment_status = 'refunded' THEN total_amount ELSE 0 END), 0) AS total_refunded
         FROM orders
         `
     );
@@ -165,45 +166,29 @@ export const getOrderStats = async () => {
 
     return { ...stats, return_requested_orders: pending_returns };
 };
-export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) => {
-    console.log("STEP 1");
 
+export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) => {
     const offset = (page - 1) * limit;
 
-    console.log("STEP 2");
-
     const [rows] = await pool.query(
-       `
-        SELECT
-            order_id,
-            order_number,
-            subtotal,
-            discount_amount,
-            shipping_fee,
-            tax_amount,
-            total_amount,
-            order_status,
-            payment_status,
-            ordered_at
-        FROM orders
-        WHERE user_id = ?
-        ORDER BY ordered_at DESC
-        LIMIT ? OFFSET ?
-        `,
+        `SELECT order_id, order_number, subtotal, discount_amount, shipping_fee,
+            tax_amount, total_amount, order_status, payment_status,
+            tracking_id, courier_partner, shipment_status, tracking_events, ordered_at
+     FROM orders
+     WHERE user_id = ?
+     ORDER BY ordered_at DESC
+     LIMIT ? OFFSET ?`,
         [userId, Number(limit), Number(offset)]
     );
-
-    console.log("STEP 3");
 
     const [[{ total }]] = await pool.query(
         `SELECT COUNT(*) AS total FROM orders WHERE user_id = ?`,
         [userId]
     );
 
-    console.log("STEP 4");
-
     return { rows, total };
 };
+
 // Confirms the order belongs to this user before letting them touch it
 export const getOrderOwnedByUser = async (orderId, userId) => {
     const [rows] = await pool.query(

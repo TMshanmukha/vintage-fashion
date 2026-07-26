@@ -4,6 +4,7 @@ import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import toast from "react-hot-toast";
 import { getOrders, updateOrderStatus, updatePaymentStatus, getOrderStats } from "../../api/orderApi";
+import useAdminSocket from "../../hooks/useAdminSocket";
 
 const ORDER_STATUSES = ["pending", "confirmed", "packed", "shipped", "delivered", "cancelled"];
 const PAYMENT_STATUSES = ["pending", "success", "failed", "refunded"];
@@ -84,6 +85,17 @@ export default function AdminOrders() {
   useEffect(() => {
     loadStats();
   }, []);
+
+  // Live updates — reflects changes made from this or any other admin
+  // session (another tab, another device) without a manual refresh.
+  useAdminSocket({
+    "admin:order-updated": ({ orderId, order_status }) => {
+      setOrders((current) =>
+        current.map((o) => (o.order_id === orderId ? { ...o, order_status } : o))
+      );
+      loadStats();
+    },
+  });
 
   const handleOrderStatusChange = async (order, newStatus) => {
     if (newStatus === order.order_status) return;

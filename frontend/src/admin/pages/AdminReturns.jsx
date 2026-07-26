@@ -3,6 +3,7 @@ import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import toast from "react-hot-toast";
 import { getReturns, updateReturnStatus } from "../../api/orderApi";
+import useAdminSocket from "../../hooks/useAdminSocket";
 
 const RETURN_STATUSES = ["pending", "approved", "rejected", "pickup_scheduled", "picked_up", "received", "refunded"];
 
@@ -16,22 +17,26 @@ const statusStyles = {
   refunded: "bg-green-50 text-green-600",
 };
 
-// What actions make sense from each current status.
+// Each step is its own deliberate admin action — approving a return
+// does NOT automatically schedule a pickup or move money. Every step
+// requires an explicit click.
 const NEXT_ACTIONS = {
   pending: [
-    { action: "approve", label: "Approve", className: "bg-green-500 hover:bg-green-600" },
+    { action: "approve", label: "Approve", className: "bg-sky-500 hover:bg-sky-600" },
     { action: "reject", label: "Reject", className: "bg-red-500 hover:bg-red-600" },
+  ],
+  approved: [
+    { action: "schedule_pickup", label: "Schedule courier pickup", className: "bg-purple-500 hover:bg-purple-600" },
   ],
   pickup_scheduled: [
     { action: "picked_up", label: "Mark picked up", className: "bg-indigo-500 hover:bg-indigo-600" },
   ],
   picked_up: [
-    { action: "received", label: "Mark received", className: "bg-blue-500 hover:bg-blue-600" },
+    { action: "received", label: "Mark received at warehouse", className: "bg-blue-500 hover:bg-blue-600" },
   ],
   received: [
-    { action: "refunded", label: "Mark refunded", className: "bg-green-500 hover:bg-green-600" },
+    { action: "process_refund", label: "Process refund", className: "bg-green-500 hover:bg-green-600" },
   ],
-  approved: [],
   rejected: [],
   refunded: [],
 };
@@ -70,15 +75,29 @@ export default function AdminReturns() {
     loadReturns();
   }, [loadReturns]);
 
+  // Live updates from any admin session — same pattern as AdminOrders.
+  useAdminSocket({
+    "admin:return-updated": ({ returnId, status }) => {
+      setReturns((current) =>
+        current.map((r) => (r.return_id === returnId ? { ...r, status } : r))
+      );
+    },
+  });
+
   const handleAction = async (returnItem, action) => {
-    const confirmed = window.confirm(
-      `${formatStatusLabel(action)} this return for order #${returnItem.order_number}?`
-    );
+    const confirmMessage =
+      action === "process_refund"
+        ? `Process a real refund via Razorpay for order #${returnItem.order_number} (${formatCurrency(returnItem.total_amount)})? This actually moves money and can't be undone.`
+        : `${formatStatusLabel(action)} this return for order #${returnItem.order_number}?`;
+
+    const confirmed = window.confirm(confirmMessage);
     if (!confirmed) return;
 
     try {
       await updateReturnStatus(returnItem.return_id, action);
-      toast.success("Return status updated.");
+      toast.success(
+        action === "process_refund" ? "Refund processed successfully." : "Return status updated."
+      );
       loadReturns();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update return status.");
