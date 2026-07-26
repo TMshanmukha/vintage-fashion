@@ -3,6 +3,8 @@ import toast from "react-hot-toast";
 
 import { getCart, addToCartApi, updateCartItemApi, removeCartItemApi } from "../api/cartApi";
 import { getWishlist, addToWishlist, removeFromWishlistApi } from "../api/wishlistApi";
+import useSocket from "../hooks/useSocket";
+import useAuth from "../hooks/useAuth";
 
 const CartContext = createContext();
 
@@ -39,6 +41,7 @@ function mapWishlistItem(row) {
 export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  const { user } = useAuth();
 
   const loadCart = useCallback(async () => {
     if (!isLoggedIn()) return;
@@ -60,10 +63,34 @@ export function CartProvider({ children }) {
     }
   }, []);
 
+  // Depending on `user` (not just running once at mount) is what actually
+  // fixes login: it re-runs the instant AuthProvider's user state flips
+  // from null to a real user — which happens synchronously in this same
+  // tab right after a successful login, with no network round-trip to
+  // wait on. This covers: fresh page load already logged in, AND logging
+  // in during the current SPA session without a refresh.
   useEffect(() => {
+    if (!user) return;
     loadCart();
     loadWishlist();
-  }, [loadCart, loadWishlist]);
+  }, [user, loadCart, loadWishlist]);
+
+  // The socket listener below is for events this tab can't know about on
+  // its own — chiefly, another tab or device logging this user out (or
+  // in), where there's no local `user` state change to react to. It is
+  // NOT relied on for this tab's own login, since the socket can't be
+  // connected yet at the moment login itself completes (see useSocket).
+  useSocket({
+    "session:changed": ({ event }) => {
+      if (event === "logout") {
+        setCartItems([]);
+        setWishlist([]);
+      } else if (event === "login") {
+        loadCart();
+        loadWishlist();
+      }
+    },
+  });
 
   // --- CART ---
 

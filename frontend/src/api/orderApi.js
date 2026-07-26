@@ -22,5 +22,18 @@ export const updatePaymentStatus = async (orderId, status) => {
 
 export const getOrderStats = async () => {
     const { data } = await axiosAdmin.get("/admin/orders/stats");
-    return data.data || data; // { total_orders, pending_orders, delivered_orders, total_revenue }
+    return data.data || data;
+};
+
+// --- Returns ---
+
+export const getReturns = async (params = {}) => {
+    const { data } = await axiosAdmin.get("/admin/orders/returns", { params });
+    return data.data || data; // { returns, total, page, limit }
+};
+
+// action: "approve" | "reject" | "picked_up" | "received" | "refunded"
+export const updateReturnStatus = async (returnId, action) => {
+    const { data } = await axiosAdmin.patch(`/admin/orders/returns/${returnId}/status`, { action });
+    return data;
 };

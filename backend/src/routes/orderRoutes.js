@@ -6,7 +6,9 @@ import {
     getOrder,
     changeOrderStatus,
     changePaymentStatus,
-    getStats
+    getStats,
+    listReturns,
+    changeReturnStatus
 } from "../controllers/orderController.js";
 
 const router = Router();
@@ -14,6 +16,8 @@ const router = Router();
 router.use(authenticate, authorizeAdmin);
 
 router.get("/stats", getStats);
+router.get("/returns", listReturns);
+router.patch("/returns/:returnId/status", changeReturnStatus);
 router.get("/", listOrders);
 router.get("/:orderId", getOrder);
 router.patch("/:orderId/status", changeOrderStatus);

@@ -3,53 +3,71 @@ import { useState, useEffect } from "react";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import { getNotifications } from "../../api/notificationApi";
 import toast from "react-hot-toast";
+import useAdminSocket from "../../hooks/useAdminSocket";
 
 const navItems = [
-  { to: "/admin/dashboard", label: "Dashboard", icon: (
+  {
+    to: "/admin/dashboard", label: "Dashboard", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-  ) },
+    )
+  },
   {
     to: "/admin/categories",
     label: "Categories",
     icon: (
-        <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M3.75 6.75h7.5v7.5h-7.5zm9 0h7.5v7.5h-7.5zm-9 9h7.5v7.5h-7.5zm9 0h7.5v7.5h-7.5z"
-        />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M3.75 6.75h7.5v7.5h-7.5zm9 0h7.5v7.5h-7.5zm-9 9h7.5v7.5h-7.5zm9 0h7.5v7.5h-7.5z"
+      />
     )
   },
   {
     to: "/admin/brands",
     label: "Brands",
     icon: (
-        <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={1.5}
-            d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.169.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"
-        />
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={1.5}
+        d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.169.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"
+      />
     )
   },
-  { to: "/admin/products", label: "Products", icon: (
+  {
+    to: "/admin/products", label: "Products", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />
-  ) },
-  { to: "/admin/orders", label: "Orders", icon: (
+    )
+  },
+  {
+    to: "/admin/orders", label: "Orders", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8.25 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM18.75 18.75a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM3 3h2.25l.409 2.045M7.5 14.25h9.665c.964 0 1.9-.328 2.653-.929a3.75 3.75 0 001.319-2.13l1.322-5.19a.75.75 0 00-.727-.926H6.75L6.14 3.045A.75.75 0 005.4 2.4H3.75" />
+    )
+  },
+  { to: "/admin/returns", label: "Returns", icon: (
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3" />
   ) },
-  { to: "/admin/offers", label: "Marketing", icon: (
+  {
+    to: "/admin/offers", label: "Marketing", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.169.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" />
-  ) },
-  { to: "/admin/users", label: "Users", icon: (
+    )
+  },
+  {
+    to: "/admin/users", label: "Users", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />
-  ) },
-  { to: "/admin/notifications", label: "Notifications", icon: (
+    )
+  },
+  {
+    to: "/admin/notifications", label: "Notifications", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0" />
-  ) },
-  { to: "/admin/emails", label: "Email Center", icon: (
+    )
+  },
+  {
+    to: "/admin/emails", label: "Email Center", icon: (
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
-  ) },
+    )
+  },
 ];
 
 export default function AdminSidebar() {
@@ -57,6 +75,8 @@ export default function AdminSidebar() {
   const { logout } = useAdminAuth();
   const [unreadCount, setUnreadCount] = useState(0);
 
+  // Initial count on mount/reload only — after this, the badge updates
+  // live via the socket push below instead of re-polling the endpoint.
   useEffect(() => {
     const loadUnreadCount = async () => {
       try {
@@ -68,27 +88,34 @@ export default function AdminSidebar() {
     };
 
     loadUnreadCount();
-    const interval = setInterval(loadUnreadCount, 30000); // poll every 30s
-    return () => clearInterval(interval);
   }, []);
+
+  // Bumps the badge the instant a new notification is created anywhere —
+  // order status changes, returns, new signups, emails sent, etc. — no
+  // more waiting on a 30s poll interval.
+  useAdminSocket({
+    "admin:new-notification": () => {
+      setUnreadCount((count) => count + 1);
+    },
+  });
 
   const handleLogout = async () => {
 
-      try {
+    try {
 
-          await logout();
+      await logout();
 
-          toast.success("Logged out successfully.");
+      toast.success("Logged out successfully.");
 
-          navigate("/admin");
+      navigate("/admin");
 
-      } catch (error) {
+    } catch (error) {
 
-          toast.error("Logout failed.");
+      toast.error("Logout failed.");
 
-          console.error(error);
+      console.error(error);
 
-      }
+    }
 
   };
 
@@ -105,10 +132,18 @@ export default function AdminSidebar() {
             key={item.to}
             to={item.to}
             className={({ isActive }) =>
-              `flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-                isActive ? "bg-pink-500 text-white" : "text-gray-400 hover:bg-gray-900 hover:text-white"
+              `flex items-center justify-between px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${isActive ? "bg-pink-500 text-white" : "text-gray-400 hover:bg-gray-900 hover:text-white"
               }`
             }
+            onClick={() => {
+              // Opening the Notifications page is the natural "I've seen
+              // these" moment — clear the badge locally. The actual
+              // is_read flags in the DB still get set by whatever mark-read
+              // logic already exists on that page.
+              if (item.label === "Notifications") {
+                setUnreadCount(0);
+              }
+            }}
           >
             <span className="flex items-center gap-3">
               <svg className="w-4.5 h-4.5 w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

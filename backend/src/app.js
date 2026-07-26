@@ -17,6 +17,7 @@ import cartRoutes from "./routes/cart.routes.js";
 import settingsRoutes from "./routes/settings.routes.js";
 import addressRoutes from "./routes/address.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
+import contactRoutes from "./routes/contact.routes.js";
 
 const app = express();
 
@@ -61,4 +62,6 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/checkout", checkoutRoutes);
+
+app.use("/api/contact", contactRoutes);
 export default app;

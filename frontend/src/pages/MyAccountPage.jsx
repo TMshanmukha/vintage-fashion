@@ -9,26 +9,55 @@ import {
   cancelMyOrder,
   requestReturn,
 } from "../api/myOrdersApi";
+import useSocket from "../hooks/useSocket";
+import OrderProgressTracker from "../components/OrderProgressTracker";
+import OrderMapTracker from "../components/OrderMapTracker";
+
+// Admin's real internal status vs. what the customer actually sees.
+// Admin defaults new orders to "pending" (nothing packed/shipped yet),
+// but from the customer's side, once they've paid, their order IS
+// confirmed — so "pending" reads as "Confirmed" here. Edit this object
+// alone if you want different wording; nothing else needs to change.
+const CUSTOMER_STATUS_LABELS = {
+  pending: "Confirmed",
+  confirmed: "Processing",
+  packed: "Packed",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
 
 const statusStyles = {
-  Pending: "bg-gray-100 text-gray-600 border-gray-200",
   Confirmed: "bg-sky-50 text-sky-700 border-sky-200",
   Processing: "bg-amber-50 text-amber-700 border-amber-200",
+  Packed: "bg-purple-50 text-purple-700 border-purple-200",
   Shipped: "bg-blue-50 text-blue-700 border-blue-200",
   Delivered: "bg-emerald-50 text-emerald-700 border-emerald-200",
   Cancelled: "bg-gray-100 text-gray-600 border-gray-200",
-  "Return requested": "bg-pink-50 text-pink-700 border-pink-200",
-  Returned: "bg-purple-50 text-purple-700 border-purple-200",
 };
 
-const CANCELLABLE = ["pending", "confirmed", "processing"];
-const RETURNABLE = ["delivered"];
-const RETURN_PENDING = ["return_requested"];
+const RETURN_STATUS_LABELS = {
+  pending: "Return requested — awaiting review",
+  approved: "Return approved",
+  rejected: "Return rejected",
+  pickup_scheduled: "Pickup scheduled",
+  picked_up: "Picked up by courier",
+  received: "Received at warehouse",
+  refunded: "Refunded",
+};
 
-const toDisplayStatus = (status) =>
-  status
-    ? status.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")
-    : "Pending";
+const RETURN_REASONS = [
+  "Wrong size",
+  "Item damaged/defective",
+  "Not as described",
+  "Changed my mind",
+  "Other",
+];
+
+const CANCELLABLE = ["pending", "confirmed", "packed"];
+const RETURNABLE = ["delivered"];
+
+const toCustomerLabel = (status) => CUSTOMER_STATUS_LABELS[status] || "Confirmed";
 
 const formatINR = (value) =>
   new Intl.NumberFormat("en-IN", {
@@ -43,10 +72,14 @@ export default function MyAccountPage() {
 
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedOrder, setSelectedOrder] = useState(null); // summary row, from the list
-  const [orderDetail, setOrderDetail] = useState(null); // full detail with items, fetched on click
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderDetail, setOrderDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [message, setMessage] = useState("");
+  const [returnFormOpen, setReturnFormOpen] = useState(false);
+  const [returnForm, setReturnForm] = useState({ reason: "", description: "" });
+  const [returnPhotos, setReturnPhotos] = useState([]);
+  const [submittingReturn, setSubmittingReturn] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -57,7 +90,6 @@ export default function MyAccountPage() {
       try {
         setLoading(true);
         const response = await getMyOrders({ limit: 50 });
-
         const { orders: fetched } = response;
         if (!cancelled) setOrders(fetched || []);
       } catch (err) {
@@ -73,6 +105,31 @@ export default function MyAccountPage() {
       cancelled = true;
     };
   }, [user]);
+
+  // Live updates — when admin changes a status (or a return status
+  // changes), reflect it instantly without the customer refreshing.
+  useSocket({
+    "order:status-changed": ({ orderId, order_status }) => {
+      setOrders((current) =>
+        current.map((o) => (o.order_id === orderId ? { ...o, order_status } : o))
+      );
+      setSelectedOrder((current) =>
+        current && current.order_id === orderId ? { ...current, order_status } : current
+      );
+      setOrderDetail((current) =>
+        current && current.order?.order_id === orderId
+          ? { ...current, order: { ...current.order, order_status } }
+          : current
+      );
+    },
+    "return:status-changed": ({ returnId, status }) => {
+      setOrderDetail((current) =>
+        current && current.returnRequest?.return_id === returnId
+          ? { ...current, returnRequest: { ...current.returnRequest, status } }
+          : current
+      );
+    },
+  });
 
   const totalSpent = useMemo(() => {
     return orders
@@ -102,6 +159,7 @@ export default function MyAccountPage() {
   const handleSelectOrder = async (order) => {
     setSelectedOrder(order);
     setOrderDetail(null);
+    setReturnFormOpen(false);
     setDetailLoading(true);
     try {
       const detail = await getMyOrderDetail(order.order_id);
@@ -136,28 +194,36 @@ export default function MyAccountPage() {
     }
   };
 
-  const handleReturnOrder = async (order) => {
-    const confirmed = window.confirm(
-      `Request a return for order #${order.order_number || order.order_id}?`
-    );
-    if (!confirmed) return;
+  const handleSubmitReturn = async (e) => {
+    e.preventDefault();
 
+    if (!returnForm.reason) {
+      toast.error("Please select a reason for the return.");
+      return;
+    }
+
+    setSubmittingReturn(true);
     try {
-      await requestReturn(order.order_id);
-      // Goes to "return_requested" first — an admin reviews it before it's marked "returned".
-      setOrders((current) =>
-        current.map((o) =>
-          o.order_id === order.order_id ? { ...o, order_status: "return_requested" } : o
-        )
-      );
-      setSelectedOrder(null);
-      setOrderDetail(null);
+      await requestReturn(selectedOrder.order_id, {
+        reason: returnForm.reason,
+        description: returnForm.description,
+        photos: returnPhotos,
+      });
+
       setMessage(
-        `Return requested for order #${order.order_number || order.order_id}. We'll review it shortly.`
+        `Return requested for order #${selectedOrder.order_number || selectedOrder.order_id}. We'll review it shortly.`
       );
+      setReturnFormOpen(false);
+      setReturnForm({ reason: "", description: "" });
+      setReturnPhotos([]);
+
+      const detail = await getMyOrderDetail(selectedOrder.order_id);
+      setOrderDetail(detail);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Couldn't request a return.");
+    } finally {
+      setSubmittingReturn(false);
     }
   };
 
@@ -218,13 +284,11 @@ export default function MyAccountPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          <div className="grid gap-6 lg:grid-cols-[1fr_420px]">
             <div className="space-y-5">
               {orders.map((order) => {
-                const displayStatus = toDisplayStatus(order.order_status);
+                const displayStatus = toCustomerLabel(order.order_status);
                 const canCancel = CANCELLABLE.includes(order.order_status);
-                const canReturn = RETURNABLE.includes(order.order_status);
-                const returnPending = RETURN_PENDING.includes(order.order_status);
 
                 return (
                   <article key={order.order_id} className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
@@ -238,8 +302,7 @@ export default function MyAccountPage() {
                         </p>
                       </button>
                       <span
-                        className={`w-fit rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[displayStatus] || statusStyles.Pending
-                          }`}
+                        className={`w-fit rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[displayStatus] || statusStyles.Confirmed}`}
                       >
                         {displayStatus}
                       </span>
@@ -249,29 +312,14 @@ export default function MyAccountPage() {
                       <p className="text-base font-extrabold text-gray-900">
                         Order total: {formatINR(order.total_amount)}
                       </p>
-                      <div className="flex gap-2">
-                        {canCancel && (
-                          <button
-                            onClick={() => handleCancelOrder(order)}
-                            className="rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50"
-                          >
-                            Cancel order
-                          </button>
-                        )}
-                        {canReturn && (
-                          <button
-                            onClick={() => handleReturnOrder(order)}
-                            className="rounded-md border border-pink-200 px-4 py-2 text-sm font-bold text-pink-500 transition hover:bg-pink-50"
-                          >
-                            Return item
-                          </button>
-                        )}
-                        {returnPending && (
-                          <span className="rounded-md border border-pink-200 bg-pink-50 px-4 py-2 text-sm font-bold text-pink-500">
-                            Return pending review
-                          </span>
-                        )}
-                      </div>
+                      {canCancel && (
+                        <button
+                          onClick={() => handleCancelOrder(order)}
+                          className="rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50"
+                        >
+                          Cancel order
+                        </button>
+                      )}
                     </div>
                   </article>
                 );
@@ -287,7 +335,7 @@ export default function MyAccountPage() {
                     </svg>
                   </div>
                   <h2 className="text-lg font-bold text-gray-900">Select an order</h2>
-                  <p className="mt-2 text-sm text-gray-500">Click an order to see product pictures, cancel options, and return actions.</p>
+                  <p className="mt-2 text-sm text-gray-500">Click an order to track it, cancel, or request a return.</p>
                 </div>
               ) : (
                 <>
@@ -297,13 +345,14 @@ export default function MyAccountPage() {
                         #{selectedOrder.order_number || selectedOrder.order_id}
                       </h2>
                       <p className="mt-1 text-sm text-gray-500">
-                        Status: {toDisplayStatus(selectedOrder.order_status)}
+                        Status: {toCustomerLabel(selectedOrder.order_status)}
                       </p>
                     </div>
                     <button
                       onClick={() => {
                         setSelectedOrder(null);
                         setOrderDetail(null);
+                        setReturnFormOpen(false);
                       }}
                       className="text-gray-400 transition hover:text-pink-500"
                     >
@@ -320,53 +369,128 @@ export default function MyAccountPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="space-y-4">
-                      {(orderDetail?.items || []).map((item) => (
-                        <div key={item.order_item_id} className="overflow-hidden rounded-lg border border-gray-100">
-                          {item.variant_image && (
-                            <img
-                              src={item.variant_image}
-                              alt={item.product_name}
-                              className="aspect-[4/3] w-full object-cover"
-                            />
-                          )}
-                          <div className="p-3">
-                            <p className="font-bold text-gray-900">{item.product_name}</p>
-                            <p className="mt-1 text-xs text-gray-400">
-                              {[item.size, item.color].filter(Boolean).join(" · ")}
-                            </p>
-                            <p className="mt-1 text-sm text-gray-500">
-                              {item.quantity} × {formatINR(item.unit_price)}
-                            </p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                    <>
+                      <div className="mb-6">
+                        <OrderProgressTracker orderStatus={selectedOrder.order_status} />
+                        {orderDetail?.order?.tracking_id && (
+                          <p className="mt-3 text-center text-xs text-gray-400">
+                            Tracking ID: {orderDetail.order.tracking_id}
+                            {orderDetail.order.courier_partner ? ` · ${orderDetail.order.courier_partner}` : ""}
+                          </p>
+                        )}
+                      </div>
 
-                  <div className="mt-5 space-y-2">
-                    {CANCELLABLE.includes(selectedOrder.order_status) && (
-                      <button
-                        onClick={() => handleCancelOrder(selectedOrder)}
-                        className="w-full rounded-md bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600"
-                      >
-                        Cancel this order
-                      </button>
-                    )}
-                    {RETURNABLE.includes(selectedOrder.order_status) && (
-                      <button
-                        onClick={() => handleReturnOrder(selectedOrder)}
-                        className="w-full rounded-md bg-pink-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-pink-600"
-                      >
-                        Request return
-                      </button>
-                    )}
-                    {RETURN_PENDING.includes(selectedOrder.order_status) && (
-                      <p className="w-full rounded-md bg-pink-50 px-4 py-3 text-center text-sm font-bold text-pink-500">
-                        Return pending review
-                      </p>
-                    )}
-                  </div>
+                      {orderDetail?.order && selectedOrder.order_status !== "pending" && (
+                        <div className="mb-6">
+                          <OrderMapTracker order={orderDetail.order} />
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        {(orderDetail?.items || []).map((item) => (
+                          <div key={item.order_item_id} className="overflow-hidden rounded-lg border border-gray-100">
+                            {item.variant_image && (
+                              <img
+                                src={item.variant_image}
+                                alt={item.product_name}
+                                className="aspect-[4/3] w-full object-cover"
+                              />
+                            )}
+                            <div className="p-3">
+                              <p className="font-bold text-gray-900">{item.product_name}</p>
+                              <p className="mt-1 text-xs text-gray-400">
+                                {[item.size, item.color].filter(Boolean).join(" · ")}
+                              </p>
+                              <p className="mt-1 text-sm text-gray-500">
+                                {item.quantity} × {formatINR(item.unit_price)}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+
+                      <div className="mt-5 space-y-3">
+                        {CANCELLABLE.includes(selectedOrder.order_status) && (
+                          <button
+                            onClick={() => handleCancelOrder(selectedOrder)}
+                            className="w-full rounded-md bg-red-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-red-600"
+                          >
+                            Cancel this order
+                          </button>
+                        )}
+
+                        {/* Return section */}
+                        {orderDetail?.returnRequest ? (
+                          <div className="rounded-md border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-semibold text-pink-600">
+                            {RETURN_STATUS_LABELS[orderDetail.returnRequest.status] || "Return in progress"}
+                          </div>
+                        ) : RETURNABLE.includes(selectedOrder.order_status) && !returnFormOpen ? (
+                          <button
+                            onClick={() => setReturnFormOpen(true)}
+                            className="w-full rounded-md bg-pink-500 px-4 py-3 text-sm font-bold text-white transition hover:bg-pink-600"
+                          >
+                            Request return
+                          </button>
+                        ) : RETURNABLE.includes(selectedOrder.order_status) && returnFormOpen ? (
+                          <form onSubmit={handleSubmitReturn} className="space-y-3 rounded-md border border-gray-200 p-4">
+                            <div>
+                              <label className="mb-1 block text-xs font-bold text-gray-700">Reason *</label>
+                              <select
+                                value={returnForm.reason}
+                                onChange={(e) => setReturnForm({ ...returnForm, reason: e.target.value })}
+                                required
+                                className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-pink-500"
+                              >
+                                <option value="">Select a reason</option>
+                                {RETURN_REASONS.map((r) => (
+                                  <option key={r} value={r}>{r}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-bold text-gray-700">Description (optional)</label>
+                              <textarea
+                                value={returnForm.description}
+                                onChange={(e) => setReturnForm({ ...returnForm, description: e.target.value })}
+                                rows={3}
+                                className="w-full resize-none rounded-md border border-gray-200 px-3 py-2 text-sm outline-none focus:border-pink-500"
+                                placeholder="Tell us more about the issue..."
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs font-bold text-gray-700">Photos (optional, up to 4)</label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => setReturnPhotos(Array.from(e.target.files).slice(0, 4))}
+                                className="w-full text-sm text-gray-600 file:mr-3 file:rounded-md file:border-0 file:bg-pink-50 file:px-3 file:py-1.5 file:text-xs file:font-bold file:text-pink-600"
+                              />
+                              {returnPhotos.length > 0 && (
+                                <p className="mt-1 text-xs text-gray-400">{returnPhotos.length} photo{returnPhotos.length !== 1 ? "s" : ""} selected</p>
+                              )}
+                            </div>
+                            <div className="flex gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setReturnFormOpen(false)}
+                                className="flex-1 rounded-md border border-gray-200 px-4 py-2 text-sm font-bold text-gray-600 hover:border-gray-400"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={submittingReturn}
+                                className="flex-1 rounded-md bg-pink-500 px-4 py-2 text-sm font-bold text-white hover:bg-pink-600 disabled:opacity-60"
+                              >
+                                {submittingReturn ? "Submitting..." : "Submit request"}
+                              </button>
+                            </div>
+                          </form>
+                        ) : null}
+                      </div>
+                    </>
+                  )}
                 </>
               )}
             </aside>

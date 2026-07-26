@@ -7,7 +7,7 @@ const RETURNABLE = ["delivered"];
 export const cancelMyOrder = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const userId = req.user.id; // adjust to your auth payload shape
+    const userId = req.user.userId; // adjust to your auth payload shape
 
     const order = await OrderModel.getOrderByIdForUser(orderId, userId);
     if (!order) return res.status(404).json({ message: "Order not found." });
@@ -37,7 +37,7 @@ export const cancelMyOrder = async (req, res) => {
 export const requestMyReturn = async (req, res) => {
   try {
     const { orderId } = req.params;
-    const userId = req.user.id;
+    const userId = req.user.userId;
 
     const order = await OrderModel.getOrderByIdForUser(orderId, userId);
     if (!order) return res.status(404).json({ message: "Order not found." });

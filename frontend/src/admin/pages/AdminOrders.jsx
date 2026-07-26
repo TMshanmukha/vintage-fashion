@@ -1,40 +1,32 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import toast from "react-hot-toast";
 import { getOrders, updateOrderStatus, updatePaymentStatus, getOrderStats } from "../../api/orderApi";
 
-
+const ORDER_STATUSES = ["pending", "confirmed", "packed", "shipped", "delivered", "cancelled"];
 const PAYMENT_STATUSES = ["pending", "success", "failed", "refunded"];
 
-// Only these forward moves are allowed from a given status — plus the current
-// value itself so the <select> always has something to display. This stops
-// an accidental jump straight to "delivered" from "pending", since shipping
-// here is manual (you hand the parcel to the post office yourself) and the
-// status should always reflect a truthful, ordered history rather than
-// whatever an admin clicks.
-const ORDER_STATUSES = ["pending", "confirmed", "processing", "shipped", "delivered", "cancelled", "return_requested", "returned"];
-
+// Only these forward moves are allowed from a given status — plus the
+// current value itself so the <select> always has something to display.
+// Confirming triggers courier shipment creation on the backend.
 const ALLOWED_NEXT_STATUSES = {
   pending: ["pending", "confirmed", "cancelled"],
-  confirmed: ["confirmed", "processing", "cancelled"],
-  processing: ["processing", "shipped", "cancelled"],
+  confirmed: ["confirmed", "packed", "cancelled"],
+  packed: ["packed", "shipped"],
   shipped: ["shipped", "delivered"],
-  delivered: ["delivered", "return_requested"],
-  return_requested: ["return_requested", "returned", "delivered"], // approve -> returned, reject -> back to delivered
+  delivered: ["delivered"],
   cancelled: ["cancelled"],
-  returned: ["returned"],
 };
 
 const orderStatusStyles = {
   pending: "bg-amber-50 text-amber-600",
-  confirmed: "bg-blue-50 text-blue-600",
-  processing: "bg-purple-50 text-purple-600",
+  confirmed: "bg-sky-50 text-sky-600",
+  packed: "bg-purple-50 text-purple-600",
   shipped: "bg-indigo-50 text-indigo-600",
   delivered: "bg-green-50 text-green-600",
   cancelled: "bg-red-50 text-red-500",
-  return_requested: "bg-pink-50 text-pink-600",
-  returned: "bg-gray-100 text-gray-600",
 };
 
 const paymentStatusStyles = {
@@ -48,6 +40,9 @@ const formatCurrency = (value) => `₹${Number(value).toLocaleString("en-IN")}`;
 
 const formatDate = (isoString) =>
   new Date(isoString).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" });
+
+const formatStatusLabel = (s) =>
+  s.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
 
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
@@ -93,16 +88,20 @@ export default function AdminOrders() {
   const handleOrderStatusChange = async (order, newStatus) => {
     if (newStatus === order.order_status) return;
 
-    if (["cancelled", "delivered", "returned", "return_requested"].includes(newStatus)) {
+    if (["cancelled", "delivered"].includes(newStatus)) {
       const confirmed = window.confirm(
-        `Mark order #${order.order_number} as "${newStatus.replace("_", " ")}"? This can't be easily undone.`
+        `Mark order #${order.order_number} as "${formatStatusLabel(newStatus)}"? This can't be easily undone.`
       );
       if (!confirmed) return;
     }
 
     try {
       await updateOrderStatus(order.order_id, newStatus);
-      toast.success("Order status updated.");
+      toast.success(
+        newStatus === "confirmed"
+          ? "Order confirmed — shipment created with courier."
+          : "Order status updated."
+      );
       loadOrders();
       loadStats();
     } catch (err) {
@@ -110,9 +109,6 @@ export default function AdminOrders() {
       console.error(err);
     }
   };
-
-  const formatStatusLabel = (s) => s.split("_").map(w => w[0].toUpperCase() + w.slice(1)).join(" ");
-// use formatStatusLabel(s) instead of s[0].toUpperCase() + s.slice(1) in both <option> maps
 
   const handlePaymentStatusChange = async (orderId, newStatus) => {
     try {
@@ -135,7 +131,7 @@ export default function AdminOrders() {
       <div className="p-8">
         {/* Stats */}
         {stats && (
-          <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
             <div className="bg-white border border-gray-100 rounded-xl p-5">
               <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Total Orders</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total_orders}</p>
@@ -152,10 +148,13 @@ export default function AdminOrders() {
               <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Revenue</p>
               <p className="text-2xl font-bold text-gray-900 mt-1">{formatCurrency(stats.total_revenue)}</p>
             </div>
-            <div className="bg-white border border-gray-100 rounded-xl p-5">
-          <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Return Requests</p>
-          <p className="text-2xl font-bold text-pink-500 mt-1">{stats.return_requested_orders ?? 0}</p>
-        </div>
+            <Link
+              to="/admin/returns"
+              className="bg-white border border-gray-100 rounded-xl p-5 hover:border-pink-300 transition-colors"
+            >
+              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Return Requests</p>
+              <p className="text-2xl font-bold text-pink-500 mt-1">{stats.return_requested_orders ?? 0}</p>
+            </Link>
           </div>
         )}
 
@@ -179,7 +178,7 @@ export default function AdminOrders() {
             className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-pink-500 bg-white"
           >
             <option value="">All statuses</option>
-            {ORDER_STATUSES.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+            {ORDER_STATUSES.map((s) => <option key={s} value={s}>{formatStatusLabel(s)}</option>)}
           </select>
           <p className="text-xs text-gray-400 whitespace-nowrap">{total} order{total !== 1 ? "s" : ""}</p>
         </div>
@@ -193,13 +192,14 @@ export default function AdminOrders() {
                 <th className="text-left px-6 py-4">Items</th>
                 <th className="text-left px-6 py-4">Total</th>
                 <th className="text-left px-6 py-4">Status</th>
+                <th className="text-left px-6 py-4">Tracking</th>
                 <th className="text-left px-6 py-4">Payment</th>
                 <th className="text-left px-6 py-4">Date</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {loading && (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-400">Loading orders...</td></tr>
+                <tr><td colSpan={8} className="px-6 py-12 text-center text-sm text-gray-400">Loading orders...</td></tr>
               )}
               {!loading && orders.map((o) => {
                 const allowedNext = ALLOWED_NEXT_STATUSES[o.order_status] || [o.order_status];
@@ -220,8 +220,17 @@ export default function AdminOrders() {
                         disabled={allowedNext.length === 1}
                         className={`text-xs font-semibold px-2.5 py-1.5 rounded-full outline-none border-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-70 ${orderStatusStyles[o.order_status] || orderStatusStyles.pending}`}
                       >
-                        {allowedNext.map((s) => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+                        {allowedNext.map((s) => <option key={s} value={s}>{formatStatusLabel(s)}</option>)}
                       </select>
+                    </td>
+                    <td className="px-6 py-4 text-xs text-gray-400">
+                      {o.tracking_id ? (
+                        <>
+                          {o.tracking_id}
+                          <br />
+                          {o.courier_partner}
+                        </>
+                      ) : "—"}
                     </td>
                     <td className="px-6 py-4">
                       <select
@@ -237,7 +246,7 @@ export default function AdminOrders() {
                 );
               })}
               {!loading && orders.length === 0 && (
-                <tr><td colSpan={7} className="px-6 py-12 text-center text-sm text-gray-400">No orders found.</td></tr>
+                <tr><td colSpan={8} className="px-6 py-12 text-center text-sm text-gray-400">No orders found.</td></tr>
               )}
             </tbody>
           </table>

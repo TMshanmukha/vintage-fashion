@@ -94,10 +94,18 @@ export default function AuthPage() {
   };
 
   const saveLoggedInUser = (response) => {
-    const user = response?.data?.user;
-    const accessToken = response?.data?.accessToken;
+
+    console.log("LOGIN RESPONSE =", response);
+
+    const user = response.data.user;
+    const accessToken = response.data.accessToken;
+
+    console.log("User =", user);
+    console.log("Access Token =", accessToken);
+
     setUser(user);
     setAccessToken(accessToken);
+
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("accessToken", accessToken);
   };
@@ -115,10 +123,12 @@ export default function AuthPage() {
           email: form.email,
           password: form.password,
         });
+        console.log(response.data);
       } else {
         response = await signup(createSignupPayload());
       }
 
+      console.log("LOGIN RESPONSE =", response);
       saveLoggedInUser(response);
 
       toast.success(

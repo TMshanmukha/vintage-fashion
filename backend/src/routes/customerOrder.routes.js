@@ -5,7 +5,12 @@ import {
   getMyOrderDetail,
   cancelMyOrder,
   requestReturn,
+  getMyReturn
 } from "../controllers/customerOrder.controller.js";
+
+import { uploadReturnPhotos } from "../middlewares/uploadreturnphotos.middleware.js";
+// ...
+
 
 const router = Router();
 
@@ -15,7 +20,9 @@ router.use(authenticate);
 router.get("/my", getMyOrders);
 router.get("/my/:orderId", getMyOrderDetail);
 router.patch("/my/:orderId/cancel", cancelMyOrder);
-router.patch("/my/:orderId/return", requestReturn);
+
+router.get("/my/:orderId/return", getMyReturn);
+router.patch("/my/:orderId/return", uploadReturnPhotos.array("photos", 4), requestReturn);
 
 export default router;
 

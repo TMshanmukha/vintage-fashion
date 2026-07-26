@@ -34,6 +34,7 @@ import AdminCategories from "./admin/pages/CategoryPage";
 
 import { Toaster } from "react-hot-toast";
 import AdminBrands from "./admin/pages/AdminBrands";
+import AdminReturns from "./admin/pages/AdminReturns";
 
 function StoreFront() {
   return (
@@ -85,6 +86,7 @@ export default function App() {
             />
             <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
             <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
+            <Route path="/admin/returns" element={<AdminReturns />} />
             <Route path="/admin/offers" element={<ProtectedRoute><AdminMarketing /></ProtectedRoute>} />
             <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
             <Route path="/admin/notifications" element={<ProtectedRoute><AdminNotifications /></ProtectedRoute>} />

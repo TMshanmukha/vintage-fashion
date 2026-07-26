@@ -1,18 +1,15 @@
 import { signupService,loginService,logoutService,forgotPasswordService,resetPasswordService,adminLoginService } from "../services/auth.service.js";
 
 import { refreshTokenService } from "../services/auth.service.js";
+import { getSessionById } from "../models/session.model.js";
+import { getIO } from "../socket/index.js";
 
 export const refresh = async (req, res) => {
 
     try {
 
-        const sessionId =
-            req.cookies.adminSessionId ||
-            req.cookies.sessionId;
-
-        const refreshToken =
-            req.cookies.adminRefreshToken ||
-            req.cookies.refreshToken;
+        const sessionId = req.cookies.sessionId;
+        const refreshToken = req.cookies.refreshToken;
 
         const result = await refreshTokenService({ sessionId, refreshToken });
 
@@ -106,46 +103,55 @@ export const forgotPassword = async (req, res) => {
     }
 };
 
-export const logout = async (req,res)=>{
+// Customer logout. We look up the session BEFORE deleting it so we know
+// which user to notify over the socket — we never trust a client-sent
+// userId since that's easy to spoof and the frontend wasn't sending it anyway.
+export const logout = async (req, res) => {
 
-    try{
+    try {
 
-        console.log("Cookies:",req.cookies);
+        const sessionId = req.cookies.sessionId;
+        let userId = null;
 
-        const sessionId=req.cookies.sessionId;
+        if (sessionId) {
+            const session = await getSessionById(sessionId);
+            userId = session?.user_id || null;
 
-        if(sessionId){
             await logoutService(sessionId);
         }
 
-
-        res.clearCookie("sessionId",{
-            httpOnly:true,
-            secure:false,
-            sameSite:"lax"
+        res.clearCookie("sessionId", {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax"
         });
 
-
-        res.clearCookie("refreshToken",{
-            httpOnly:true,
-            secure:false,
-            sameSite:"lax"
+        res.clearCookie("refreshToken", {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax"
         });
 
+        if (userId) {
+            try {
+                getIO().to(`user:${userId}`).emit("session:changed", { event: "logout" });
+            } catch (err) {
+                console.warn("Socket emit skipped:", err.message);
+            }
+        }
 
         return res.status(200).json({
-            success:true,
-            message:"Logout Successful"
+            success: true,
+            message: "Logout Successful"
         });
 
-
-    }catch(error){
+    } catch (error) {
 
         console.log(error);
 
         return res.status(500).json({
-            success:false,
-            message:error.message
+            success: false,
+            message: error.message
         });
 
     }
@@ -165,9 +171,8 @@ export const login = async (req, res) => {
             ipAddress: req.ip
 
         });
-        console.log(result);
 
-        const { accessToken, refreshToken, user,sessionId } = result;
+        const { accessToken, refreshToken, user, sessionId } = result;
 
         const isAdmin = user.role === "admin";
 
@@ -197,6 +202,12 @@ export const login = async (req, res) => {
             maxAge: cookieAge
         });
 
+        try {
+            getIO().to(`user:${user.id}`).emit("session:changed", { event: "login" });
+        } catch (err) {
+            console.warn("Socket emit skipped:", err.message);
+        }
+
         return res.status(200).json({
             success: true,
             message: "Login successful.",
@@ -204,7 +215,7 @@ export const login = async (req, res) => {
                 user,
                 accessToken
             }
-});
+        });
 
     }
 
@@ -223,13 +234,8 @@ export const login = async (req, res) => {
 };
 
 export const signup = async (req, res) => {
-    console.log("======signup=====");
-    console.log("BODY:", req.body);
-    console.log("BODY:", req.file?.path);
 
     try {
-        console.log(JSON.stringify(req.body, null, 2));
-        console.log(JSON.stringify(req.file, null, 2));
 
         const { name, email, password, phone } = req.body;
         const avatarUrl = req.file?.path;
@@ -244,7 +250,7 @@ export const signup = async (req, res) => {
             ipAddress: req.ip
         });
 
-        const { user, accessToken, refreshToken,sessionId } = result;
+        const { user, accessToken, refreshToken, sessionId } = result;
 
         res.cookie("refreshToken", refreshToken, {
             httpOnly: true,
@@ -329,6 +335,12 @@ export const adminLogin = async (req, res) => {
             maxAge: 8 * 60 * 60 * 1000
         });
 
+        try {
+            getIO().to(`admin:${user.id}`).emit("session:changed", { event: "login" });
+        } catch (err) {
+            console.warn("Socket emit skipped:", err.message);
+        }
+
         res.status(200).json({
             success: true,
             message: "Admin login successful.",
@@ -391,17 +403,48 @@ export const adminRefresh = async (req, res) => {
 
 };
 
+// Same fix as customer logout: look up the session's user before deleting
+// it, so we know who to notify. Also wrapped in try/catch now — the
+// original had none, so any failure here would crash the request with an
+// unhandled rejection instead of returning a clean error response.
 export const adminLogout = async (req, res) => {
 
-    const sessionId = req.cookies.adminSessionId;
+    try {
 
-    await logoutService(sessionId);
+        const sessionId = req.cookies.adminSessionId;
+        let userId = null;
 
-    res.clearCookie("adminSessionId");
-    res.clearCookie("adminRefreshToken");
+        if (sessionId) {
+            const session = await getSessionById(sessionId);
+            userId = session?.user_id || null;
 
-    return res.json({
-        success: true
-    });
+            await logoutService(sessionId);
+        }
+
+        res.clearCookie("adminSessionId");
+        res.clearCookie("adminRefreshToken");
+
+        if (userId) {
+            try {
+                getIO().to(`admin:${userId}`).emit("session:changed", { event: "logout" });
+            } catch (err) {
+                console.warn("Socket emit skipped:", err.message);
+            }
+        }
+
+        return res.json({
+            success: true
+        });
+
+    } catch (error) {
+
+        console.error(error);
+
+        return res.status(500).json({
+            success: false,
+            message: error.message
+        });
+
+    }
 
 };

@@ -47,7 +47,7 @@ export default function AdminProducts() {
                 },
             });
 
-            setProducts(res.data.data.products || []);
+            setProducts(res.data.data || []);
 
             setTotalItems(
                 res.data.pagination?.totalItems ??

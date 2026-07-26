@@ -3,6 +3,7 @@ import api from "./AdminApi";
 // GET /api/products?search=&page=&limit=&category=
 export const getProducts = async (params = {}) => {
   const res = await api.get("/products", { params });
+  console.log(res.data);
   return res.data; // { success, message, data, pagination }
 };
 
