@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 
 import { getCart, addToCartApi, updateCartItemApi, removeCartItemApi } from "../api/cartApi";
 import { getWishlist, addToWishlist, removeFromWishlistApi } from "../api/wishlistApi";
-import useSocket from "../hooks/useSocket";
+import useSocket from "./Usesocket";
 import useAuth from "../hooks/useAuth";
 
 const CartContext = createContext();
