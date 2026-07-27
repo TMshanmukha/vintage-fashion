@@ -3,7 +3,7 @@ import TopBar from "./TopBar";
 import Header from "./Header";
 import Footer from "./Footer";
 import useAuth from "../../hooks/useAuth";
-import useSocket from "../../hooks/UseSocket";
+import useSocket from "../../hooks/Usesocket";
 
 export default function Layout({ children }) {
   const navigate = useNavigate();
