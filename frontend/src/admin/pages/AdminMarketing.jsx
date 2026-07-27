@@ -10,7 +10,7 @@ import * as featuredApi from "../../api/featuredProductApi";
 import * as flashSaleApi from "../../api/flashSaleApi";
 import * as sectionApi from "../../api/homepageSectionApi";
 import * as productPickerApi from "../../api/ProductPickerApi";
-import CardFormModal from "../components/marketing/CardFormModal";
+import CardFormModal from "../components/marketing/Cardformmodal";
 
 export default function AdminMarketing() {
   /* ============== TOAST ============== */
