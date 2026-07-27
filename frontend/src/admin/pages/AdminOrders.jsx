@@ -4,7 +4,7 @@ import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import toast from "react-hot-toast";
 import { getOrders, updateOrderStatus, updatePaymentStatus, getOrderStats } from "../../api/orderApi";
-import useAdminSocket from "../../hooks/useAdminSocket";
+import useAdminSocket from "../../hooks/useadminsocket";
 
 const ORDER_STATUSES = ["pending", "confirmed", "packed", "shipped", "delivered", "cancelled"];
 const PAYMENT_STATUSES = ["pending", "success", "failed", "refunded"];
