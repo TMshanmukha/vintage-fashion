@@ -1,4 +1,4 @@
-import API from "./Api";
+import API from "./API";
 
 // These live under /api/admin/marketing on the backend but the GET routes
 // currently have no auth middleware, so the public storefront can read them.

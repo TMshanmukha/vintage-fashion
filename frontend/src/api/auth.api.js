@@ -1,4 +1,4 @@
-import API from "./Api";
+import API from "./API";
 
 // Signup
 export const signup = async (userData) => {

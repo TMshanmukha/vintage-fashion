@@ -1,4 +1,4 @@
-import API from "./Api";
+import API from "./API";
 
 export const getProducts = (params = {}) => API.get("/products", { params });
 export const getProductBySlug = (slug) => API.get(`/products/${slug}`);
