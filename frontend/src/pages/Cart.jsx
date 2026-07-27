@@ -1,8 +1,26 @@
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useCart } from "../hooks/useCart";
+import { getSettings } from "../api/settingsApi";
+import { calculateShipping } from "../utils/shipping";
 
 export default function Cart() {
   const { cartItems, updateQty, removeFromCart, cartTotal } = useCart();
+  const [announcementText, setAnnouncementText] = useState("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getSettings();
+        setAnnouncementText(res.data?.announcement_text || "");
+      } catch (err) {
+        console.error("Failed to load settings:", err);
+      }
+    })();
+  }, []);
+
+  const shippingFee = calculateShipping(cartTotal, announcementText);
+  const total = cartTotal + shippingFee;
 
   if (cartItems.length === 0) {
     return (
@@ -48,10 +66,17 @@ export default function Cart() {
                   <td className="py-4">
                     <div className="flex items-center gap-4">
                       <img src={item.image} alt={item.name} className="w-16 h-16 object-cover bg-gray-50" />
-                      <span className="text-sm font-medium text-gray-800">{item.name}</span>
+                      <div>
+                        <span className="text-sm font-medium text-gray-800 block">{item.name}</span>
+                        {(item.size || item.color) && (
+                          <span className="text-xs text-gray-400">
+                            {item.size ? `Size: ${item.size}` : ""}{item.size && item.color ? " · " : ""}{item.color ? `Color: ${item.color}` : ""}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </td>
-                  <td className="text-center text-sm text-gray-600">$ {item.price.toFixed(2)}</td>
+                  <td className="text-center text-sm text-gray-600">₹ {item.price.toFixed(2)}</td>
                   <td className="text-center">
                     <div className="flex items-center justify-center border border-gray-200 w-fit mx-auto">
                       <button onClick={() => updateQty(item.id, item.qty - 1)} className="px-3 py-1.5 text-gray-500 hover:text-gray-900">−</button>
@@ -60,7 +85,7 @@ export default function Cart() {
                     </div>
                   </td>
                   <td className="text-right text-sm font-semibold text-gray-800">
-                    $ {(item.price * item.qty).toFixed(2)}
+                    ₹ {(item.price * item.qty).toFixed(2)}
                   </td>
                   <td className="text-right pl-4">
                     <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-pink-500 transition-colors">
@@ -88,28 +113,18 @@ export default function Cart() {
             <div className="space-y-3 mb-6">
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Subtotal</span>
-                <span className="font-semibold">$ {cartTotal.toFixed(2)}</span>
+                <span className="font-semibold">₹ {cartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Shipping</span>
-                <span className="font-semibold text-green-500">{cartTotal >= 200 ? "Free" : "$ 9.99"}</span>
+                <span className="font-semibold text-green-500">
+                  {shippingFee === 0 ? "Free" : `₹ ${shippingFee.toFixed(2)}`}
+                </span>
               </div>
               <div className="border-t border-gray-200 pt-3 flex justify-between text-sm font-bold">
                 <span>Total</span>
-                <span>$ {(cartTotal + (cartTotal >= 200 ? 0 : 9.99)).toFixed(2)}</span>
+                <span>₹ {total.toFixed(2)}</span>
               </div>
-            </div>
-
-            {/* Coupon */}
-            <div className="flex gap-2 mb-6">
-              <input
-                type="text"
-                placeholder="Coupon code"
-                className="flex-1 border border-gray-200 text-xs px-3 py-2 outline-none focus:border-pink-500"
-              />
-              <button className="bg-gray-900 text-white text-xs font-bold uppercase px-4 py-2 hover:bg-pink-500 transition-colors">
-                Apply
-              </button>
             </div>
 
             <Link

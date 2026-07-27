@@ -47,8 +47,13 @@ export default function AuthPage() {
       case "Invalid email or password":
         return "Incorrect email or password.";
 
+      case "Your account has been blocked by admin":
+        return "Your account has been blocked by the admin. Please contact support.";
+
       case "Network Error":
         return "No Internet Connection.";
+      case "Admin cannot login here":
+        return "Incorrect email or password."
 
       default:
         return "Something went wrong. Please try again.";
@@ -89,41 +94,52 @@ export default function AuthPage() {
   };
 
   const saveLoggedInUser = (response) => {
-    const user = response?.data?.user;
-    const accessToken = response?.data?.accessToken;
+
+    console.log("LOGIN RESPONSE =", response);
+
+    const user = response.data.user;
+    const accessToken = response.data.accessToken;
+
+    console.log("User =", user);
+    console.log("Access Token =", accessToken);
+
     setUser(user);
     setAccessToken(accessToken);
+
     localStorage.setItem("user", JSON.stringify(user));
     localStorage.setItem("accessToken", accessToken);
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
     setLoading(true);
 
     try {
+      let response;
+
       if (isLogin) {
-        const response = await login({
+        response = await login({
           email: form.email,
           password: form.password,
         });
-        saveLoggedInUser(response);
-        toast.success("Welcome back", toastOptions);
-        navigate("/account");
-        return;
+        console.log(response.data);
+      } else {
+        response = await signup(createSignupPayload());
       }
-      await signup(createSignupPayload());
 
-      const loginResponse = await login({
-        email: form.email,
-        password: form.password,
-      });
+      console.log("LOGIN RESPONSE =", response);
+      saveLoggedInUser(response);
 
-      saveLoggedInUser(loginResponse);
-      toast.success("Account created successfully", toastOptions);
+      toast.success(
+        isLogin ? "Welcome back!" : "Account created successfully!"
+      );
+
       navigate("/account");
+
     } catch (err) {
-      toast.error(getFriendlyError(err), toastOptions);
+      console.log(err);
+      toast.error(getFriendlyError(err));
     } finally {
       setLoading(false);
     }

@@ -2,16 +2,19 @@ import { v4 as uuidv4 } from "uuid";
 
 import {
     findUserByEmail,
-    createUser} from "../models/user.model.js";
+    createUser
+} from "../models/user.model.js";
 
-import {createSession,deleteSession} from "../models/session.model.js";
+import { createSession, deleteSession } from "../models/session.model.js";
 
 import {
-    hashPassword,comparePassword } from "../utils/hash.js";
+    hashPassword, comparePassword
+} from "../utils/hash.js";
 
 import {
     generateAccessToken,
-    generateRefreshToken } from "../utils/jwt.js";
+    generateRefreshToken
+} from "../utils/jwt.js";
 
 import crypto from "crypto";
 import bcrypt from "bcrypt";
@@ -25,6 +28,77 @@ import {
 } from "../models/passwordReset.model.js";
 
 import { sendResetPasswordEmail } from "../utils/mail.util.js";
+
+import { getSessionById, updateSessionRefreshToken } from "../models/session.model.js";
+import { findUserById } from "../models/user.model.js";
+
+import * as NotificationService from "./notificationService.js";
+
+export const refreshTokenService = async ({ sessionId, refreshToken }) => {
+
+    if (!sessionId || !refreshToken) {
+        throw new Error("Refresh token is required.");
+    }
+
+    const session = await getSessionById(sessionId);
+
+    if (!session) {
+        throw new Error("Invalid session.");
+    }
+
+    if (new Date(session.expires_at) < new Date()) {
+        await deleteSession(sessionId);
+        throw new Error("Session expired.");
+    }
+
+    const isValid = await bcrypt.compare(refreshToken, session.refresh_token_hash);
+
+    if (!isValid) {
+        // Token doesn't match what's on record — treat as compromised, kill the session
+        await deleteSession(sessionId);
+        throw new Error("Invalid refresh token.");
+    }
+
+    const user = await findUserById(session.user_id);
+
+    if (!user) {
+        await deleteSession(sessionId);
+        throw new Error("User not found.");
+    }
+
+    const accessToken = generateAccessToken({
+        userId: user.user_id,
+        email: user.email,
+        role: user.role
+    });
+
+    // Rotate the refresh token so a stolen old one becomes useless
+    const newRefreshToken = generateRefreshToken({
+        userId: user.user_id,
+        email: user.email,
+        role: user.role
+    });
+
+    const newRefreshTokenHash = await hashPassword(newRefreshToken);
+
+    const sessionDuration =
+        user.role === "admin"
+            ? 8 * 60 * 60 * 1000
+            : 30 * 24 * 60 * 60 * 1000;
+
+    await updateSessionRefreshToken(
+        sessionId,
+        newRefreshTokenHash,
+        new Date(Date.now() + sessionDuration)
+    );
+
+    return {
+        accessToken,
+        refreshToken: newRefreshToken,
+        role: user.role
+    };
+
+};
 
 export const resetPasswordService = async ({
     token,
@@ -41,7 +115,7 @@ export const resetPasswordService = async ({
 
     for (const reset of resetTokens) {
 
-       console.log("Checking token:", reset.reset_id);
+        console.log("Checking token:", reset.reset_id);
 
         const matched = await bcrypt.compare(
             token,
@@ -105,7 +179,7 @@ export const forgotPasswordService = async (email) => {
         return;
     }
 
-    const token =crypto.randomBytes(32).toString("hex");
+    const token = crypto.randomBytes(32).toString("hex");
 
     const tokenHash = await hashPassword(token);
 
@@ -116,8 +190,8 @@ export const forgotPasswordService = async (email) => {
     const expiresAt = new Date(
         Date.now() + 15 * 60 * 1000
     );
-    
-    const result =await createPasswordReset({
+
+    const result = await createPasswordReset({
 
         userId: user.user_id,
 
@@ -193,6 +267,13 @@ export const signupService = async ({
 
     const userId = result.insertId;
 
+    await NotificationService.createNotification({
+        title: "New User Registered",
+        body: `${name} created a new account.`,
+        type: "user",
+        referenceId: userId
+    });
+
     // 4. Generate Tokens
 
     const accessToken = generateAccessToken({
@@ -209,7 +290,7 @@ export const signupService = async ({
 
     // 5. Create Session
 
-    const sessionId =  uuidv4();
+    const sessionId = uuidv4();
 
     await createSession({
         session_id: sessionId,
@@ -261,6 +342,14 @@ export const loginService = async ({
         throw new Error("Invalid email or password");
     }
 
+    if (user.role !== "customer") {
+        throw new Error("Admin cannot login here");
+    }
+
+    if (user.account_status === "BLOCKED") {
+        throw new Error("Your account has been blocked by admin");
+    }
+
     // Compare password
     const isMatch = await comparePassword(
         password,
@@ -288,24 +377,20 @@ export const loginService = async ({
 
     // Save Session
 
-    const sessionId =  uuidv4();
+    const sessionId = uuidv4();
+
+    const sessionDuration =
+        user.role === "admin"
+            ? 8 * 60 * 60 * 1000
+            : 30 * 24 * 60 * 60 * 1000;
 
     await createSession({
-
         session_id: sessionId,
-
         userId: user.user_id,
-
         refreshTokenHash,
-
         userAgent,
-
         ipAddress,
-
-        expiresAt: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000
-        )
-
+        expiresAt: new Date(Date.now() + sessionDuration)
     });
 
     return {
@@ -321,8 +406,8 @@ export const loginService = async ({
             phone: user.phone,
 
             avatarUrl: user.avatar_url,
-            
-            role:user.role,
+
+            role: user.role,
 
         },
 
@@ -330,6 +415,84 @@ export const loginService = async ({
 
         refreshToken,
 
+        sessionId
+    };
+
+};
+
+export const adminLoginService = async ({
+ email,
+ password,
+ userAgent,
+ ipAddress
+}) => {
+
+    const user = await findUserByEmail(email);
+
+
+    if(!user){
+        throw new Error("Invalid email or password");
+    }
+
+
+    if(user.role !== "admin"){
+        throw new Error("Only admins can login here");
+    }
+
+
+    const isMatch = await comparePassword(
+        password,
+        user.password_hash
+    );
+
+
+    if(!isMatch){
+        throw new Error("Invalid email or password");
+    }
+
+
+    const accessToken = generateAccessToken({
+        userId:user.user_id,
+        email:user.email,
+        role:user.role
+    });
+
+
+    const refreshToken = generateRefreshToken({
+        userId:user.user_id,
+        email:user.email,
+        role:user.role
+    });
+
+
+    const refreshTokenHash =
+        await hashPassword(refreshToken);
+
+
+    const sessionId = uuidv4();
+
+
+    await createSession({
+        session_id:sessionId,
+        userId:user.user_id,
+        refreshTokenHash,
+        userAgent,
+        ipAddress,
+        expiresAt:new Date(
+            Date.now()+8*60*60*1000
+        )
+    });
+
+
+    return {
+        user:{
+            id:user.user_id,
+            name:user.name,
+            email:user.email,
+            role:user.role
+        },
+        accessToken,
+        refreshToken,
         sessionId
     };
 

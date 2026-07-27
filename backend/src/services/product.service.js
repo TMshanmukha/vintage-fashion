@@ -4,7 +4,7 @@ import {
     getProductBySlug,
     getProductImages,
     getProductVariants,
-    getRelatedProducts
+    getRelatedProducts,
 } from "../models/product.model.js";
 
 import pool from "../config/db.js";
@@ -14,8 +14,11 @@ import {
     createProduct,
     deleteProductImages,
     deleteProductVariants,
+    updateProductVariant,
+    deleteProductVariant,
     createProductImages,
     createProductVariants,
+    createProductVariant,
     getProductById,
     updateProductSku,
     updateProduct,
@@ -33,22 +36,57 @@ import {
 import { getCategoryById } from "../models/category.model.js";
 import { getBrandById } from "../models/brand.model.js";
 
+import * as NotificationService from "./notificationService.js";
+
 export const deleteProductService = async (params) => {
+
     const connection = await pool.getConnection();
 
-    const { product_id } = deleteProductSchema.parse({
-        product_id: params.id
-    });
+    try {
 
-    const product = await getProductById(product_id,connection);
+        await connection.beginTransaction();
 
-    if (!product) {
-        throw new Error("Product not found.");
+        const { product_id } = deleteProductSchema.parse({
+            product_id: params.id
+        });
+
+        const product = await getProductById(
+            connection,
+            product_id
+        );
+
+        if (!product) {
+            throw new Error("Product not found.");
+        }
+
+        await softDeleteProduct(
+            product_id,
+            connection
+        );
+
+        await connection.commit();
+
+        await NotificationService.createNotification({
+            title: "Product Removed",
+            body: `${product.name} was removed.`,
+            type: "product",
+            referenceId: productId
+        });
+
+        return;
+
+    } catch (error) {
+
+        await connection.rollback();
+
+        throw error;
+
+    } finally {
+
+        connection.release();
+
     }
 
-    await softDeleteProduct(product_id);
-
-    return;
 };
 
 export const updateProductService = async (params, body) => {
@@ -57,52 +95,97 @@ export const updateProductService = async (params, body) => {
 
     try {
 
-        const product = updateProductSchema.parse({
+        let product = {
             product_id: params.id,
             ...body
-        });
+        };
+
+        if (Array.isArray(product.images)) {
+
+            product.images = product.images.map(image => ({
+                ...image,
+                is_primary: Boolean(image.is_primary)
+            }));
+
+        }
+
+        if (Array.isArray(product.variants)) {
+
+            product.variants = product.variants.map(variant => ({
+                ...variant,
+                sku_variant: variant.sku_variant || ""
+            }));
+
+        }
+
+        product.stock_quantity =
+            (product.variants || []).reduce(
+                (total, variant) =>
+                    total + Number(variant.stock_quantity || 0),
+                0
+            );
+
+        product = updateProductSchema.parse(product);
 
         await connection.beginTransaction();
 
         // Product exists?
         const existingProduct = await getProductById(
-            product.product_id,
-            connection
+            connection,
+            product.product_id
         );
 
         if (!existingProduct) {
             throw new Error("Product not found.");
         }
 
+
+        if (product.variants?.length) {
+
+            product.variants = product.variants.map((variant) => ({
+
+                ...variant,
+
+                sku_variant:
+                    variant.sku_variant ||
+
+                    generateVariantSku(
+                        existingProduct.sku,
+                        variant.color || "",
+                        variant.size || ""
+                    )
+
+            }));
+
+        }
+
+
         // Category exists?
-        const category = await getCategoryById(product.category_id);
+        const [category, brand] = await Promise.all([
+            getCategoryById(product.category_id),
+            getBrandById(product.brand_id)
+        ]);
 
         if (!category) {
             throw new Error("Category not found.");
         }
 
-        // Brand exists?
-        const brand = await getBrandById(product.brand_id);
-
         if (!brand) {
             throw new Error("Brand not found.");
         }
 
-        const slug = product.name
-                    .toLowerCase()
-                    .trim()
-                    .replace(/\s+/g, "-")
-                    .replace(/[^\w-]+/g, "");
-
-        product.slug = slug;
+        product.slug = slugify(product.name, {
+            lower: true,
+            strict: true
+        });
         // Update product
         await updateProduct(product, connection);
 
         // Replace images
         await deleteProductImages(product.product_id, connection);
 
-        console.log(product.images);
-console.log(Array.isArray(product.images));
+        // console.log(product.images);
+        // console.log(Array.isArray(product.images));
 
         await createProductImages(
             connection,
@@ -110,21 +193,67 @@ console.log(Array.isArray(product.images));
             product.images
         );
 
-        // Replace variants
-        await deleteProductVariants(
-            product.product_id,
-            connection
-        );
+        // Existing variants from DB
+        const existingVariants = existingProduct.variants || [];
 
-        await createProductVariants(
-            product.product_id,
-            product.variants,
-            connection
-        );
+        // Incoming variants from frontend
+        const incomingVariants = product.variants || [];
+
+        // Existing variant IDs
+        const existingIds = existingVariants.map(v => v.variant_id);
+
+        // Incoming variant IDs
+        const incomingIds = incomingVariants
+            .filter(v => v.variant_id)
+            .map(v => Number(v.variant_id));
+
+        // Delete removed variants
+        for (const variant of existingVariants) {
+
+            if (!incomingIds.includes(variant.variant_id)) {
+
+                await deleteProductVariant(
+                    connection,
+                    variant.variant_id
+                );
+
+                await NotificationService.createNotification({
+                    title: "Product Updated",
+                    body: `${body.name} was updated.`,
+                    type: "product",
+                    referenceId: productId
+                });
+
+            }
+
+        }
+
+
+        // Update existing / Insert new
+        for (const variant of incomingVariants) {
+
+            if (variant.variant_id) {
+
+                await updateProductVariant(
+                    connection,
+                    variant
+                );
+
+            } else {
+
+                await createProductVariant(
+                    connection,
+                    product.product_id,
+                    variant
+                );
+
+            }
+
+        }
 
         await connection.commit();
 
-        return await getProductById(product.product_id,connection);
+        return await getProductById(connection,product.product_id);
 
     } catch (error) {
 
@@ -149,7 +278,7 @@ export const getProductBySlugService = async (params) => {
     const product = await getProductBySlug(slug);
 
     if (!product) {
-        throw new Error("Product not found.");
+        throw new Error("PRODUCT_NOT_FOUND");
     }
 
     // Get all images
@@ -200,7 +329,20 @@ export const getProductsService = async (query) => {
 
 };
 
-export const createProductService = async (productData) => {
+export const createProductService = async (productData, files) => {
+
+    // Variants come as JSON string from FormData
+    if (typeof productData.variants === "string") {
+        productData.variants = JSON.parse(productData.variants);
+    }
+
+    // Calculate total stock from variants BEFORE validation
+    productData.stock_quantity =
+        (productData.variants || []).reduce(
+            (total, variant) =>
+                total + Number(variant.stock_quantity || 0),
+            0
+        );
 
     // Validate Request
     const validatedData = createProductSchema.parse(productData);
@@ -235,6 +377,13 @@ export const createProductService = async (productData) => {
             validatedData
         );
 
+        await NotificationService.createNotification({
+            title: "Product Added",
+            body: `${productData.name} was added successfully.`,
+            type: "product",
+            referenceId: productId
+        });
+
         // Generate Product SKU
         const productSku = generateSku(productId);
 
@@ -245,19 +394,37 @@ export const createProductService = async (productData) => {
             productSku
         );
 
+        // validatedData.stock_quantity =
+        //     (validatedData.variants || []).reduce(
+        //         (total, variant) =>
+        //             total + Number(variant.stock_quantity || 0),
+        //         0
+        //     );
+        // await updateProductStock(
+        //     connection,
+        //     productId,
+        //     validatedData.stock_quantity
+        // );
+
         // Generate Variant SKUs
         if (validatedData.variants?.length) {
 
+            validatedData.variants =
+                (validatedData.variants || []).map((variant) => ({
+
+                    ...variant,
+
+                    sku_variant: generateVariantSku(
+                        productSku,
+                        variant.color || "",
+                        variant.size || ""
+                    )
+
+            }));
+
             validatedData.variants = validatedData.variants.map((variant) => ({
-
                 ...variant,
-
-                sku_variant: generateVariantSku(
-                    productSku,
-                    variant.color,
-                    variant.size
-                )
-
+                is_default: variant.is_default ?? false
             }));
 
             // Insert Variants

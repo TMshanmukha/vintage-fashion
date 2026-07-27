@@ -39,7 +39,7 @@ export default function AdminLogin() {
             setLoading(true);
 
             const response = await axios.post(
-                "http://localhost:5000/api/auth/login",
+                "http://localhost:5000/api/auth/admin/login",
                 formData,
                 {
                     withCredentials: true

@@ -1,30 +1,78 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
-import { useSiteData } from "../../hooks/useSiteData";
+import toast from "react-hot-toast";
+import { getCustomers } from "../../api/userApi";
+import { sendBulkEmail, sendSingleEmail, getEmailLog } from "../../api/emailApi";
 
 export default function AdminEmails() {
-  const { users, emailLog, sendEmail, addNotification } = useSiteData();
+  const [users, setUsers] = useState([]);
+  const [emailLog, setEmailLog] = useState([]);
   const [recipientMode, setRecipientMode] = useState("all");
-  const [selectedUserId, setSelectedUserId] = useState(users[0]?.id || "");
+  const [selectedUserId, setSelectedUserId] = useState("");
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  const handleSend = (e) => {
-    e.preventDefault();
-    if (recipientMode === "all") {
-      sendEmail({ to: `All users (${users.length})`, subject, body });
-      addNotification({ title: "Bulk email sent", body: `Sent "${subject}" to ${users.length} users`, type: "email" });
-    } else {
-      const user = users.find((u) => u.id === Number(selectedUserId));
-      sendEmail({ to: user?.email, subject, body });
-      addNotification({ title: "Email sent", body: `Sent "${subject}" to ${user?.email}`, type: "email" });
+  const loadUsers = async () => {
+    try {
+      const data = await getCustomers();
+      const active = data.filter((u) => u.account_status === "ACTIVE");
+      setUsers(active);
+      if (active[0]) setSelectedUserId(active[0].user_id);
+    } catch (err) {
+      toast.error("Failed to load users.");
+      console.error(err);
     }
-    setSubject("");
-    setBody("");
-    setSent(true);
-    setTimeout(() => setSent(false), 3000);
+  };
+
+  const loadEmailLog = async () => {
+    try {
+      const data = await getEmailLog();
+      setEmailLog(
+        data.map((e) => ({
+          id: e.email_id,
+          to: e.recipient_type === "all" ? e.recipient_label : e.recipient_email,
+          subject: e.subject,
+          body: e.body,
+          sentAt: new Date(e.sent_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })
+        }))
+      );
+    } catch (err) {
+      toast.error("Failed to load email history.");
+      console.error(err);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+    loadEmailLog();
+  }, []);
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    setSending(true);
+    try {
+      if (recipientMode === "all") {
+        const res = await sendBulkEmail({ subject, body });
+        toast.success(res.message || "Email sent to all users.");
+      } else {
+        const user = users.find((u) => u.user_id === Number(selectedUserId));
+        const res = await sendSingleEmail({ userId: selectedUserId, subject, body });
+        toast.success(res.message || `Email sent to ${user?.email}.`);
+      }
+      setSubject("");
+      setBody("");
+      setSent(true);
+      setTimeout(() => setSent(false), 3000);
+      loadEmailLog();
+    } catch (err) {
+      toast.error("Failed to send email.");
+      console.error(err);
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -64,7 +112,7 @@ export default function AdminEmails() {
                   onChange={(e) => setSelectedUserId(e.target.value)}
                   className="w-full border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-pink-500 bg-white mt-3"
                 >
-                  {users.map((u) => <option key={u.id} value={u.id}>{u.name} — {u.email}</option>)}
+                  {users.map((u) => <option key={u.user_id} value={u.user_id}>{u.name} — {u.email}</option>)}
                 </select>
               )}
             </div>
@@ -92,8 +140,12 @@ export default function AdminEmails() {
               />
             </div>
 
-            <button type="submit" className="bg-gray-900 text-white text-xs font-bold uppercase tracking-widest px-8 py-3.5 rounded-lg hover:bg-pink-500 transition-colors">
-              Send Email
+            <button
+              type="submit"
+              disabled={sending || (recipientMode === "single" && !selectedUserId)}
+              className="bg-gray-900 text-white text-xs font-bold uppercase tracking-widest px-8 py-3.5 rounded-lg hover:bg-pink-500 transition-colors disabled:opacity-50"
+            >
+              {sending ? "Sending..." : "Send Email"}
             </button>
           </form>
         </div>

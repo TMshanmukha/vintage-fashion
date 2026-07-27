@@ -1,6 +1,13 @@
+import { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
-import { useSiteData } from "../../hooks/useSiteData";
+import toast from "react-hot-toast";
+import {
+  getNotifications,
+  markNotificationRead,
+  markAllNotificationsRead,
+  deleteNotification
+} from "../../api/notificationApi";
 
 const typeStyles = {
   order: { bg: "bg-green-50", text: "text-green-600", icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.5 6v.75m0 3v.75m0 3v.75m0 3V18m-9-5.25h5.25M7.5 15h3M3.375 5.25c-.621 0-1.125.504-1.125 1.125v3.026a2.999 2.999 0 010 5.198v3.026c0 .621.504 1.125 1.125 1.125h17.25c.621 0 1.125-.504 1.125-1.125v-3.026a2.999 2.999 0 010-5.198V6.375c0-.621-.504-1.125-1.125-1.125H3.375z" /> },
@@ -11,9 +18,74 @@ const typeStyles = {
   email: { bg: "bg-gray-100", text: "text-gray-600", icon: <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" /> },
 };
 
+const formatTime = (isoString) =>
+  new Date(isoString).toLocaleString("en-IN", {
+    day: "numeric",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+
 export default function AdminNotifications() {
-  const { notifications, markNotificationRead, markAllNotificationsRead, deleteNotification } = useSiteData();
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const loadNotifications = async () => {
+    try {
+      const data = await getNotifications();
+      setNotifications(
+        data.map((n) => ({
+          id: n.notification_id,
+          title: n.title,
+          body: n.body,
+          type: n.type,
+          read: !!n.is_read,
+          time: formatTime(n.created_at)
+        }))
+      );
+    } catch (err) {
+      toast.error("Failed to load notifications.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadNotifications();
+  }, []);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
+
+  const handleMarkRead = async (id) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+    } catch (err) {
+      toast.error("Failed to update notification.");
+      console.error(err);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    } catch (err) {
+      toast.error("Failed to update notifications.");
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    try {
+      await deleteNotification(id);
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+    } catch (err) {
+      toast.error("Failed to delete notification.");
+      console.error(err);
+    }
+  };
 
   return (
     <AdminLayout>
@@ -23,14 +95,16 @@ export default function AdminNotifications() {
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-gray-500">{unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}</p>
           {unreadCount > 0 && (
-            <button onClick={markAllNotificationsRead} className="text-xs font-semibold text-pink-500 hover:underline">
+            <button onClick={handleMarkAllRead} className="text-xs font-semibold text-pink-500 hover:underline">
               Mark all as read
             </button>
           )}
         </div>
 
         <div className="space-y-3">
-          {notifications.map((n) => {
+          {loading && <p className="text-sm text-gray-400 text-center py-16">Loading notifications...</p>}
+
+          {!loading && notifications.map((n) => {
             const style = typeStyles[n.type] || typeStyles.order;
             return (
               <div
@@ -50,13 +124,13 @@ export default function AdminNotifications() {
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {!n.read && (
-                    <button onClick={() => markNotificationRead(n.id)} title="Mark as read" className="text-gray-400 hover:text-gray-900 p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button onClick={() => handleMarkRead(n.id)} title="Mark as read" className="text-gray-400 hover:text-gray-900 p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
                     </button>
                   )}
-                  <button onClick={() => deleteNotification(n.id)} title="Delete" className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors">
+                  <button onClick={() => handleDelete(n.id)} title="Delete" className="text-gray-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors">
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
@@ -65,7 +139,7 @@ export default function AdminNotifications() {
               </div>
             );
           })}
-          {notifications.length === 0 && (
+          {!loading && notifications.length === 0 && (
             <div className="text-center py-16 text-sm text-gray-400">You're all caught up — no notifications.</div>
           )}
         </div>

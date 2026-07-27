@@ -1,83 +1,201 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState, useCallback } from "react";
+import toast from "react-hot-toast";
 
-const CartContext = createContext(null);
+import { getCart, addToCartApi, updateCartItemApi, removeCartItemApi } from "../api/cartApi";
+import { getWishlist, addToWishlist, removeFromWishlistApi } from "../api/wishlistApi";
+import useSocket from "../hooks/useSocket";
+import useAuth from "../hooks/useAuth";
+
+const CartContext = createContext();
+
+function isLoggedIn() {
+  return Boolean(localStorage.getItem("accessToken"));
+}
+
+function mapCartItem(row) {
+  return {
+    id: row.cart_item_id,
+    variantId: row.variant_id,
+    productId: row.product_id,
+    name: row.name,
+    price: Number(row.price),
+    image: row.image_url,
+    qty: row.quantity,
+    size: row.size,
+    color: row.color,
+    slug: row.slug,
+  };
+}
+
+function mapWishlistItem(row) {
+  return {
+    id: row.product_id,
+    name: row.name,
+    image: row.image_url,
+    price: Number(row.price),
+    slug: row.slug,
+    path: `/product/${row.slug}`,
+  };
+}
 
 export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  const { user } = useAuth();
 
-  const addToCart = (product, qty = 1) => {
-    setCartItems((prev) => {
-      const existing = prev.find((i) => i.id === product.id);
+  const loadCart = useCallback(async () => {
+    if (!isLoggedIn()) return;
+    try {
+      const res = await getCart();
+      setCartItems((res.data || []).map(mapCartItem));
+    } catch (err) {
+      console.error("Failed to load cart:", err);
+    }
+  }, []);
 
-      if (existing) {
-        return prev.map((i) =>
-          i.id === product.id ? { ...i, qty: i.qty + qty } : i
-        );
+  const loadWishlist = useCallback(async () => {
+    if (!isLoggedIn()) return;
+    try {
+      const res = await getWishlist();
+      setWishlist((res.data || []).map(mapWishlistItem));
+    } catch (err) {
+      console.error("Failed to load wishlist:", err);
+    }
+  }, []);
+
+  // Depending on `user` (not just running once at mount) is what actually
+  // fixes login: it re-runs the instant AuthProvider's user state flips
+  // from null to a real user — which happens synchronously in this same
+  // tab right after a successful login, with no network round-trip to
+  // wait on. This covers: fresh page load already logged in, AND logging
+  // in during the current SPA session without a refresh.
+  useEffect(() => {
+    if (!user) return;
+    loadCart();
+    loadWishlist();
+  }, [user, loadCart, loadWishlist]);
+
+  // The socket listener below is for events this tab can't know about on
+  // its own — chiefly, another tab or device logging this user out (or
+  // in), where there's no local `user` state change to react to. It is
+  // NOT relied on for this tab's own login, since the socket can't be
+  // connected yet at the moment login itself completes (see useSocket).
+  useSocket({
+    "session:changed": ({ event }) => {
+      if (event === "logout") {
+        setCartItems([]);
+        setWishlist([]);
+      } else if (event === "login") {
+        loadCart();
+        loadWishlist();
       }
+    },
+  });
 
-      return [...prev, { ...product, qty }];
-    });
-  };
+  // --- CART ---
 
-  const removeFromCart = (id) => {
-    setCartItems((prev) => prev.filter((i) => i.id !== id));
-  };
-
-  const updateQty = (id, qty) => {
-    if (qty < 1) {
-      removeFromCart(id);
+  // variantId is required (cart_items references product_variants, not products)
+  const addToCart = async (variantId, qty = 1) => {
+    if (!isLoggedIn()) {
+      toast.error("Please log in to add items to your cart.");
+      window.location.href = "/auth";
       return;
     }
 
-    setCartItems((prev) =>
-      prev.map((i) => (i.id === id ? { ...i, qty } : i))
-    );
+    if (!variantId) {
+      toast.error("Please select a size and color first.");
+      return;
+    }
+
+    try {
+      const res = await addToCartApi(variantId, qty);
+      setCartItems((res.data || []).map(mapCartItem));
+      toast.success("Added to cart.");
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to add to cart.");
+    }
   };
 
-  const clearCart = () => {
-    setCartItems([]);
+  const removeFromCart = async (cartItemId) => {
+    try {
+      const res = await removeCartItemApi(cartItemId);
+      setCartItems((res.data || []).map(mapCartItem));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove item.");
+    }
   };
 
-  const toggleWishlist = (product) => {
-    setWishlist((prev) => {
-      const exists = prev.some((item) => item.id === product.id);
+  const updateQty = async (cartItemId, newQty) => {
+    if (newQty < 1) {
+      return removeFromCart(cartItemId);
+    }
 
-      if (exists) {
-        return prev.filter((item) => item.id !== product.id);
+    try {
+      const res = await updateCartItemApi(cartItemId, newQty);
+      setCartItems((res.data || []).map(mapCartItem));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update quantity.");
+    }
+  };
+
+  const clearCart = () => setCartItems([]);
+
+  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
+
+  // --- WISHLIST ---
+
+  const isWishlisted = (productId) => wishlist.some((w) => w.id === productId);
+
+  // Accepts either a product-like object { id, name, image, price, slug } or a raw productId
+  const toggleWishlist = async (product) => {
+    if (!isLoggedIn()) {
+      toast.error("Please log in to save items.");
+      window.location.href = "/auth";
+      return;
+    }
+
+    const productId = typeof product === "object" ? product.id : product;
+
+    try {
+      if (isWishlisted(productId)) {
+        await removeFromWishlistApi(productId);
+        setWishlist((prev) => prev.filter((w) => w.id !== productId));
+        toast.success("Removed from wishlist.");
+      } else {
+        await addToWishlist(productId);
+        await loadWishlist();
+        toast.success("Added to wishlist.");
       }
-
-      return [...prev, product];
-    });
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update wishlist.");
+    }
   };
 
-  const isWishlisted = (id) => {
-    return wishlist.some((item) => item.id === id);
+  const removeFromWishlist = async (productId) => {
+    try {
+      await removeFromWishlistApi(productId);
+      setWishlist((prev) => prev.filter((w) => w.id !== productId));
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to remove from wishlist.");
+    }
   };
-
-  const removeFromWishlist = (id) => {
-    setWishlist((prev) => prev.filter((item) => item.id !== id));
-  };
-
-  const cartCount = cartItems.reduce((s, i) => s + i.qty, 0);
-  const wishlistCount = wishlist.length;
-  const cartTotal = cartItems.reduce((s, i) => s + i.price * i.qty, 0);
 
   return (
     <CartContext.Provider
       value={{
         cartItems,
         addToCart,
-        removeFromCart,
         updateQty,
+        removeFromCart,
         clearCart,
+        cartTotal,
+        cartCount,
+
         wishlist,
         toggleWishlist,
-        isWishlisted,
         removeFromWishlist,
-        cartCount,
-        wishlistCount,
-        cartTotal,
+        isWishlisted,
       }}
     >
       {children}
@@ -85,4 +203,8 @@ export function CartProvider({ children }) {
   );
 }
 
-export const useCart = () => useContext(CartContext);
+export function useCart() {
+  const ctx = useContext(CartContext);
+  if (!ctx) throw new Error("useCart must be used within a CartProvider");
+  return ctx;
+}

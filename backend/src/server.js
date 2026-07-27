@@ -1,6 +1,8 @@
 import dotenv from "dotenv";
 import app from "./app.js";
 import pool from "./config/db.js";
+import http from "http";
+import { initSocket } from "./socket/index.js";
 
 dotenv.config();
 
@@ -11,9 +13,9 @@ async function startServer() {
         const connection = await pool.getConnection();
         console.log("Database Connected Successfully");
         connection.release();
-        app.listen(PORT, () => {
-            console.log(`Server running on port ${PORT}`);
-        });
+        const server = http.createServer(app);
+        initSocket(server);
+        server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
     } catch (error) {
         console.error("Database Connection Failed");
         console.error(error);

@@ -47,3 +47,37 @@ export const deleteSession = async (sessionId) => {
     );
 
 };
+
+export const getSessionById = async (sessionId) => {
+
+    const [rows] = await pool.query(
+        `
+        SELECT
+            session_id,
+            user_id,
+            refresh_token_hash,
+            expires_at
+        FROM user_sessions
+        WHERE session_id = ?
+        `,
+        [sessionId]
+    );
+
+    return rows[0];
+
+};
+
+export const updateSessionRefreshToken = async (sessionId, refreshTokenHash, expiresAt) => {
+
+    await pool.query(
+        `
+        UPDATE user_sessions
+        SET
+            refresh_token_hash = ?,
+            expires_at = ?
+        WHERE session_id = ?
+        `,
+        [refreshTokenHash, expiresAt, sessionId]
+    );
+
+};

@@ -1,33 +1,84 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import ConfirmDialog from "../components/ConfirmDialog";
-import { useSiteData } from "../../hooks/useSiteData";
+import toast from "react-hot-toast";
+import { getCustomers, updateUserStatus, deleteCustomer } from "../../api/userApi";
+import { sendSingleEmail } from "../../api/emailApi";
 
 export default function AdminUsers() {
-  const { users, updateUser, deleteUser, addNotification, sendEmail } = useSiteData();
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  const loadUsers = async () => {
+    try {
+      const data = await getCustomers();
+      setUsers(
+        data
+          .filter((u) => u.account_status !== "DELETED")
+          .map((u) => ({
+            id: u.user_id,
+            name: u.name,
+            email: u.email,
+            joined: new Date(u.created_at).toLocaleDateString(),
+            orders: u.orders_count,
+            status: u.account_status === "ACTIVE" ? "Active" : "Blocked"
+          }))
+      );
+    } catch (err) {
+      toast.error("Failed to load users.");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
 
   const filtered = users.filter(
     (u) => u.name.toLowerCase().includes(search.toLowerCase()) || u.email.toLowerCase().includes(search.toLowerCase())
   );
 
-  const toggleStatus = (user) => {
-    const newStatus = user.status === "Active" ? "Blocked" : "Active";
-    updateUser(user.id, { status: newStatus });
-    addNotification({ title: `User ${newStatus.toLowerCase()}`, body: `${user.name} is now ${newStatus.toLowerCase()}`, type: "user" });
+  const toggleStatus = async (user) => {
+    const newStatus = user.status === "Active" ? "BLOCKED" : "ACTIVE";
+    try {
+      await updateUserStatus(user.id, newStatus);
+      toast.success(`${user.name} is now ${newStatus.toLowerCase()}.`);
+      loadUsers();
+    } catch (err) {
+      toast.error("Failed to update status.");
+      console.error(err);
+    }
   };
 
-  const confirmDelete = () => {
-    deleteUser(deleteTarget.id);
-    addNotification({ title: "User removed", body: `${deleteTarget.name} was deleted`, type: "user" });
-    setDeleteTarget(null);
+  const confirmDelete = async () => {
+    try {
+      await deleteCustomer(deleteTarget.id);
+      toast.success("User removed.");
+      setDeleteTarget(null);
+      loadUsers();
+    } catch (err) {
+      toast.error("Failed to delete user.");
+      console.error(err);
+    }
   };
 
-  const quickEmail = (user) => {
-    sendEmail({ to: user.email, subject: "A message from Flone", body: "Thanks for being part of Flone — here's 10% off your next order." });
-    addNotification({ title: "Email sent", body: `Sent a message to ${user.email}`, type: "email" });
+  const quickEmail = async (user) => {
+    try {
+      await sendSingleEmail({
+        userId: user.id,
+        subject: "A message from Vintage Fashion",
+        body: "Thanks for being part of Vintage Fashion — here's 10% off your next order."
+      });
+      toast.success(`Email sent to ${user.email}`);
+    } catch (err) {
+      toast.error("Failed to send email.");
+      console.error(err);
+    }
   };
 
   return (
@@ -63,7 +114,10 @@ export default function AdminUsers() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {filtered.map((u) => (
+              {loading && (
+                <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">Loading users...</td></tr>
+              )}
+              {!loading && filtered.map((u) => (
                 <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -104,7 +158,7 @@ export default function AdminUsers() {
                   </td>
                 </tr>
               ))}
-              {filtered.length === 0 && (
+              {!loading && filtered.length === 0 && (
                 <tr><td colSpan={5} className="px-6 py-12 text-center text-sm text-gray-400">No users found.</td></tr>
               )}
             </tbody>

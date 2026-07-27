@@ -1,15 +1,28 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import toast from "react-hot-toast";
+import { submitContactForm } from "../api/contactApi";
 
 export default function Contact() {
   const [form, setForm] = useState({ name: "", email: "", subject: "", message: "" });
   const [sent, setSent] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setSent(true);
-    setTimeout(() => setSent(false), 4000);
-    setForm({ name: "", email: "", subject: "", message: "" });
+    setSubmitting(true);
+
+    try {
+      await submitContactForm(form);
+      setSent(true);
+      setForm({ name: "", email: "", subject: "", message: "" });
+      setTimeout(() => setSent(false), 4000);
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || "Couldn't send your message. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -104,7 +117,8 @@ export default function Contact() {
                       value={form[name]}
                       onChange={(e) => setForm({ ...form, [e.target.name]: e.target.value })}
                       required
-                      className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-500 transition-colors placeholder:text-gray-400"
+                      disabled={submitting}
+                      className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-500 transition-colors placeholder:text-gray-400 disabled:opacity-60"
                     />
                   </div>
                 ))}
@@ -115,7 +129,8 @@ export default function Contact() {
                 placeholder="Subject"
                 value={form.subject}
                 onChange={(e) => setForm({ ...form, subject: e.target.value })}
-                className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-500 transition-colors placeholder:text-gray-400"
+                disabled={submitting}
+                className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-500 transition-colors placeholder:text-gray-400 disabled:opacity-60"
               />
               <textarea
                 name="message"
@@ -124,13 +139,15 @@ export default function Contact() {
                 value={form.message}
                 onChange={(e) => setForm({ ...form, message: e.target.value })}
                 required
-                className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-500 transition-colors placeholder:text-gray-400 resize-none"
+                disabled={submitting}
+                className="w-full border border-gray-200 px-4 py-3 text-sm outline-none focus:border-pink-500 transition-colors placeholder:text-gray-400 resize-none disabled:opacity-60"
               />
               <button
                 type="submit"
-                className="w-full bg-gray-900 text-white text-xs font-bold uppercase tracking-widest py-4 hover:bg-pink-500 transition-colors"
+                disabled={submitting}
+                className="w-full bg-gray-900 text-white text-xs font-bold uppercase tracking-widest py-4 hover:bg-pink-500 transition-colors disabled:opacity-60"
               >
-                Send Message
+                {submitting ? "Sending..." : "Send Message"}
               </button>
             </form>
           </div>

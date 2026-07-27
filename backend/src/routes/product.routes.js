@@ -10,6 +10,7 @@ import {
 
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { authorizeAdmin } from "../middlewares/admin.middleware.js";
+import upload from "../middlewares/productUpload.middleware.js";
 
 const router = express.Router();
 
@@ -22,6 +23,7 @@ router.post(
     "/",
     authenticate,
     authorizeAdmin,
+    upload.array("images", 10),
     createProduct
 );
 
@@ -29,6 +31,7 @@ router.put(
     "/:id",
     authenticate,
     authorizeAdmin,
+    upload.array("images", 10),
     updateProduct
 );
 
