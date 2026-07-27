@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import AdminSidebar from "./AdminSidebar";
-import useAdminSocket from "../../hooks/useAdminSocket";
+import useAdminSocket from "../../hooks/Useadminsocket";
 
 export default function AdminLayout({ children }) {
   const navigate = useNavigate();

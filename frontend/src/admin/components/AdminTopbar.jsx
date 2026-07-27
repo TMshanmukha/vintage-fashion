@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { getNotifications } from "../../api/notificationApi";
-import useAdminSocket from "../../hooks/useAdminSocket";
+import useAdminSocket from "../../hooks/Useadminsocket";
 
 export default function AdminTopbar({ title, subtitle }) {
   const [unreadCount, setUnreadCount] = useState(0);
