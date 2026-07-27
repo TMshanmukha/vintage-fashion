@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import { getNotifications } from "../../api/notificationApi";
 import toast from "react-hot-toast";
-import useAdminSocket from "../../hooks/useAdminSocket";
+import useAdminSocket from "../../hooks/Useadminsocket";
 
 const navItems = [
   {
