@@ -2,7 +2,7 @@ import axios from "axios";
 import toast from "react-hot-toast";
 
 const API = axios.create({
-    baseURL: "http://localhost:5000/api",
+    baseURL: "https://vintage-fashion.onrender.com/api",
     withCredentials: true
 });
 
