@@ -19,26 +19,29 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
     const [rows] = await pool.query(
         `
         SELECT
-            o.order_id,
-            o.order_number,
-            o.total_amount,
-            o.order_status,
-            o.payment_status,
-            o.tracking_id,
-            o.courier_partner,
-            o.shipment_status,
-            o.ordered_at,
-            u.user_id,
-            u.name AS customer_name,
-            u.email AS customer_email,
-            COUNT(oi.order_item_id) AS item_count
-        FROM orders o
-        JOIN users u ON u.user_id = o.user_id
-        LEFT JOIN order_items oi ON oi.order_id = o.order_id
-        ${where}
-        GROUP BY o.order_id
-        ORDER BY o.ordered_at DESC
-        LIMIT ? OFFSET ?
+    o.order_id,
+    o.order_number,
+    o.total_amount,
+    o.order_status,
+    o.payment_status,
+    o.tracking_id,
+    o.courier_partner,
+    o.shipment_status,
+    o.ordered_at,
+    u.user_id,
+    u.name AS customer_name,
+    u.email AS customer_email,
+    (
+        SELECT COUNT(*)
+        FROM order_items oi
+        WHERE oi.order_id = o.order_id
+    ) AS item_count
+FROM orders o
+JOIN users u
+    ON u.user_id = o.user_id
+WHERE 1=1
+ORDER BY o.ordered_at DESC
+LIMIT ? OFFSET ?;
         `,
         [...params, Number(limit), Number(offset)]
     );
