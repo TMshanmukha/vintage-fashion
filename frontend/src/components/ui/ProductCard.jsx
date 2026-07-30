@@ -2,10 +2,13 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { useCart } from "../../hooks/useCart";
+import useAuth from "../../hooks/useAuth";
 import { getProductBySlug } from "../../api/productApi";
+import { setPendingAction } from "../../utils/pendingCartAction";
 
 export default function ProductCard({ product }) {
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [addingToCart, setAddingToCart] = useState(false);
 
@@ -15,6 +18,14 @@ export default function ProductCard({ product }) {
   const handleWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (!user) {
+      setPendingAction({ action: "wishlist", slug: product.slug });
+      toast("Please log in to use your wishlist.");
+      navigate(`/auth?redirect=/product/${product.slug}`);
+      return;
+    }
+
     toggleWishlist({
       id: product.id,
       name: product.name,
@@ -29,11 +40,19 @@ export default function ProductCard({ product }) {
     e.stopPropagation();
 
     if (addingToCart) return;
+
+    if (!user) {
+      // We don't know the variant yet on a listing card, so send them to
+      // login and let the product page finish the job once they're back.
+      setPendingAction({ action: "cart", slug: product.slug, qty: 1 });
+      toast("Please log in to add items to your cart.");
+      navigate(`/auth?redirect=/product/${product.slug}`);
+      return;
+    }
+
     setAddingToCart(true);
 
     try {
-      console.log("Product:", product);
-      console.log("Slug:", product.slug);
       // The listing endpoint doesn't include variants, so fetch full detail
       // to resolve a real variant_id before adding to cart.
       const res = await getProductBySlug(product.slug);
@@ -43,7 +62,12 @@ export default function ProductCard({ product }) {
       if (variants.length === 0) {
         toast.error("This product has no purchasable options yet.");
       } else if (variants.length === 1) {
-        addToCart(variants[0].variant_id, 1);
+        if (variants[0].stock_quantity <= 0) {
+          toast.error("This product is out of stock.");
+        } else {
+          addToCart(variants[0].variant_id, 1);
+          toast.success("Added to cart!");
+        }
       } else {
         toast("Please choose a size and color first.");
         navigate(`/product/${product.slug}`);
@@ -86,7 +110,6 @@ export default function ProductCard({ product }) {
           loading="lazy"
         />
 
-        {/* Quick-add slides up on hover, tucked under the image so it never bumps card height */}
         <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
           <button
             onClick={handleAddToCart}

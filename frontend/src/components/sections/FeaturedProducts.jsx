@@ -4,8 +4,44 @@ import { getFeaturedProducts } from "../../api/marketingApi";
 import ProductCard from "../ui/ProductCard";
 import SectionWrapper from "../ui/SectionWrapper";
 
+function FeaturedProductsSkeleton() {
+  return (
+    <SectionWrapper>
+      <section className="bg-white rounded-3xl border border-gray-100 shadow-xl p-6 md:p-10 animate-pulse">
+        {/* Header skeleton — same structure as the real header so nothing
+            shifts when real content swaps in */}
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6 pb-8 border-b border-gray-100">
+          <div className="flex-1">
+            <div className="h-6 w-40 rounded-full bg-gray-100" />
+            <div className="mt-4 h-9 w-64 bg-gray-100 rounded" />
+            <div className="mt-3 h-4 w-full max-w-2xl bg-gray-100 rounded" />
+            <div className="mt-2 h-4 w-2/3 max-w-2xl bg-gray-100 rounded" />
+          </div>
+
+          <div className="flex items-center gap-5">
+            <div className="hidden sm:block h-10 w-10 bg-gray-100 rounded" />
+            <div className="h-11 w-40 bg-gray-100 rounded-full" />
+          </div>
+        </div>
+
+        {/* Product grid skeleton */}
+        <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div key={i}>
+              <div className="aspect-[4/5] bg-gray-100 mb-3" />
+              <div className="h-4 bg-gray-100 rounded w-3/4 mb-2" />
+              <div className="h-4 bg-gray-100 rounded w-1/3" />
+            </div>
+          ))}
+        </div>
+      </section>
+    </SectionWrapper>
+  );
+}
+
 export default function FeaturedProducts() {
     const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         let mounted = true;
@@ -16,13 +52,20 @@ export default function FeaturedProducts() {
                     setItems(res.data?.data || []);
                 }
             })
-            .catch(() => { });
+            .catch(() => { })
+            .finally(() => {
+                if (mounted) setLoading(false);
+            });
 
         return () => {
             mounted = false;
         };
     }, []);
 
+    if (loading) return <FeaturedProductsSkeleton />;
+
+    // Real fetch finished and there's genuinely nothing featured — hide
+    // the section rather than showing an empty shell.
     if (!items.length) return null;
 
     return (

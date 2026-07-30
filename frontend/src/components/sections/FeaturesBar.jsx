@@ -32,12 +32,21 @@ export default function FeaturesBar() {
   return (
     <section>
       <div className="max-w-7xl mx-auto px-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-100">
+        <div className="grid grid-cols-3 md:divide-x divide-gray-100">
           {features.map((f) => (
-            <div key={f.title} className="flex flex-col items-center text-center py-10 px-8 gap-3">
-              <span className="text-gray-400">{f.icon}</span>
-              <h3 className="text-sm font-bold text-gray-900">{f.title}</h3>
-              <p className="text-xs text-gray-400 leading-relaxed max-w-xs">{f.desc}</p>
+            <div
+              key={f.title}
+              className="flex flex-col items-center text-center py-5 px-2 gap-1.5 md:py-10 md:px-8 md:gap-3"
+            >
+              <span className="text-gray-400 [&>svg]:w-5 [&>svg]:h-5 md:[&>svg]:w-8 md:[&>svg]:h-8">
+                {f.icon}
+              </span>
+              <h3 className="text-[11px] leading-tight md:text-sm font-bold text-gray-900">
+                {f.title}
+              </h3>
+              <p className="hidden md:block text-xs text-gray-400 leading-relaxed max-w-xs">
+                {f.desc}
+              </p>
             </div>
           ))}
         </div>

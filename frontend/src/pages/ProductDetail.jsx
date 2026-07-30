@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useCart } from "../hooks/useCart";
+import useAuth from "../hooks/useAuth";
 import { getProductBySlug, getProducts } from "../api/productApi";
+import { setPendingAction, getPendingAction, clearPendingAction } from "../utils/pendingCartAction";
 import ProductCard from "../components/ui/ProductCard";
 import SectionTitle from "../components/ui/SectionTitle";
 
 export default function ProductDetail() {
   const { slug } = useParams();
+  const navigate = useNavigate();
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
+  const { user } = useAuth();
 
   const [product, setProduct] = useState(null);
   const [related, setRelated] = useState([]);
@@ -20,33 +24,48 @@ export default function ProductDetail() {
   const [activeTab, setActiveTab] = useState("description");
   const [activeImage, setActiveImage] = useState(0);
 
+  // Guards against replaying a pending cart/wishlist action twice
+  const pendingHandled = useRef(false);
+
   useEffect(() => {
     (async () => {
       setLoading(true);
+      pendingHandled.current = false;
 
       try {
         const res = await getProductBySlug(slug);
-
         const product = res.data;
 
         setProduct(product);
 
-        if (product.variants?.length) {
-            setSelectedSize(product.variants[0].size);
-            setSelectedColor(product.variants[0].color);
+        // If the user was redirected here to log in, restore their
+        // previous size/color choice instead of defaulting to variant 0.
+        const pending = getPendingAction();
+        const hasMatchingPending = pending && pending.slug === slug;
+
+        if (hasMatchingPending && pending.color) {
+          setSelectedColor(pending.color);
+        } else if (product.variants?.length) {
+          setSelectedColor(product.variants[0].color);
+        }
+
+        if (hasMatchingPending && pending.size) {
+          setSelectedSize(pending.size);
+        } else if (product.variants?.length) {
+          setSelectedSize(product.variants[0].size);
         }
 
         if (product.category_id) {
-            const relatedRes = await getProducts({
-                category: product.category_id,
-                limit: 6,
-            });
+          const relatedRes = await getProducts({
+            category: product.category_id,
+            limit: 6,
+          });
 
-            setRelated(
-                (relatedRes.data || [])
-                    .filter((p) => p.product_id !== product.product_id)
-                    .slice(0, 5)
-            );
+          setRelated(
+            (relatedRes.data || [])
+              .filter((p) => p.product_id !== product.product_id)
+              .slice(0, 5)
+          );
         }
       } catch (err) {
         console.error("Failed to load product:", err);
@@ -57,6 +76,8 @@ export default function ProductDetail() {
     })();
   }, [slug]);
 
+  // Full list of every color / size that exists on this product — always
+  // rendered in full, never hidden.
   const sizes = useMemo(
     () => [...new Set((product?.variants || []).map((v) => v.size).filter(Boolean))],
     [product]
@@ -66,6 +87,56 @@ export default function ProductDetail() {
     () => [...new Set((product?.variants || []).map((v) => v.color).filter(Boolean))],
     [product]
   );
+
+  // Colors are ONLY disabled if that color has zero stock across every
+  // size it comes in — a fully sold-out color. They are never affected
+  // by which size is currently selected.
+  const isColorAvailable = (color) => {
+    if (!product?.variants) return false;
+    return product.variants.some((v) => v.color === color && v.stock_quantity > 0);
+  };
+
+  // Sizes are driven entirely by the selected color: available only if
+  // that exact color+size combo exists and is in stock. If no color is
+  // selected yet, fall back to "in stock for any color".
+  const isSizeAvailable = (size) => {
+    if (!product?.variants) return false;
+
+    if (selectedColor) {
+      const variant = product.variants.find(
+        (v) => v.color === selectedColor && v.size === size
+      );
+      return Boolean(variant) && variant.stock_quantity > 0;
+    }
+
+    return product.variants.some((v) => v.size === size && v.stock_quantity > 0);
+  };
+
+  // Selecting a color never touches which colors are shown — it only
+  // recalculates which sizes are valid for it, clearing (or auto-picking,
+  // if only one option) the size if it's no longer valid.
+  const handleColorSelect = (color) => {
+    setSelectedColor(color);
+
+    const availableSizesForColor = sizes.filter((s) => {
+      const variant = product.variants.find(
+        (v) => v.color === color && v.size === s
+      );
+      return Boolean(variant) && variant.stock_quantity > 0;
+    });
+
+    if (!availableSizesForColor.includes(selectedSize)) {
+      setSelectedSize(
+        availableSizesForColor.length === 1 ? availableSizesForColor[0] : null
+      );
+    }
+  };
+
+  // Selecting a size never disables or filters colors — colors stay fully
+  // clickable at all times.
+  const handleSizeSelect = (size) => {
+    setSelectedSize(size);
+  };
 
   const selectedVariant = useMemo(() => {
     if (!product?.variants) return null;
@@ -78,10 +149,68 @@ export default function ProductDetail() {
     product?.images?.find((img) => img.is_primary)?.image_url ||
     product?.images?.[0]?.image_url;
 
+  const performAddToCart = () => {
+    if (product.variants?.length && !selectedVariant) {
+      toast.error("Please select an available size and color.");
+      return;
+    }
+
+    if (selectedVariant && selectedVariant.stock_quantity <= 0) {
+      toast.error("This size and color is out of stock.");
+      return;
+    }
+
+    if (selectedVariant && selectedVariant.stock_quantity < qty) {
+      toast.error("Not enough stock for this selection.");
+      return;
+    }
+
+    addToCart(selectedVariant ? selectedVariant.variant_id : null, qty);
+    toast.success("Added to cart!");
+  };
+
+  // Replay a pending cart/wishlist action once the user is logged in
+  // and the product + selection have finished loading.
+  useEffect(() => {
+    if (pendingHandled.current) return;
+    if (!user || !product) return;
+
+    const pending = getPendingAction();
+    if (!pending || pending.slug !== slug) return;
+
+    pendingHandled.current = true;
+    clearPendingAction();
+
+    if (pending.action === "wishlist") {
+      toggleWishlist({
+        id: product.product_id,
+        name: product.name,
+        image: primaryImage,
+        price: product.price,
+        slug: product.slug,
+      });
+      toast.success("Added to wishlist!");
+    } else if (pending.action === "cart") {
+      // selectedVariant may not be resolved on the very same render this
+      // effect fires, so give React a tick to settle the selection.
+      setTimeout(() => performAddToCart(), 0);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, product, selectedVariant]);
+
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-6 py-24 text-center text-gray-400">
-        Loading...
+      <div className="max-w-7xl mx-auto px-6 py-24">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 animate-pulse">
+          <div className="aspect-square bg-gray-100" />
+          <div className="space-y-4">
+            <div className="h-6 bg-gray-100 w-3/4" />
+            <div className="h-4 bg-gray-100 w-1/4" />
+            <div className="h-4 bg-gray-100 w-full" />
+            <div className="h-4 bg-gray-100 w-full" />
+            <div className="h-10 bg-gray-100 w-1/2 mt-6" />
+          </div>
+        </div>
       </div>
     );
   }
@@ -100,17 +229,43 @@ export default function ProductDetail() {
   const wishlisted = isWishlisted(product.product_id);
 
   const handleAddToCart = () => {
-    if (product.variants?.length && !selectedVariant) {
-      toast.error("Please select a size and color.");
+    if (!user) {
+      setPendingAction({
+        action: "cart",
+        slug,
+        size: selectedSize,
+        color: selectedColor,
+        qty,
+      });
+      toast("Please log in to add items to your cart.");
+      navigate(`/auth?redirect=/product/${slug}`);
       return;
     }
 
-    if (selectedVariant && selectedVariant.stock_quantity < qty) {
-      toast.error("Not enough stock for this selection.");
+    performAddToCart();
+  };
+
+  const handleToggleWishlist = () => {
+    if (!user) {
+      setPendingAction({
+        action: "wishlist",
+        slug,
+        size: selectedSize,
+        color: selectedColor,
+        qty,
+      });
+      toast("Please log in to use your wishlist.");
+      navigate(`/auth?redirect=/product/${slug}`);
       return;
     }
 
-    addToCart(selectedVariant ? selectedVariant.variant_id : null, qty);
+    toggleWishlist({
+      id: product.product_id,
+      name: product.name,
+      image: primaryImage,
+      price: product.price,
+      slug: product.slug,
+    });
   };
 
   const prevImage = () => {
@@ -129,6 +284,9 @@ export default function ProductDetail() {
     );
   };
 
+  const addToCartDisabled =
+    (product.variants?.length && !selectedVariant) ||
+    (selectedVariant && selectedVariant.stock_quantity <= 0);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
@@ -144,7 +302,6 @@ export default function ProductDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
         {/* Images */}
         <div className="flex gap-4">
-          {/* Left Thumbnails */}
           <div className="flex flex-col gap-3">
             {product.images?.map((img, index) => (
               <button
@@ -163,7 +320,6 @@ export default function ProductDetail() {
               </button>
             ))}
           </div>
-          {/* Main Image */}
           <div className="flex-1 bg-gray-50 aspect-square overflow-hidden">
             <img
               src={
@@ -205,48 +361,75 @@ export default function ProductDetail() {
 
           <p className="text-sm text-gray-500 leading-relaxed mb-6">{product.description}</p>
 
-          {/* Color */}
+          {/* Color — always fully clickable, only disabled if the color
+              is completely sold out across every size. */}
           {colors.length > 0 && (
             <div className="mb-5">
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-700 mb-2">Color</p>
-              <div className="flex gap-2">
-                {colors.map((c) => (
-                  <button
-                    key={c}
-                    onClick={() => setSelectedColor(c)}
-                    style={{
-                      backgroundColor:
-                        product.variants.find((v) => v.color === c)?.color_hex || c,
-                    }}
-                    title={c}
-                    className={`w-7 h-7 rounded-full border-2 transition-all ${
-                      selectedColor === c ? "border-pink-500 scale-110" : "border-transparent"
-                    }`}
-                  />
-                ))}
+              <p className="text-xs font-bold uppercase tracking-widest text-gray-700 mb-2">
+                Color
+                {selectedColor && (
+                  <span className="ml-2 text-gray-400 normal-case tracking-normal font-normal">
+                    {selectedColor}
+                  </span>
+                )}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {colors.map((c) => {
+                  const available = isColorAvailable(c);
+                  return (
+                    <button
+                      key={c}
+                      onClick={() => available && handleColorSelect(c)}
+                      disabled={!available}
+                      title={available ? c : `${c} — Out of stock`}
+                      style={{
+                        backgroundColor:
+                          product.variants.find((v) => v.color === c)?.color_hex || c,
+                      }}
+                      className={`relative w-7 h-7 rounded-full border-2 transition-all ${
+                        selectedColor === c ? "border-pink-500 scale-110" : "border-transparent"
+                      } ${!available ? "opacity-30 grayscale cursor-not-allowed" : ""}`}
+                    >
+                      {!available && (
+                        <span className="absolute inset-0 flex items-center justify-center">
+                          <span className="w-full h-[1.5px] bg-gray-500 rotate-45" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           )}
 
-          {/* Size */}
+          {/* Size — availability driven entirely by the selected color.
+              Selecting a size does NOT affect which colors are clickable. */}
           {sizes.length > 0 && (
             <div className="mb-6">
               <p className="text-xs font-bold uppercase tracking-widest text-gray-700 mb-2">Size</p>
-              <div className="flex gap-2">
-                {sizes.map((s) => (
-                  <button
-                    key={s}
-                    onClick={() => setSelectedSize(s)}
-                    className={`w-9 h-9 text-xs font-semibold border transition-all ${
-                      selectedSize === s
-                        ? "bg-gray-900 text-white border-gray-900"
-                        : "border-gray-200 text-gray-500 hover:border-gray-900"
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+              <div className="flex flex-wrap gap-2">
+                {sizes.map((s) => {
+                  const available = isSizeAvailable(s);
+                  return (
+                    <button
+                      key={s}
+                      onClick={() => available && handleSizeSelect(s)}
+                      disabled={!available}
+                      title={available ? s : "Out of stock in this color"}
+                      className={`w-9 h-9 text-xs font-semibold border transition-all ${
+                        selectedSize === s
+                          ? "bg-gray-900 text-white border-gray-900"
+                          : "border-gray-200 text-gray-500 hover:border-gray-900"
+                      } ${!available ? "opacity-30 bg-gray-50 text-gray-300 cursor-not-allowed line-through hover:border-gray-200" : ""}`}
+                    >
+                      {s}
+                    </button>
+                  );
+                })}
               </div>
+              {selectedColor && sizes.every((s) => !isSizeAvailable(s)) && (
+                <p className="text-xs text-red-400 mt-2">No sizes available in this color.</p>
+              )}
             </div>
           )}
 
@@ -259,20 +442,13 @@ export default function ProductDetail() {
             </div>
             <button
               onClick={handleAddToCart}
-              className="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-widest py-3 hover:bg-pink-500 transition-colors"
+              disabled={addToCartDisabled}
+              className="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-widest py-3 hover:bg-pink-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-900"
             >
-              Add to Cart
+              {addToCartDisabled ? "Out of Stock" : "Add to Cart"}
             </button>
             <button
-              onClick={() =>
-                toggleWishlist({
-                  id: product.product_id,
-                  name: product.name,
-                  image: primaryImage,
-                  price: product.price,
-                  slug: product.slug,
-                })
-              }
+              onClick={handleToggleWishlist}
               className={`p-3 border transition-colors ${
                 wishlisted
                   ? "border-pink-500 text-pink-500"

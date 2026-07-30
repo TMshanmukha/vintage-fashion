@@ -12,8 +12,6 @@ API.interceptors.request.use((config) => {
 
     const token = localStorage.getItem("accessToken");
 
-    console.log("Customer API token =", token);
-
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -86,8 +84,11 @@ API.interceptors.response.use(
 
             try {
 
+                // Use the same base URL as everywhere else instead of a
+                // hardcoded localhost address — this was breaking silent
+                // token refresh in production.
                 const response = await axios.post(
-                    "http://localhost:5000/api/auth/refresh",
+                    `${API.defaults.baseURL}/auth/refresh`,
                     {},
                     {
                         withCredentials: true

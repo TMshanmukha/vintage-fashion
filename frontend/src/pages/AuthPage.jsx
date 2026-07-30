@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ColorRing } from "react-loader-spinner";
 import { FaEye, FaEyeSlash, FaUserCircle } from "react-icons/fa";
@@ -16,7 +16,6 @@ const emptyForm = {
   avatar: null,
 };
 
-// Shared toast options: bottom-right, compact, medium-weight font
 const toastOptions = {
   position: "top-center",
   style: {
@@ -30,6 +29,7 @@ const toastOptions = {
 
 export default function AuthPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { setUser, setAccessToken } = useAuth();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState(emptyForm);
@@ -94,14 +94,8 @@ export default function AuthPage() {
   };
 
   const saveLoggedInUser = (response) => {
-
-    console.log("LOGIN RESPONSE =", response);
-
     const user = response.data.user;
     const accessToken = response.data.accessToken;
-
-    console.log("User =", user);
-    console.log("Access Token =", accessToken);
 
     setUser(user);
     setAccessToken(accessToken);
@@ -123,22 +117,22 @@ export default function AuthPage() {
           email: form.email,
           password: form.password,
         });
-        console.log(response.data);
       } else {
         response = await signup(createSignupPayload());
       }
 
-      console.log("LOGIN RESPONSE =", response);
       saveLoggedInUser(response);
 
       toast.success(
         isLogin ? "Welcome back!" : "Account created successfully!"
       );
 
-      navigate("/account");
+      // If the user was sent here from "Add to Cart" / "Wishlist" on a
+      // product page, take them right back there instead of /account.
+      const redirectTo = searchParams.get("redirect") || "/account";
+      navigate(redirectTo, { replace: true });
 
     } catch (err) {
-      console.log(err);
       toast.error(getFriendlyError(err));
     } finally {
       setLoading(false);
@@ -309,7 +303,6 @@ export default function AuthPage() {
 
             {!isLogin && (
               <>
-                {/* Phone Number */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Phone Number
@@ -325,7 +318,6 @@ export default function AuthPage() {
                   />
                 </div>
 
-                {/* Avatar */}
                 <div>
                   <label className="text-sm font-medium text-gray-700">
                     Profile Picture

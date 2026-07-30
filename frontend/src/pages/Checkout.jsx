@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 import { useCart } from "../hooks/useCart";
 import useAuth from "../hooks/useAuth";
@@ -10,8 +10,9 @@ import { loadRazorpayScript } from "../utils/loadRazorpay";
 import { calculateShipping } from "../utils/shipping";
 
 export default function Checkout() {
-  const { cartItems, cartTotal, clearCart } = useCart();
+  const { cartItems, cartTotal, clearCart, cartLoading } = useCart();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [step, setStep] = useState(1);
   const [addresses, setAddresses] = useState([]);
@@ -20,6 +21,7 @@ export default function Checkout() {
   const [savingAddress, setSavingAddress] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
   const [announcementText, setAnnouncementText] = useState("");
+  const [pageLoading, setPageLoading] = useState(true);
 
   const [form, setForm] = useState({
     label: "Home",
@@ -32,7 +34,18 @@ export default function Checkout() {
     is_default: false,
   });
 
+  // Checkout requires an account — bounce guests to login and bring them
+  // straight back here once they're signed in.
   useEffect(() => {
+    if (!user) {
+      toast.error("Please log in to checkout.");
+      navigate("/auth?redirect=/checkout", { replace: true });
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
+    if (!user) return;
+
     (async () => {
       try {
         const [addrRes, settingsRes] = await Promise.all([getAddresses(), getSettings()]);
@@ -50,9 +63,12 @@ export default function Checkout() {
         }
       } catch (err) {
         console.error("Failed to load checkout data:", err);
+        toast.error("Couldn't load your saved addresses. Please try again.");
       }
+
+      setPageLoading(false);
     })();
-  }, []);
+  }, [user]);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -157,6 +173,12 @@ export default function Checkout() {
     }
   };
 
+  // Not logged in — the redirect effect above is already firing, so
+  // render nothing rather than flashing checkout content first.
+  if (!user) {
+    return null;
+  }
+
   if (step === 4) {
     return (
       <div className="max-w-lg mx-auto px-6 py-24 text-center">
@@ -169,6 +191,32 @@ export default function Checkout() {
         <p className="text-sm text-gray-500 mb-8">Thank you for your purchase. You'll receive a confirmation email shortly.</p>
         <Link to="/" className="inline-block bg-gray-900 text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-pink-500 transition-colors">
           Back to Home
+        </Link>
+      </div>
+    );
+  }
+
+  // Still fetching addresses/settings or the cart itself — show a
+  // lightweight loading state instead of a flash of empty content.
+  if (pageLoading || cartLoading) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-24 text-center text-gray-400 text-sm">
+        Loading checkout...
+      </div>
+    );
+  }
+
+  // Genuinely empty cart (not just "still loading") — nothing to check out.
+  if (cartItems.length === 0) {
+    return (
+      <div className="max-w-7xl mx-auto px-6 py-24 text-center">
+        <svg className="w-16 h-16 text-gray-200 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+        </svg>
+        <h2 className="text-xl font-bold text-gray-800 mb-2">Your cart is empty</h2>
+        <p className="text-sm text-gray-400 mb-8">Add something to your cart before checking out.</p>
+        <Link to="/shop" className="inline-block bg-gray-900 text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-pink-500 transition-colors">
+          Continue Shopping
         </Link>
       </div>
     );

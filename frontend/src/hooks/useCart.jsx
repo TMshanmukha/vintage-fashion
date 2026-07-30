@@ -41,25 +41,42 @@ function mapWishlistItem(row) {
 export function CartProvider({ children }) {
   const [cartItems, setCartItems] = useState([]);
   const [wishlist, setWishlist] = useState([]);
+  // Starts true when a token already exists, so the very first render
+  // (before the load effect below even fires) doesn't look "empty" to
+  // a page that's checking cartItems.length.
+  const [cartLoading, setCartLoading] = useState(() => isLoggedIn());
+  const [wishlistLoading, setWishlistLoading] = useState(() => isLoggedIn());
   const { user } = useAuth();
 
   const loadCart = useCallback(async () => {
-    if (!isLoggedIn()) return;
+    if (!isLoggedIn()) {
+      setCartLoading(false);
+      return;
+    }
+    setCartLoading(true);
     try {
       const res = await getCart();
       setCartItems((res.data || []).map(mapCartItem));
     } catch (err) {
       console.error("Failed to load cart:", err);
+    } finally {
+      setCartLoading(false);
     }
   }, []);
 
   const loadWishlist = useCallback(async () => {
-    if (!isLoggedIn()) return;
+    if (!isLoggedIn()) {
+      setWishlistLoading(false);
+      return;
+    }
+    setWishlistLoading(true);
     try {
       const res = await getWishlist();
       setWishlist((res.data || []).map(mapWishlistItem));
     } catch (err) {
       console.error("Failed to load wishlist:", err);
+    } finally {
+      setWishlistLoading(false);
     }
   }, []);
 
@@ -70,7 +87,11 @@ export function CartProvider({ children }) {
   // wait on. This covers: fresh page load already logged in, AND logging
   // in during the current SPA session without a refresh.
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setCartLoading(false);
+      setWishlistLoading(false);
+      return;
+    }
     loadCart();
     loadWishlist();
   }, [user, loadCart, loadWishlist]);
@@ -98,7 +119,11 @@ export function CartProvider({ children }) {
   const addToCart = async (variantId, qty = 1) => {
     if (!isLoggedIn()) {
       toast.error("Please log in to add items to your cart.");
-      window.location.href = "/auth";
+      // Preserve the page the user was on, same as the login redirects
+      // used elsewhere, instead of always dropping them at a bare /auth.
+      window.location.href = `/auth?redirect=${encodeURIComponent(
+        window.location.pathname
+      )}`;
       return;
     }
 
@@ -151,7 +176,9 @@ export function CartProvider({ children }) {
   const toggleWishlist = async (product) => {
     if (!isLoggedIn()) {
       toast.error("Please log in to save items.");
-      window.location.href = "/auth";
+      window.location.href = `/auth?redirect=${encodeURIComponent(
+        window.location.pathname
+      )}`;
       return;
     }
 
@@ -185,6 +212,7 @@ export function CartProvider({ children }) {
     <CartContext.Provider
       value={{
         cartItems,
+        cartLoading,
         addToCart,
         updateQty,
         removeFromCart,
@@ -193,6 +221,7 @@ export function CartProvider({ children }) {
         cartCount,
 
         wishlist,
+        wishlistLoading,
         toggleWishlist,
         removeFromWishlist,
         isWishlisted,
