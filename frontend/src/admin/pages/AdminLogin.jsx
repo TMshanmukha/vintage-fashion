@@ -39,7 +39,11 @@ export default function AdminLogin() {
             setLoading(true);
 
             const response = await axios.post(
-                "http://localhost:5000/api/auth/admin/login",
+                // Was hardcoded to localhost:5000 — that only ever worked
+                // in dev. In production the visitor's browser tried to hit
+                // localhost:5000 on THEIR machine, not your server, which
+                // is what produced the CORS/loopback error.
+                "https://vintage-fashion.onrender.com/api/auth/admin/login",
                 formData,
                 {
                     withCredentials: true
