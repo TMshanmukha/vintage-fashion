@@ -1,9 +1,24 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { FaFacebookF, FaTwitter, FaInstagram, FaYoutube, FaMapMarkerAlt } from "react-icons/fa";
+
+// TODO: swap these for your real social page URLs whenever you have them
+const FACEBOOK_URL = "https://facebook.com/vintagefashion";
+const TWITTER_URL = "https://twitter.com/vintagefashion";
+const INSTAGRAM_URL = "https://instagram.com/vintagefashion";
+const YOUTUBE_URL = "https://youtube.com/@vintagefashion";
+
+// Opens Google Maps directly on the store's location — no API key needed
+const STORE_MAP_URL =
+  "https://www.google.com/maps/search/?api=1&query=Anantapur+Old+Town+Boya+Vedi+Street+shop+Vintage";
+
+const socialLinks = [
+  { name: "Facebook", url: FACEBOOK_URL, Icon: FaFacebookF },
+  { name: "Twitter", url: TWITTER_URL, Icon: FaTwitter },
+  { name: "Instagram", url: INSTAGRAM_URL, Icon: FaInstagram },
+  { name: "Youtube", url: YOUTUBE_URL, Icon: FaYoutube },
+];
 
 export default function Footer() {
-  const [email, setEmail] = useState("");
-
   return (
     <footer className="bg-white border-t border-gray-100 pt-16 pb-8">
       <div className="max-w-7xl mx-auto px-6">
@@ -20,11 +35,32 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">About Us</h4>
             <ul className="space-y-2">
-              {["About us", "Store location", "Contact", "Orders tracking"].map((item) => (
-                <li key={item}>
-                  <Link to="#" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">{item}</Link>
-                </li>
-              ))}
+              <li>
+                <Link to="/about" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                  About us
+                </Link>
+              </li>
+              <li>
+                <a
+                  href={STORE_MAP_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-pink-500 transition-colors"
+                >
+                  <FaMapMarkerAlt className="w-3.5 h-3.5" />
+                  Store location
+                </a>
+              </li>
+              <li>
+                <Link to="/contact" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                  Contact
+                </Link>
+              </li>
+              <li>
+                <Link to="/account" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                  Order tracking
+                </Link>
+              </li>
             </ul>
           </div>
 
@@ -32,39 +68,40 @@ export default function Footer() {
           <div>
             <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">Useful Links</h4>
             <ul className="space-y-2">
-              {["Returns", "Support Policy", "Size guide", "FAQs"].map((item) => (
+              {["Returns", "Size guide", "FAQs"].map((item) => (
                 <li key={item}>
-                  <Link to="#" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">{item}</Link>
+                  <Link to="#" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                    {item}
+                  </Link>
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Follow + Subscribe */}
+          {/* Follow Us */}
           <div>
             <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">Follow Us</h4>
-            <ul className="space-y-2 mb-8">
-              {["Facebook", "Twitter", "Instagram", "Youtube"].map((item) => (
-                <li key={item}>
-                  <Link to="#" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">{item}</Link>
-                </li>
+            <div className="flex items-center gap-3">
+              {socialLinks.map(({ name, url, Icon }) => (
+                <a
+                  key={name}
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={name}
+                  className="w-9 h-9 flex items-center justify-center rounded-full border border-gray-200 text-gray-500 hover:border-pink-500 hover:bg-pink-500 hover:text-white transition-colors"
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                </a>
               ))}
-            </ul>
-            {/* <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-2">Subscribe</h4>
-            <p className="text-xs text-gray-400 mb-3">Get E-mail updates about our latest shop and special offers.</p>
-            {/* <div className="flex flex-col gap-2">
-              <input
-                type="email"
-                placeholder="Enter your email here..."
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="border-b border-gray-300 text-xs py-1.5 outline-none focus:border-pink-500 transition-colors bg-transparent"
-              />
-              <button className="text-xs font-bold uppercase tracking-widest underline text-gray-900 hover:text-pink-500 transition-colors text-left">
-                Subscribe
-              </button>
-            </div> */} 
+            </div>
           </div>
+        </div>
+
+        <div className="border-t border-gray-100 pt-6 text-center">
+          <p className="text-xs text-gray-400">
+            Crafted with care for timeless style.
+          </p>
         </div>
       </div>
     </footer>
