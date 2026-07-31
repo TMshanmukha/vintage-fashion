@@ -57,7 +57,7 @@ export const createCategoryService = async (categoryData) => {
 
     await NotificationService.createNotification({
         title: "Category Added",
-        body: `${name} category was created.`,
+        body: `${validatedData.name} category was created.`,
         type: "content",
         referenceId: insertId
     });
@@ -130,7 +130,7 @@ export const updateCategoryService = async (
 
     await NotificationService.createNotification({
         title: "Category Updated",
-        body: `${name} category was updated.`,
+        body: `${updatedCategory.name} category was updated.`,
         type: "content",
         referenceId: categoryId
     });
@@ -165,7 +165,7 @@ export const deleteCategoryService = async (categoryId) => {
 
     await NotificationService.createNotification({
         title: "Category Deleted",
-        body: `${categoryName} category was removed.`,
+        body: `${existingCategory.name} category was removed.`,
         type: "content",
         referenceId: categoryId
     });
