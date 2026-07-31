@@ -79,7 +79,7 @@ API.interceptors.response.use(
             try {
 
                 const response = await axios.post(
-                    "http://localhost:5000/api/auth/admin/refresh",
+                    "https://vintage-fashion.onrender.com/api/auth/admin/refresh",
                     {},
                     {
                         withCredentials: true
