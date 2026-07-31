@@ -57,7 +57,7 @@ export const createBrandService = async (body) => {
 
   await NotificationService.createNotification({
       title: "Brand Added",
-      body: `${brand_name} was added.`,
+      body: `${brandID.name} was added.`,
       type: "content",
       referenceId: brandID
   });
@@ -86,9 +86,9 @@ export const updateBrandService = async (params, body) => {
   const brandID = await getBrandById(parsed.brand_id);
   await NotificationService.createNotification({
       title: "Brand Updated",
-      body: `${brand_name} was updated.`,
+      body: `${brandID.name} was updated.`,
       type: "content",
-      referenceId: brandID
+      referenceId: brandID.brand_id
   });
 
   return brandID;
@@ -104,8 +104,8 @@ export const deleteBrandService = async (params) => {
 
   await NotificationService.createNotification({
       title: "Brand Deleted",
-      body: `${brand_name} was removed.`,
+      body: `${existing.name} was removed.`,
       type: "content",
-      referenceId: existing
+      referenceId: existing.brand_id
   });
 };
