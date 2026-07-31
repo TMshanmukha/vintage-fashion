@@ -70,7 +70,7 @@ export const deleteProductService = async (params) => {
             title: "Product Removed",
             body: `${product.name} was removed.`,
             type: "product",
-            referenceId: productId
+            referenceId: product.product_id
         });
 
         return;
@@ -219,9 +219,9 @@ export const updateProductService = async (params, body) => {
 
                 await NotificationService.createNotification({
                     title: "Product Updated",
-                    body: `${body.name} was updated.`,
+                    body: `${product.name} was updated.`,
                     type: "product",
-                    referenceId: productId
+                    referenceId: existingProduct.product_id
                 });
 
             }
