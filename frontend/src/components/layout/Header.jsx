@@ -23,8 +23,16 @@ export default function Header() {
     <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
         {/* Logo */}
-        <Link to="/" className="text-2xl font-extrabold tracking-tight text-gray-900">
-          Vintage Fashion<span className="text-gray-900">.</span>
+        <Link to="/" className="flex items-center gap-3">
+          <img
+            src="/Title_vf2.png"
+            alt="Vintage Fashion"
+            className="w-10 h-10 rounded-full object-cover"
+          />
+
+          <span className="text-2xl font-extrabold tracking-tight text-gray-900">
+            Vintage Fashion
+          </span>
         </Link>
 
         {/* Desktop Nav */}

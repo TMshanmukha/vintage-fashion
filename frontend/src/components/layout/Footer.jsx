@@ -25,10 +25,22 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
           {/* Brand */}
           <div>
-            <Link to="/" className="text-2xl font-extrabold tracking-tight text-gray-900 block mb-3">
-              Vintage Fashion
+            <Link to="/" className="flex items-center gap-3 mb-4">
+              <img
+                src="/Title_vf2.png"
+                alt="Vintage Fashion"
+                className="w-12 h-12 object-contain"
+              />
+
+              <span className="text-xl font-extrabold tracking-tight text-gray-900">
+                Vintage Fashion
+              </span>
             </Link>
-            <p className="text-xs text-gray-400">© 2026 Svs.<br />All Rights Reserved</p>
+
+            <p className="text-xs text-gray-400 mt-4">
+              © 2026 Vintage Fashion.<br />
+              All Rights Reserved.
+            </p>
           </div>
 
           {/* About Us */}
