@@ -20,18 +20,19 @@ export const getOrCreateCart = async (userId) => {
 
 };
 
-export const upsertCartItem = async (cartId, variantId, quantity) => {
 
+export const upsertCartItem = async (cartId, variantId, quantity, pricing) => {
     await pool.query(
         `
-        INSERT INTO cart_items (cart_id, variant_id, quantity)
-        VALUES (?, ?, ?)
-        ON DUPLICATE KEY UPDATE
-            quantity = quantity + VALUES(quantity)
-        `,
-        [cartId, variantId, quantity]
+    INSERT INTO cart_items
+      (cart_id, variant_id, quantity, original_price, discount_percent, discount_amount, final_price, promotion_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE
+      quantity = quantity + VALUES(quantity)
+      -- pricing intentionally NOT updated on duplicate — re-resolved fresh at checkout instead
+    `,
+        [cartId, variantId, quantity, pricing.original_price, pricing.discount_percent, pricing.discount_amount, pricing.final_price, pricing.promotion_id]
     );
-
 };
 
 export const setCartItemQuantity = async (cartItemId, cartId, quantity) => {
@@ -72,10 +73,16 @@ export const getCartItems = async (cartId) => {
             ci.variant_id,
             ci.quantity,
 
+            ci.original_price,
+            ci.discount_percent,
+            ci.discount_amount,
+            ci.final_price,
+            ci.promotion_id,
+
             p.product_id,
             p.name,
             p.slug,
-            (p.price + v.price_modifier) AS price,
+            (p.price + v.price_modifier) AS variant_price,
 
             v.size,
             v.color,
@@ -110,14 +117,28 @@ export const getCartItems = async (cartId) => {
         [cartId]
     );
 
-    return rows;
+    // final_price is frozen at add-to-cart time via upsertCartItem. It's what
+    // the customer actually gets charged. variant_price (live) is only kept
+    // as a fallback for any pre-migration rows where final_price is NULL.
+    return rows.map((row) => ({
+        ...row,
+        price: row.final_price != null ? Number(row.final_price) : Number(row.variant_price),
+    }));
 
 };
 
 export const getVariantById = async (variantId) => {
 
     const [rows] = await pool.query(
-        `SELECT * FROM product_variants WHERE variant_id = ?`,
+        `
+        SELECT
+            v.*,
+            p.product_id,
+            (p.price + v.price_modifier) AS price
+        FROM product_variants v
+        JOIN products p ON p.product_id = v.product_id
+        WHERE v.variant_id = ?
+        `,
         [variantId]
     );
 

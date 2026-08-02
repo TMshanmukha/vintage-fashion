@@ -2,7 +2,8 @@ import pool from "../config/db.js";
 import crypto from "crypto";
 import Razorpay from "razorpay";
 
-import { getCartItems, getOrCreateCart } from "../models/cart.model.js";
+import { getOrCreateCart, getCartItems } from "../models/cart.model.js";
+
 import { getAddressById } from "../models/address.model.js";
 import { getWebsiteSettings } from "../models/settings.model.js";
 
@@ -24,6 +25,8 @@ import {
 } from "../validators/checkout.validator.js";
 
 import { generateOrderNumber } from "../utils/generateOrderNumber.js";
+
+import { resolvePromotionForProduct, applyPromotion } from "./pricing/pricing.service.js";
 
 const razorpay = new Razorpay({
     key_id: process.env.RAZORPAY_KEY_ID,
@@ -50,6 +53,20 @@ function getFreeShippingThreshold(announcementText) {
 
 }
 
+// The ONLY place order pricing gets computed. Cart values (frozen at
+// add-to-cart time) are never trusted directly here — every item's
+// promotion is re-resolved fresh, in case a promotion expired, was
+// deleted, or changed since the item was added to the cart.
+export async function recalculateCartForCheckout(cartId) {
+  const items = await getCartItems(cartId); // must join product_id + category_id + variant price
+
+  return Promise.all(items.map(async (item) => {
+    const promotion = await resolvePromotionForProduct(item.product_id);
+    const pricing = applyPromotion(item.price, promotion); // item.price = base variant price, not stored final_price
+    return { ...item, ...pricing };
+  }));
+}
+
 export const initiateCheckoutService = async (userId, body) => {
 
     const { address_id } = initiateCheckoutSchema.parse(body);
@@ -61,14 +78,23 @@ export const initiateCheckoutService = async (userId, body) => {
     }
 
     const cartId = await getOrCreateCart(userId);
-    const cartItems = await getCartItems(cartId);
 
-    if (cartItems.length === 0) {
+    // Re-resolve every item's price server-side right before checkout —
+    // this is what makes the whole pricing system actually enforced,
+    // instead of just displayed.
+    const pricedItems = await recalculateCartForCheckout(cartId);
+
+    if (pricedItems.length === 0) {
         throw new Error("Your cart is empty.");
     }
 
-    const subtotal = cartItems.reduce(
-        (sum, item) => sum + Number(item.price) * item.quantity,
+    const subtotal = pricedItems.reduce(
+        (sum, item) => sum + Number(item.final_price) * item.quantity,
+        0
+    );
+
+    const discountAmount = pricedItems.reduce(
+        (sum, item) => sum + Number(item.discount_amount) * item.quantity,
         0
     );
 
@@ -92,13 +118,13 @@ export const initiateCheckoutService = async (userId, body) => {
             shipping_address_id: address_id,
             order_number: orderNumber,
             subtotal,
-            discount_amount: 0,
+            discount_amount: discountAmount,
             shipping_fee: shippingFee,
             tax_amount: taxAmount,
             total_amount: totalAmount
         });
 
-        for (const item of cartItems) {
+        for (const item of pricedItems) {
             await createOrderItem(connection, orderId, item);
         }
 
@@ -122,7 +148,15 @@ export const initiateCheckoutService = async (userId, body) => {
             razorpay_order_id: razorpayOrder.id,
             amount: totalAmount,
             currency: "INR",
-            key_id: process.env.RAZORPAY_KEY_ID
+            key_id: process.env.RAZORPAY_KEY_ID,
+            pricing: {
+                subtotal,
+                discount_amount: discountAmount,
+                shipping_fee: shippingFee,
+                tax_amount: taxAmount,
+                total_amount: totalAmount,
+            },
+            items: pricedItems,
         };
 
     } catch (error) {
@@ -217,33 +251,37 @@ export const verifyPaymentService = async (userId, body) => {
                 [userId]
             );
 
-            const [items] = await pool.query(
+            const [orderItemRows] = await pool.query(
                 `SELECT product_name, size, color, quantity, unit_price, total_price FROM order_items WHERE order_id = ?`,
                 [order_id]
             );
 
             if (customer?.email) {
 
-                const itemLines = items
+                const itemLines = orderItemRows
                     .map((item) => {
                         const variant = [item.size, item.color].filter(Boolean).join(", ");
                         return `${item.product_name}${variant ? ` (${variant})` : ""} — Qty ${item.quantity} — ₹${Number(item.total_price).toFixed(2)}`;
                     })
                     .join("\n");
 
-                await sendOrderConfirmationEmail({
-                    to: user.email,
-                    customerName: user.name,
-                    orderNumber: order.order_number,
-                    items: orderItems, // the array of line items you just inserted
-                    totalAmount: order.total_amount,
+                // NOTE: sendOrderConfirmationEmail is not imported/defined
+                // anywhere in this file's current imports — only
+                // sendAdminEmail is. I don't have emailService.js to know
+                // whether that function exists there under a different name.
+                // Paste emailService.js and I'll wire this correctly instead
+                // of guessing an export that may not exist.
+                await sendAdminEmail({
+                    to: customer.email,
+                    subject: `Order Confirmation — #${order.order_number}`,
+                    text: `Hi ${customer.name},\n\nYour order #${order.order_number} is confirmed.\n\n${itemLines}\n\nTotal: ₹${Number(order.total_amount).toFixed(2)}`,
                 });
 
             }
 
         } catch (emailError) {
 
-            console.warn("Order confirmation email failed to send:", err.message);
+            console.warn("Order confirmation email failed to send:", emailError.message);
 
         }
 

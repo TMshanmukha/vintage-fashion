@@ -22,6 +22,13 @@ export default function Cart() {
   const shippingFee = calculateShipping(cartTotal, announcementText);
   const total = cartTotal + shippingFee;
 
+  // Total discount saved across the whole cart, for the summary panel.
+  const totalSavings = cartItems.reduce(
+    (sum, item) =>
+      sum + (Number(item.discount_amount) || 0) * item.qty,
+    0
+  );
+
   if (cartItems.length === 0) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-24 text-center">
@@ -61,41 +68,62 @@ export default function Cart() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {cartItems.map((item) => (
-                <tr key={item.id} className="py-4">
-                  <td className="py-4">
-                    <div className="flex items-center gap-4">
-                      <img src={item.image} alt={item.name} className="w-16 h-16 object-cover bg-gray-50" />
-                      <div>
-                        <span className="text-sm font-medium text-gray-800 block">{item.name}</span>
-                        {(item.size || item.color) && (
-                          <span className="text-xs text-gray-400">
-                            {item.size ? `Size: ${item.size}` : ""}{item.size && item.color ? " · " : ""}{item.color ? `Color: ${item.color}` : ""}
-                          </span>
-                        )}
+              {cartItems.map((item) => {
+                const hasDiscount = Number(item.discount_amount) > 0;
+                return (
+                  <tr key={item.id} className="py-4">
+                    <td className="py-4">
+                      <div className="flex items-center gap-4">
+                        <img src={item.image} alt={item.name} className="w-16 h-16 object-cover bg-gray-50" />
+                        <div>
+                          <span className="text-sm font-medium text-gray-800 block">{item.name}</span>
+                          {(item.size || item.color) && (
+                            <span className="text-xs text-gray-400">
+                              {item.size ? `Size: ${item.size}` : ""}{item.size && item.color ? " · " : ""}{item.color ? `Color: ${item.color}` : ""}
+                            </span>
+                          )}
+                          {hasDiscount && (
+                            <span className="inline-block mt-1 text-[10px] font-bold uppercase tracking-wide text-pink-500 bg-pink-50 px-2 py-0.5 rounded-full">
+                              {item.discount_percent}% off applied
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="text-center text-sm text-gray-600">₹ {item.price.toFixed(2)}</td>
-                  <td className="text-center">
-                    <div className="flex items-center justify-center border border-gray-200 w-fit mx-auto">
-                      <button onClick={() => updateQty(item.id, item.qty - 1)} className="px-3 py-1.5 text-gray-500 hover:text-gray-900">−</button>
-                      <span className="px-3 py-1.5 text-sm border-x border-gray-200">{item.qty}</span>
-                      <button onClick={() => updateQty(item.id, item.qty + 1)} className="px-3 py-1.5 text-gray-500 hover:text-gray-900">+</button>
-                    </div>
-                  </td>
-                  <td className="text-right text-sm font-semibold text-gray-800">
-                    ₹ {(item.price * item.qty).toFixed(2)}
-                  </td>
-                  <td className="text-right pl-4">
-                    <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-pink-500 transition-colors">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="text-center text-sm">
+                      {hasDiscount ? (
+                        <div className="flex flex-col items-center">
+                          <span className="text-gray-400 line-through text-xs">
+                            ₹ {Number(item.original_price).toFixed(2)}
+                          </span>
+                          <span className="text-gray-800 font-semibold">
+                            ₹ {item.price.toFixed(2)}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-gray-600">₹ {item.price.toFixed(2)}</span>
+                      )}
+                    </td>
+                    <td className="text-center">
+                      <div className="flex items-center justify-center border border-gray-200 w-fit mx-auto">
+                        <button onClick={() => updateQty(item.id, item.qty - 1)} className="px-3 py-1.5 text-gray-500 hover:text-gray-900">−</button>
+                        <span className="px-3 py-1.5 text-sm border-x border-gray-200">{item.qty}</span>
+                        <button onClick={() => updateQty(item.id, item.qty + 1)} className="px-3 py-1.5 text-gray-500 hover:text-gray-900">+</button>
+                      </div>
+                    </td>
+                    <td className="text-right text-sm font-semibold text-gray-800">
+                      ₹ {(item.price * item.qty).toFixed(2)}
+                    </td>
+                    <td className="text-right pl-4">
+                      <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-pink-500 transition-colors">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
 
@@ -115,6 +143,12 @@ export default function Cart() {
                 <span className="text-gray-500">Subtotal</span>
                 <span className="font-semibold">₹ {cartTotal.toFixed(2)}</span>
               </div>
+              {totalSavings > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">You saved</span>
+                  <span className="font-semibold text-pink-500">− ₹ {totalSavings.toFixed(2)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">Shipping</span>
                 <span className="font-semibold text-green-500">

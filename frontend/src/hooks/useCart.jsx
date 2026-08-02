@@ -24,6 +24,11 @@ function mapCartItem(row) {
     size: row.size,
     color: row.color,
     slug: row.slug,
+
+    original_price: row.original_price != null ? Number(row.original_price) : Number(row.price),
+    discount_percent: Number(row.discount_percent) || 0,
+    discount_amount: Number(row.discount_amount) || 0,
+    promotion_id: row.promotion_id,
   };
 }
 

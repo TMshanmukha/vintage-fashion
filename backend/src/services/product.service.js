@@ -1,4 +1,5 @@
 import { getProducts,countProducts } from "../models/product.model.js";
+import { resolvePromotionForProduct, resolvePromotionsForProducts, applyPromotion } from "../services/pricing/pricing.service.js";
 
 import {
     getProductBySlug,
@@ -281,6 +282,11 @@ export const getProductBySlugService = async (params) => {
         throw new Error("PRODUCT_NOT_FOUND");
     }
 
+    // Resolve pricing/discount for this single product — singular resolver,
+    // not the batch one, since there's exactly one product here.
+    const promotion = await resolvePromotionForProduct(product.product_id);
+    const pricing = applyPromotion(product.price, promotion);
+
     // Get all images
     const images = await getProductImages(product.product_id);
 
@@ -290,6 +296,7 @@ export const getProductBySlugService = async (params) => {
     // Combine everything
     return {
         ...product,
+        ...pricing,
         images,
         variants
     };
@@ -394,18 +401,6 @@ export const createProductService = async (productData, files) => {
             productSku
         );
 
-        // validatedData.stock_quantity =
-        //     (validatedData.variants || []).reduce(
-        //         (total, variant) =>
-        //             total + Number(variant.stock_quantity || 0),
-        //         0
-        //     );
-        // await updateProductStock(
-        //     connection,
-        //     productId,
-        //     validatedData.stock_quantity
-        // );
-
         // Generate Variant SKUs
         if (validatedData.variants?.length) {
 
@@ -470,40 +465,3 @@ export const createProductService = async (productData, files) => {
     }
 
 };
-
-
-
-// export const getProductBySlugService = async (slug) => {
-
-//     const product =
-//         await getProductBySlug(slug);
-
-//     if (!product) {
-//         throw new Error("PRODUCT_NOT_FOUND");
-//     }
-
-//     const images =
-//         await getProductImages(product.product_id);
-
-//     const variants =
-//         await getProductVariants(product.product_id);
-
-//     const relatedProducts =
-//         await getRelatedProducts(
-//             product.category_id,
-//             product.product_id
-//         );
-
-//     return {
-
-//         ...product,
-
-//         images,
-
-//         variants,
-
-//         relatedProducts
-
-//     };
-
-// };
