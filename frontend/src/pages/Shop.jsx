@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ui/ProductCard";
 import { getProducts } from "../api/productApi";
@@ -13,20 +13,26 @@ const sortOptions = [
   { label: "Newest", value: "newest" },
 ];
 
+// These match against each product's real admin-set `badge` field —
+// not category names. "Sale" is the one exception: it's derived from
+// actual discount data rather than a typed badge, since a discount is
+// always true regardless of what badge text an admin chose.
+const TAGS = ["New", "Sale", "Summer", "Winter", "Casual", "Formal"];
+
 export default function Shop() {
   const [searchParams] = useSearchParams();
-  const promoCategoryId = searchParams.get("category");
-  const promoDiscount = Number(searchParams.get("discount")) || 0;
+  const initialCategoryId = searchParams.get("category");
 
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [activeCategory, setActiveCategory] = useState(
-    promoCategoryId ? Number(promoCategoryId) : "All"
+    initialCategoryId ? Number(initialCategoryId) : "All"
   );
   const [sort, setSort] = useState(sortOptions[0].label);
   const [priceRange, setPriceRange] = useState(PRICE_MAX);
+  const [activeTag, setActiveTag] = useState(null);
 
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ totalProducts: 0, totalPages: 1 });
@@ -62,6 +68,7 @@ export default function Shop() {
         });
 
         setProducts(res.data || []);
+        console.log(res.data[0]);
         setPagination({
           totalProducts: res.pagination?.totalProducts || 0,
           totalPages: res.pagination?.totalPages || 1,
@@ -75,6 +82,78 @@ export default function Shop() {
       setLoading(false);
     })();
   }, [activeCategory, sort, priceRange, page]);
+
+  const mappedProducts = useMemo(() => {
+      return products.map(product => ({
+          id: product.product_id,
+          slug: product.slug,
+          name: product.name,
+
+          price: Number(product.final_price ?? product.price),
+
+          originalPrice: Number(
+              product.original_price ?? product.price
+          ),
+
+          discountPercent: Number(
+              product.discount_percent ?? 0
+          ),
+
+          badge: product.badge,
+
+          image: product.image_url,
+
+          images: product.image_url
+              ? [product.image_url]
+              : [],
+
+          rating: product.average_rating || 0,
+      }));
+  }, [products]);
+
+  // Client-side filter over the current page's results. "Sale" checks real
+  // discount data; every other tag matches against the product's own badge
+  // field, exactly as set by the admin at creation time.
+  const visibleProducts = useMemo(() => {
+
+    if (!activeTag)
+        return mappedProducts;
+
+    return mappedProducts.filter(
+        p =>
+            (p.badge || "")
+                .toLowerCase()
+                .trim() ===
+            activeTag.toLowerCase().trim()
+    );
+
+}, [mappedProducts, activeTag]);
+
+  function handleTagClick(tag) {
+    setActiveTag((prev) => (prev === tag ? null : tag));
+  }
+
+  const tags = useMemo(() => {
+
+      const badgeTags = [
+          ...new Set(
+              products
+                  .map(p => p.badge)
+                  .filter(Boolean)
+          )
+      ];
+
+      // if (
+      //     products.some(
+      //         p => Number(p.discount_percent) > 0
+      //     )
+      // ) {
+      //     badgeTags.unshift("Sale");
+      // }
+
+      return badgeTags;
+
+  }, [products]);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
@@ -91,7 +170,10 @@ export default function Shop() {
             <ul className="space-y-2">
               <li>
                 <button
-                  onClick={() => setActiveCategory("All")}
+                  onClick={() => {
+                    setActiveCategory("All");
+                    setActiveTag(null);
+                  }}
                   className={`text-sm w-full text-left transition-colors ${
                     activeCategory === "All" ? "text-pink-500 font-semibold" : "text-gray-500 hover:text-pink-500"
                   }`}
@@ -102,7 +184,10 @@ export default function Shop() {
               {categories.map((cat) => (
                 <li key={cat.category_id}>
                   <button
-                    onClick={() => setActiveCategory(cat.category_id)}
+                    onClick={() => {
+                      setActiveCategory(cat.category_id);
+                      setActiveTag(null);
+                    }}
                     className={`text-sm w-full text-left transition-colors ${
                       activeCategory === cat.category_id ? "text-pink-500 font-semibold" : "text-gray-500 hover:text-pink-500"
                     }`}
@@ -132,10 +217,15 @@ export default function Shop() {
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-4">Tags</h3>
             <div className="flex flex-wrap gap-2">
-              {["New", "Sale", "Summer", "Winter", "Casual", "Formal"].map((tag) => (
+              {tags.map((tag) => (
                 <button
                   key={tag}
-                  className="text-xs border border-gray-200 text-gray-500 px-3 py-1 hover:border-pink-500 hover:text-pink-500 transition-colors"
+                  onClick={() => handleTagClick(tag)}
+                  className={`text-xs border px-3 py-1 transition-colors ${
+                    activeTag === tag
+                      ? "border-pink-500 text-pink-500 bg-pink-50"
+                      : "border-gray-200 text-gray-500 hover:border-pink-500 hover:text-pink-500"
+                  }`}
                 >
                   {tag}
                 </button>
@@ -146,12 +236,17 @@ export default function Shop() {
 
         <div className="flex-1">
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
-            <p className="text-sm text-gray-400">Showing {pagination.totalProducts} results</p>
+            <p className="text-sm text-gray-400">
+              Showing {activeTag ? visibleProducts.length : pagination.totalProducts} results
+            </p>
             <div className="flex items-center gap-3">
               <label className="text-xs text-gray-500">Sort by:</label>
               <select
                 value={sort}
-                onChange={(e) => setSort(e.target.value)}
+                onChange={(e) => {
+                  setSort(e.target.value);
+                  setActiveTag(null);
+                }}
                 className="text-xs border border-gray-200 px-3 py-1.5 outline-none focus:border-pink-500 bg-white"
               >
                 {sortOptions.map((o) => (
@@ -167,41 +262,19 @@ export default function Shop() {
                 <div key={i} className="bg-gray-100 animate-pulse h-72" />
               ))}
             </div>
-          ) : products.length > 0 ? (
+          ) : visibleProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-              {products.map((product) => {
-                const rawPrice = Number(product.price);
-                const applyPromo =
-                  promoDiscount > 0 &&
-                  promoCategoryId &&
-                  activeCategory === Number(promoCategoryId);
-                const finalPrice = applyPromo
-                  ? +(rawPrice * (1 - promoDiscount / 100)).toFixed(2)
-                  : rawPrice;
-
-                return (
-                  <ProductCard
-                    key={product.product_id}
-                    product={{
-                      id: product.product_id,
-                      slug: product.slug,
-                      name: product.name,
-                      price: finalPrice,
-                      originalPrice: applyPromo
-                        ? rawPrice
-                        : product.original_price
-                        ? Number(product.original_price)
-                        : null,
-                      image: product.image_url,
-                      images: product.image_url ? [product.image_url] : [],
-                      rating: product.average_rating || 0,
-                    }}
-                  />
-                );
-              })}
+              {visibleProducts.map((product) => (
+                <ProductCard
+                    key={product.id}
+                    product={product}
+                />
+              ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-400 py-16 text-center">No products found.</p>
+            <p className="text-sm text-gray-400 py-16 text-center">
+              {activeTag ? `No products tagged "${activeTag}" on this page.` : "No products found."}
+            </p>
           )}
 
           {pagination.totalPages > 1 && (

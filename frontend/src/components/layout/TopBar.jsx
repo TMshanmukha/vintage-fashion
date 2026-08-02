@@ -1,27 +1,60 @@
-import { useSiteData } from "../../hooks/useSiteData";
+import { useEffect, useState } from "react";
+import { getSettings } from "../../api/settingsApi";
+
+const FALLBACKS = {
+  language: "English",
+  currency: "Rupee",
+  support_phone: "99999-99999",
+  announcement_text: "",
+  announcement_enabled: false,
+};
 
 export default function TopBar() {
-  const { siteText } = useSiteData();
+  const [settings, setSettings] = useState(FALLBACKS);
+
+  useEffect(() => {
+    let mounted = true;
+
+    (async () => {
+      try {
+        const res = await getSettings();
+        const data = res.data || {};
+        if (!mounted) return;
+
+        setSettings({
+          language: data.language || FALLBACKS.language,
+          currency: data.currency || FALLBACKS.currency,
+          support_phone: data.support_phone || FALLBACKS.support_phone,
+          announcement_text: data.announcement_text || "",
+          announcement_enabled: !!data.announcement_enabled,
+        });
+      } catch (err) {
+        console.error("Failed to load site settings:", err);
+        // Falls back to FALLBACKS already set in initial state — bar still renders.
+      }
+    })();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   return (
     <div className="bg-white border-b border-gray-100 text-xs text-gray-500 px-6 py-2">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         <div className="flex items-center gap-4">
           <span className="flex items-center gap-1">
-            English
-            {/* <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg> */}
+            {settings.language}
           </span>
           <span className="flex items-center gap-1">
-            Rupee
-            {/* <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg> */}
+            {settings.currency}
           </span>
           <span>|</span>
-          <span>Call Us 99999-99999</span>
+          <span>Call Us {settings.support_phone}</span>
         </div>
-        <p className="text-center text-xs">{siteText.announcementText}</p>
+        {settings.announcement_enabled && settings.announcement_text && (
+          <p className="text-center text-xs">{settings.announcement_text}</p>
+        )}
       </div>
     </div>
   );

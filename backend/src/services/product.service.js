@@ -285,7 +285,11 @@ export const getProductBySlugService = async (params) => {
     // Resolve pricing/discount for this single product — singular resolver,
     // not the batch one, since there's exactly one product here.
     const promotion = await resolvePromotionForProduct(product.product_id);
-    const pricing = applyPromotion(product.price, promotion);
+    const pricing = applyPromotion(
+        product.price,
+        product.original_price,
+        promotion
+    );
 
     // Get all images
     const images = await getProductImages(product.product_id);
@@ -317,13 +321,26 @@ export const getProductsService = async (query) => {
         offset
     });
 
+    const promotions = await resolvePromotionsForProducts(
+        products.map(product => product.product_id)
+    );
+
+    const productsWithPricing = products.map(product => ({
+        ...product,
+        ...applyPromotion(
+            product.price,
+            product.original_price,
+            promotions[product.product_id]
+        )
+    }));
+
     const totalProducts = await countProducts(filters);
 
     const totalPages = Math.ceil(totalProducts / limit);
 
     return {
 
-        products,
+        products: productsWithPricing,
 
         pagination: {
             page,

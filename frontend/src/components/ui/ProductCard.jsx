@@ -13,8 +13,17 @@ export default function ProductCard({ product }) {
   const [addingToCart, setAddingToCart] = useState(false);
 
   const wishlisted = isWishlisted(product.id);
-  const hasDiscount = product.originalPrice && product.originalPrice > product.price;
 
+const price = Number(product.price);
+
+const originalPrice = Number(product.originalPrice ?? price);
+
+const discountPercent = Number(product.discountPercent) || 0;
+
+const hasDiscount =
+  discountPercent > 0 &&
+  originalPrice > price;
+    
   const handleWishlist = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -83,11 +92,20 @@ export default function ProductCard({ product }) {
   return (
     <Link to={`/product/${product.slug}`} className="group block">
       <div className="relative aspect-[4/5] overflow-hidden bg-gray-50 mb-3">
-        {(product.badge || hasDiscount) && (
-          <span className="absolute top-3 left-3 z-10 bg-gray-900 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1">
-            {product.badge || "Sale"}
-          </span>
-        )}
+        {/* Admin-set badge and real discount status are independent facts —
+            both can show at once, neither hides the other. */}
+        <div className="absolute top-3 left-3 z-10 flex flex-col items-start gap-1">
+          {product.badge && (
+            <span className="bg-gray-900 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1">
+              {product.badge}
+            </span>
+          )}
+          {hasDiscount && (
+            <span className="bg-pink-500 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1">
+              {discountPercent}% OFF
+            </span>
+          )}
+        </div>
 
         <button
           onClick={handleWishlist}
@@ -125,14 +143,21 @@ export default function ProductCard({ product }) {
         {product.name}
       </h3>
       <div className="flex items-center gap-2">
+
         <span className="text-sm font-bold text-gray-900">
-          ₹{product.price}
+            ₹{price.toFixed(2)}
         </span>
-        {hasDiscount && (
-          <span className="text-xs text-gray-400 line-through">
-            ₹{product.originalPrice}
-          </span>
-        )}
+
+        <span className="text-xs text-gray-400 line-through">
+            ₹{originalPrice.toFixed(2)}
+        </span>
+
+        {/* {hasDiscount && (
+            <span className="text-xs font-semibold text-pink-500">
+                {discountPercent}% OFF
+            </span>
+        )} */}
+
       </div>
     </Link>
   );
