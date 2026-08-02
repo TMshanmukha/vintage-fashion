@@ -3,13 +3,22 @@ import {
   getBannerById,
   createBanner,
   updateBanner,
-  deleteBanner
+  deleteBanner,
+  getBannerProducts,
+  setBannerProducts,
 } from "../../models/marketing/banner.model.js";
 
 import cloudinary from "../../config/cloudinary.js";
 
+async function attachProducts(banner) {
+  if (!banner) return banner;
+  const products = await getBannerProducts(banner.banner_id);
+  return { ...banner, products };
+}
+
 export async function getAllBannersService() {
-  return await getAllBanners();
+  const banners = await getAllBanners();
+  return Promise.all(banners.map(attachProducts));
 }
 
 export async function getBannerByIdService(bannerId) {
@@ -19,13 +28,13 @@ export async function getBannerByIdService(bannerId) {
     throw new Error("Banner not found.");
   }
 
-  return banner;
+  return attachProducts(banner);
 }
 
 export async function createBannerService(data) {
   const bannerId = await createBanner(data);
 
-  return await getBannerById(bannerId);
+  return attachProducts(await getBannerById(bannerId));
 }
 
 export async function updateBannerService(bannerId, data) {
@@ -56,10 +65,8 @@ export async function updateBannerService(bannerId, data) {
         );
     }
 
-    return await updateBanner(
-        bannerId,
-        data
-    );
+    const updated = await updateBanner(bannerId, data);
+    return attachProducts(updated);
 }
 
 export async function deleteBannerService(bannerId) {
@@ -70,4 +77,15 @@ export async function deleteBannerService(bannerId) {
   }
 
   await deleteBanner(bannerId);
+}
+
+export async function setBannerProductsService(bannerId, productIds) {
+  const banner = await getBannerById(bannerId);
+
+  if (!banner) {
+    throw new Error("Banner not found.");
+  }
+
+  await setBannerProducts(bannerId, productIds);
+  return attachProducts(await getBannerById(bannerId));
 }

@@ -2,7 +2,7 @@ import api from "./AdminApi";
 
 export const createCategory = async (categoryData) => {
     const response = await api.post(
-        "/admin/categories",
+        "/categories",
         categoryData,
         {
             withCredentials: true,
@@ -14,7 +14,7 @@ export const createCategory = async (categoryData) => {
 
 export const getCategories = async () => {
     const response = await api.get(
-        "/admin/categories",
+        "/categories",
         {
             withCredentials: true,
         }
@@ -36,8 +36,8 @@ export const restoreCategory = async (id) => {
 // GET /api/categories
 // Public endpoint — no auth required. Returns all active categories.
 export const getCategoriesUser = async () => {
-  const response = await api.get("/categories");
-  return response.data; // { success, message, data }
+    const response = await api.get("/categories");
+    return response.data; // { success, message, data }
 };
 
 

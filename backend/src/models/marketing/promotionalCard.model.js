@@ -8,7 +8,8 @@ export async function getAllCards() {
     `
     SELECT
       card_id, title, subtitle, image_url, image_public_id,
-      button_text, button_link, display_order, is_active,
+      button_text, button_link, category_id, discount_percent,
+      display_order, is_active,
       created_at, updated_at
     FROM promotional_cards
     ORDER BY display_order ASC, card_id DESC
@@ -39,6 +40,8 @@ export async function createCard(data) {
     image_public_id,
     button_text,
     button_link,
+    category_id,
+    discount_percent,
     display_order,
     is_active,
   } = data;
@@ -47,9 +50,10 @@ export async function createCard(data) {
     `
     INSERT INTO promotional_cards (
       title, subtitle, image_url, image_public_id,
-      button_text, button_link, display_order, is_active
+      button_text, button_link, category_id, discount_percent,
+      display_order, is_active
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       title,
@@ -57,7 +61,9 @@ export async function createCard(data) {
       image_url,
       image_public_id ?? null,
       button_text ?? null,
-      button_link ?? null,
+      button_link || "/shop",
+      category_id ?? null,
+      discount_percent ?? null,
       display_order,
       is_active ?? true,
     ]
@@ -94,4 +100,58 @@ export async function deleteCard(cardId) {
     [cardId]
   );
   return result;
+}
+
+/* ==========================================================
+   GET PRODUCTS ATTACHED TO A CARD
+========================================================== */
+export async function getCardProducts(cardId) {
+  const [rows] = await pool.query(
+    `
+    SELECT
+      p.product_id,
+      p.name AS product_name,
+      p.slug,
+      p.price,
+      pi.image_url
+    FROM promotional_card_products pcp
+    JOIN products p ON p.product_id = pcp.product_id
+    LEFT JOIN product_images pi
+      ON pi.product_id = p.product_id
+      AND pi.is_primary = TRUE
+    WHERE pcp.card_id = ?
+    `,
+    [cardId]
+  );
+  return rows;
+}
+
+/* ==========================================================
+   REPLACE PRODUCTS ATTACHED TO A CARD
+========================================================== */
+export async function setCardProducts(cardId, productIds) {
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await conn.query(
+      `DELETE FROM promotional_card_products WHERE card_id = ?`,
+      [cardId]
+    );
+
+    if (productIds.length > 0) {
+      const values = productIds.map((id) => [cardId, id]);
+      await conn.query(
+        `INSERT INTO promotional_card_products (card_id, product_id) VALUES ?`,
+        [values]
+      );
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    throw err;
+  } finally {
+    conn.release();
+  }
 }

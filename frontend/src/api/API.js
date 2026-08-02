@@ -1,7 +1,8 @@
 import axios from "axios";
+import { API_BASE_URL } from "./apiBaseUrl";
 
 const API = axios.create({
-    baseURL: "https://vintage-fashion.onrender.com/api",
+    baseURL: API_BASE_URL,
     withCredentials: true
 });
 

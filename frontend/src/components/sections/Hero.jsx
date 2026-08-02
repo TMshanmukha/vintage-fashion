@@ -16,6 +16,8 @@ const DEFAULT_TEXT = {
   description: "Timeless pieces, curated for today.",
   button_text: "🛍️ Shop Now",
   button_link: "/shop",
+  banner_id: null,
+  discount_percent: 0,
 };
 
 const ROTATE_MS = 5000;
@@ -47,6 +49,8 @@ export default function Hero() {
             description: active.description || "",
             button_text: active.button_text || "Shop Now",
             button_link: active.button_link || "/shop",
+            banner_id: active.banner_id,
+            discount_percent: Number(active.discount_percent) || 0,
           });
         }
       })
@@ -55,6 +59,14 @@ export default function Hero() {
       mounted = false;
     };
   }, []);
+
+  // When the active banner has a discount, send users to its dedicated
+  // offer page (which lists only the products tagged to it, discounted)
+  // instead of the plain button_link.
+  const linkTarget =
+    text.discount_percent > 0 && text.banner_id
+      ? `/offer/banner/${text.banner_id}`
+      : text.button_link;
 
   return (
     <section className="relative bg-gray-100 overflow-hidden min-h-[560px] flex items-center">
@@ -92,7 +104,7 @@ export default function Hero() {
             <p className="text-sm text-white/90 mb-8">{text.description}</p>
           )}
           <Link
-            to={text.button_link}
+            to={linkTarget}
             className="inline-block border border-white text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-white hover:text-gray-900 transition-all duration-300"
           >
             {text.button_text}

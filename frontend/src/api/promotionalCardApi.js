@@ -14,3 +14,6 @@ export const updateCard = (id, formData) =>
 
 export const deleteCard = (id) =>
   API.delete(`/admin/marketing/cards/${id}`);
+
+export const setCardProducts = (cardId, productIds) =>
+  API.put(`/admin/marketing/cards/${cardId}/products`, { product_ids: productIds });

@@ -1,8 +1,9 @@
 import axios from "axios";
 import toast from "react-hot-toast";
+import { API_BASE_URL } from "./apiBaseUrl";
 
 const API = axios.create({
-    baseURL: "https://vintage-fashion.onrender.com/api",
+    baseURL: API_BASE_URL,
     withCredentials: true
 });
 
@@ -79,7 +80,7 @@ API.interceptors.response.use(
             try {
 
                 const response = await axios.post(
-                    "https://vintage-fashion.onrender.com/api/auth/admin/refresh",
+                    `${API_BASE_URL}/auth/admin/refresh`,
                     {},
                     {
                         withCredentials: true

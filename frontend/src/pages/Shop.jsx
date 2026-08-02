@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import ProductCard from "../components/ui/ProductCard";
 import { getProducts } from "../api/productApi";
 import { getCategoriesUser as getCategories } from "../api/categoryApi";
 
-// Placeholder ceiling for the price slider — adjust to fit your catalog.
 const PRICE_MAX = 10000;
 
-// Display label -> backend sort enum (must match getProductsSchema's `sort` enum exactly)
 const sortOptions = [
   { label: "Default", value: "newest" },
   { label: "Price: Low to High", value: "price_low_to_high" },
@@ -15,18 +14,23 @@ const sortOptions = [
 ];
 
 export default function Shop() {
+  const [searchParams] = useSearchParams();
+  const promoCategoryId = searchParams.get("category");
+  const promoDiscount = Number(searchParams.get("discount")) || 0;
+
   const [categories, setCategories] = useState([]);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const [activeCategory, setActiveCategory] = useState("All"); // "All" or category_id
+  const [activeCategory, setActiveCategory] = useState(
+    promoCategoryId ? Number(promoCategoryId) : "All"
+  );
   const [sort, setSort] = useState(sortOptions[0].label);
   const [priceRange, setPriceRange] = useState(PRICE_MAX);
 
   const [page, setPage] = useState(1);
   const [pagination, setPagination] = useState({ totalProducts: 0, totalPages: 1 });
 
-  // Load categories once
   useEffect(() => {
     (async () => {
       try {
@@ -38,12 +42,10 @@ export default function Shop() {
     })();
   }, []);
 
-  // Reset to page 1 whenever a filter changes
   useEffect(() => {
     setPage(1);
   }, [activeCategory, sort, priceRange]);
 
-  // Load products whenever filters/page change
   useEffect(() => {
     (async () => {
       setLoading(true);
@@ -76,7 +78,6 @@ export default function Shop() {
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
-      {/* Breadcrumb */}
       <nav className="text-xs text-gray-400 mb-8">
         <span className="hover:text-pink-500 cursor-pointer">Home</span>
         <span className="mx-2">/</span>
@@ -84,9 +85,7 @@ export default function Shop() {
       </nav>
 
       <div className="flex flex-col lg:flex-row gap-10">
-        {/* Sidebar */}
         <aside className="lg:w-56 flex-shrink-0">
-          {/* Categories */}
           <div className="mb-8">
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-4">Categories</h3>
             <ul className="space-y-2">
@@ -115,7 +114,6 @@ export default function Shop() {
             </ul>
           </div>
 
-          {/* Price Filter */}
           <div className="mb-8">
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-4">Filter by Price</h3>
             <input
@@ -131,7 +129,6 @@ export default function Shop() {
             </p>
           </div>
 
-          {/* Tags */}
           <div>
             <h3 className="text-xs font-bold uppercase tracking-widest text-gray-900 mb-4">Tags</h3>
             <div className="flex flex-wrap gap-2">
@@ -147,9 +144,7 @@ export default function Shop() {
           </div>
         </aside>
 
-        {/* Main Content */}
         <div className="flex-1">
-          {/* Toolbar */}
           <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
             <p className="text-sm text-gray-400">Showing {pagination.totalProducts} results</p>
             <div className="flex items-center gap-3">
@@ -166,7 +161,6 @@ export default function Shop() {
             </div>
           </div>
 
-          {/* Grid */}
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
@@ -175,27 +169,41 @@ export default function Shop() {
             </div>
           ) : products.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-              {products.map((product) => (
-                <ProductCard
-                  key={product.product_id}
-                  product={{
-                    id: product.product_id,
-                    slug: product.slug,
-                    name: product.name,
-                    price: Number(product.price),
-                    originalPrice: product.original_price ? Number(product.original_price) : null,
-                    image: product.image_url,
-                    images: product.image_url ? [product.image_url] : [],
-                    rating: product.average_rating || 0,
-                  }}
-                />
-              ))}
+              {products.map((product) => {
+                const rawPrice = Number(product.price);
+                const applyPromo =
+                  promoDiscount > 0 &&
+                  promoCategoryId &&
+                  activeCategory === Number(promoCategoryId);
+                const finalPrice = applyPromo
+                  ? +(rawPrice * (1 - promoDiscount / 100)).toFixed(2)
+                  : rawPrice;
+
+                return (
+                  <ProductCard
+                    key={product.product_id}
+                    product={{
+                      id: product.product_id,
+                      slug: product.slug,
+                      name: product.name,
+                      price: finalPrice,
+                      originalPrice: applyPromo
+                        ? rawPrice
+                        : product.original_price
+                        ? Number(product.original_price)
+                        : null,
+                      image: product.image_url,
+                      images: product.image_url ? [product.image_url] : [],
+                      rating: product.average_rating || 0,
+                    }}
+                  />
+                );
+              })}
             </div>
           ) : (
             <p className="text-sm text-gray-400 py-16 text-center">No products found.</p>
           )}
 
-          {/* Pagination */}
           {pagination.totalPages > 1 && (
             <div className="flex justify-center mt-12 gap-2">
               {Array.from({ length: pagination.totalPages }, (_, i) => i + 1).map((n) => (

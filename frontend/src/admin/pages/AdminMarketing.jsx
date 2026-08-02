@@ -1,6 +1,5 @@
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
-
 import { useEffect, useMemo, useState } from "react";
 
 import * as siteSettingsApi from "../../api/siteSettingsApi";
@@ -10,6 +9,7 @@ import * as featuredApi from "../../api/featuredProductApi";
 import * as flashSaleApi from "../../api/flashSaleApi";
 import * as sectionApi from "../../api/homepageSectionApi";
 import * as productPickerApi from "../../api/ProductPickerApi";
+import * as categoryApi from "../../api/categoryApi";
 import CardFormModal from "../components/marketing/Cardformmodal";
 
 export default function AdminMarketing() {
@@ -35,13 +35,16 @@ export default function AdminMarketing() {
     subtitle: "",
     description: "",
     button_text: "",
-    button_link: "",
+    button_link: "/shop",
+    discount_percent: "",
     status: "ACTIVE",
   });
   const [desktopImageFile, setDesktopImageFile] = useState(null);
   const [mobileImageFile, setMobileImageFile] = useState(null);
   const [savingBanner, setSavingBanner] = useState(false);
   const activeBanner = banners[0];
+  const [showBannerProductPicker, setShowBannerProductPicker] = useState(false);
+  const [bannerProductSearch, setBannerProductSearch] = useState("");
 
   // Live preview should reflect whatever the admin just picked locally,
   // falling back to the saved banner's image once nothing new is selected.
@@ -61,6 +64,9 @@ export default function AdminMarketing() {
 
   /* ============== PROMOTIONAL CARDS ============== */
   const [cards, setCards] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [openCardPicker, setOpenCardPicker] = useState(null); // card_id or null
+  const [cardProductSearch, setCardProductSearch] = useState("");
 
   /* ============== FEATURED PRODUCTS ============== */
   const [featured, setFeatured] = useState([]);
@@ -106,6 +112,7 @@ export default function AdminMarketing() {
         loadSettings(),
         loadBanners(),
         loadCards(),
+        loadCategories(),
         loadFeatured(),
         loadFlashSales(),
         loadSections(),
@@ -138,7 +145,8 @@ export default function AdminMarketing() {
         subtitle: b.subtitle || "",
         description: b.description || "",
         button_text: b.button_text || "",
-        button_link: b.button_link || "",
+        button_link: b.button_link || "/shop",
+        discount_percent: b.discount_percent ?? "",
         status: b.status || "ACTIVE",
       });
     }
@@ -147,6 +155,26 @@ export default function AdminMarketing() {
   async function loadCards() {
     const res = await cardApi.getCards();
     setCards(res.data?.data || []);
+  }
+
+  // categoryApi.getCategories() returns { success, message, data } directly
+  // — it already unwraps the axios response internally. So this is res.data,
+  // not res.data.data.
+  async function loadCategories() {
+    try {
+      const res = await categoryApi.getCategories();
+      const categoryList = Array.isArray(res?.data) ? res.data : [];
+      setCategories(
+        categoryList.filter(
+          (category) =>
+            category.is_active === true ||
+            category.is_active === 1 ||
+            category.is_active === "1"
+        )
+      );
+    } catch (err) {
+      console.error("Failed to load categories:", err);
+    }
   }
 
   async function loadFeatured() {
@@ -214,11 +242,6 @@ export default function AdminMarketing() {
      HERO BANNER
   ========================================================== */
   async function handleSaveBanner() {
-    if (!activeBanner && !desktopImageFile) {
-      showToast("Choose a desktop image before creating the banner.", "error");
-      return;
-    }
-
     setSavingBanner(true);
     try {
       const formData = new FormData();
@@ -228,6 +251,7 @@ export default function AdminMarketing() {
       if (desktopImageFile) formData.append("desktop_image", desktopImageFile);
       if (mobileImageFile) formData.append("mobile_image", mobileImageFile);
       if (!activeBanner) formData.append("display_order", 1);
+      if (!formData.get("button_link")) formData.set("button_link", "/shop");
 
       if (activeBanner) {
         await bannerApi.updateBanner(activeBanner.banner_id, formData);
@@ -249,6 +273,61 @@ export default function AdminMarketing() {
     }
   }
 
+  // Only auto-fills the offer-page link once the banner already exists —
+  // brand new banners keep the /shop default until they have an id.
+  function handleBannerDiscountChange(value) {
+    setBannerForm((f) => ({
+      ...f,
+      discount_percent: value,
+      button_link:
+        value && Number(value) > 0 && activeBanner
+          ? `/offer/banner/${activeBanner.banner_id}`
+          : f.button_link,
+    }));
+  }
+
+  async function handleToggleBannerProduct(product) {
+    if (!activeBanner) {
+      showToast("Save the banner first.", "error");
+      return;
+    }
+
+    const alreadySelected =
+      activeBanner.products?.some((p) => p.product_id === product.product_id) || false;
+
+    const nextIds = alreadySelected
+      ? activeBanner.products
+        .filter((p) => p.product_id !== product.product_id)
+        .map((p) => p.product_id)
+      : [
+        ...(activeBanner.products || []).map((p) => p.product_id),
+        product.product_id,
+      ];
+
+    try {
+      const response = await bannerApi.setBannerProducts(activeBanner.banner_id, nextIds);
+      const updatedBanner = response.data?.data;
+      if (updatedBanner) {
+        setBanners((current) =>
+          current.map((banner) =>
+            banner.banner_id === updatedBanner.banner_id ? updatedBanner : banner
+          )
+        );
+      }
+      showToast("Banner products updated.");
+    } catch (err) {
+      console.error("Failed to update banner products:", err?.response || err);
+      showToast(
+        err?.response?.data?.message || "Could not update banner products.",
+        "error"
+      );
+    }
+  }
+
+  const filteredBannerProducts = allProducts.filter((p) =>
+    (p.name || "").toLowerCase().includes(bannerProductSearch.toLowerCase())
+  );
+
   /* ==========================================================
      PROMOTIONAL CARDS
   ========================================================== */
@@ -256,6 +335,9 @@ export default function AdminMarketing() {
 
   async function handleCreateCard(formData) {
     formData.set("display_order", cards.length + 1);
+    if (!formData.get("button_link")) {
+      formData.set("button_link", "/shop");
+    }
     await cardApi.createCard(formData);
     await loadCards();
     showToast("Promotional card added.");
@@ -276,6 +358,38 @@ export default function AdminMarketing() {
     }
   }
 
+  // Discount and Button Link are updated together so the link always
+  // reflects the discount state without the admin typing it manually.
+  function handleCardDiscountBlur(card, value) {
+    const updates = { discount_percent: value === "" ? "" : value };
+    if (card.category_id) {
+      const params = new URLSearchParams({ category: String(card.category_id) });
+      if (value && Number(value) > 0) params.set("discount", value);
+      updates.button_link = `/shop?${params.toString()}`;
+    } else if (value && Number(value) > 0) {
+      updates.button_link = `/offer/card/${card.card_id}`;
+    } else {
+      updates.button_link = "/shop";
+    }
+    handleUpdateCard(card.card_id, updates);
+  }
+
+  function handleCardCategoryChange(card, categoryId) {
+    const updates = { category_id: categoryId === "" ? "" : categoryId };
+    if (categoryId) {
+      const params = new URLSearchParams({ category: categoryId });
+      if (card.discount_percent && Number(card.discount_percent) > 0) {
+        params.set("discount", String(card.discount_percent));
+      }
+      updates.button_link = `/shop?${params.toString()}`;
+    } else {
+      updates.button_link = card.discount_percent > 0
+        ? `/offer/card/${card.card_id}`
+        : "/shop";
+    }
+    handleUpdateCard(card.card_id, updates);
+  }
+
   async function handleDeleteCard(cardId) {
     try {
       await cardApi.deleteCard(cardId);
@@ -286,6 +400,40 @@ export default function AdminMarketing() {
       showToast("Could not delete card.", "error");
     }
   }
+
+  async function handleToggleCardProduct(card, product) {
+    const alreadySelected =
+      card.products?.some((p) => p.product_id === product.product_id) || false;
+
+    const nextIds = alreadySelected
+      ? card.products
+        .filter((p) => p.product_id !== product.product_id)
+        .map((p) => p.product_id)
+      : [...(card.products || []).map((p) => p.product_id), product.product_id];
+
+    try {
+      const response = await cardApi.setCardProducts(card.card_id, nextIds);
+      const updatedCard = response.data?.data;
+      if (updatedCard) {
+        setCards((current) =>
+          current.map((currentCard) =>
+            currentCard.card_id === updatedCard.card_id ? updatedCard : currentCard
+          )
+        );
+      }
+      showToast("Card products updated.");
+    } catch (err) {
+      console.error("Failed to update card products:", err?.response || err);
+      showToast(
+        err?.response?.data?.message || "Could not update card products.",
+        "error"
+      );
+    }
+  }
+
+  const filteredCardProducts = allProducts.filter((p) =>
+    (p.name || "").toLowerCase().includes(cardProductSearch.toLowerCase())
+  );
 
   /* ==========================================================
      FEATURED PRODUCTS
@@ -385,12 +533,18 @@ export default function AdminMarketing() {
       ];
 
     try {
-      await flashSaleApi.setFlashSaleProducts(
+      const response = await flashSaleApi.setFlashSaleProducts(
         activeFlashSale.flash_sale_id,
         nextIds
       );
-
-      await loadFlashSales();
+      const updatedSale = response.data?.data;
+      if (updatedSale) {
+        setFlashSales((current) =>
+          current.map((sale) =>
+            sale.flash_sale_id === updatedSale.flash_sale_id ? updatedSale : sale
+          )
+        );
+      }
 
       showToast("Flash sale products updated.");
     } catch (err) {
@@ -543,7 +697,7 @@ export default function AdminMarketing() {
                   />
                 </div>
 
-                <div className="grid md:grid-cols-2 gap-5">
+                <div className="grid md:grid-cols-3 gap-5">
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Button Text
@@ -571,8 +725,32 @@ export default function AdminMarketing() {
                         setBannerForm((f) => ({ ...f, button_link: e.target.value }))
                       }
                     />
+                    {bannerForm.discount_percent > 0 && activeBanner && (
+                      <p className="text-[11px] text-gray-400 mt-1">
+                        Auto-filled from discount — edit if you need a different target.
+                      </p>
+                    )}
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Discount %
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      placeholder="10"
+                      className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={bannerForm.discount_percent}
+                      onChange={(e) => handleBannerDiscountChange(e.target.value)}
+                    />
                   </div>
                 </div>
+                {!activeBanner && (
+                  <p className="text-[11px] text-gray-400">
+                    Link defaults to /shop until the banner is saved and a discount is set.
+                  </p>
+                )}
 
                 <button
                   type="button"
@@ -582,6 +760,76 @@ export default function AdminMarketing() {
                 >
                   {savingBanner ? "Saving…" : activeBanner ? "Update Banner" : "Create Banner"}
                 </button>
+
+                <button
+                  type="button"
+                  disabled={!activeBanner}
+                  onClick={() => setShowBannerProductPicker((prev) => !prev)}
+                  className="w-full border border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-500 disabled:opacity-50 rounded-xl py-2.5 font-medium text-sm"
+                >
+                  {showBannerProductPicker
+                    ? "Close Products"
+                    : `Select Products (${activeBanner?.products?.length || 0})`}
+                </button>
+
+                {showBannerProductPicker && (
+                  <div className="border border-gray-200 rounded-2xl p-5 bg-gray-50">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-semibold text-gray-800">Banner Products</h3>
+                      <span className="text-xs bg-pink-100 text-pink-600 px-3 py-1 rounded-full">
+                        {activeBanner?.products?.length || 0} Selected
+                      </span>
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="Search products..."
+                      className="w-full border rounded-xl px-4 py-3 mb-4 focus:ring-2 focus:ring-pink-500 outline-none"
+                      value={bannerProductSearch}
+                      onChange={(e) => setBannerProductSearch(e.target.value)}
+                    />
+
+                    <div className="max-h-72 overflow-y-auto rounded-xl border bg-white divide-y">
+                      {filteredBannerProducts.length === 0 && (
+                        <p className="text-sm text-gray-400 text-center py-6">
+                          No products match "{bannerProductSearch}".
+                        </p>
+                      )}
+                      {filteredBannerProducts.map((product) => {
+                        const selected = activeBanner?.products?.some(
+                          (p) => p.product_id === product.product_id
+                        );
+
+                        return (
+                          <div
+                            key={product.product_id}
+                            className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
+                          >
+                            <div>
+                              <h4 className="font-medium text-gray-800">{product.name}</h4>
+                              {product.price && (
+                                <p className="text-xs text-gray-500 mt-1">
+                                  ₹{Number(product.price).toLocaleString("en-IN")}
+                                </p>
+                              )}
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => handleToggleBannerProduct(product)}
+                              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${selected
+                                ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                : "bg-pink-500 text-white hover:bg-pink-600"
+                                }`}
+                            >
+                              {selected ? "Remove" : "Add"}
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </section>
@@ -604,6 +852,12 @@ export default function AdminMarketing() {
               </button>
             </div>
 
+            {categories.length === 0 && (
+              <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2 mb-6">
+                No categories loaded yet — check that /admin/categories returns data.
+              </p>
+            )}
+
             <div className="grid xl:grid-cols-3 md:grid-cols-2 gap-6">
               {cards.map((card) => (
                 <div
@@ -619,6 +873,11 @@ export default function AdminMarketing() {
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
+                    {card.discount_percent > 0 && (
+                      <span className="absolute top-3 right-3 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full">
+                        {card.discount_percent}% OFF
+                      </span>
+                    )}
                     <div className="absolute inset-x-0 bottom-0 px-4 pb-3">
                       <h3 className="text-white font-bold text-lg drop-shadow-md">{card.title}</h3>
                       <p className="text-gray-200 text-xs mt-1 drop-shadow-sm">{card.subtitle}</p>
@@ -648,18 +907,59 @@ export default function AdminMarketing() {
                         className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
                       />
                     </div>
+
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Button Link
+                        Category
                       </label>
-                      <input
-                        defaultValue={card.button_link}
-                        onBlur={(e) =>
-                          handleUpdateCard(card.card_id, { button_link: e.target.value })
-                        }
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                      />
+                      <select
+                        key={`cat-${card.card_id}-${card.category_id ?? "none"}`}
+                        defaultValue={card.category_id ?? ""}
+                        onChange={(e) => handleCardCategoryChange(card, e.target.value)}
+                        className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none bg-white"
+                      >
+                        <option value="">No category</option>
+                        {categories.map((cat) => (
+                          <option key={cat.category_id} value={cat.category_id}>
+                            {cat.name}
+                          </option>
+                        ))}
+                      </select>
                     </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Discount %
+                        </label>
+                        <input
+                          key={`discount-${card.card_id}-${card.discount_percent ?? ""}`}
+                          type="number"
+                          min="0"
+                          max="100"
+                          defaultValue={card.discount_percent ?? ""}
+                          onBlur={(e) => handleCardDiscountBlur(card, e.target.value)}
+                          placeholder="10"
+                          className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Button Link
+                        </label>
+                        <input
+                          key={`link-${card.card_id}-${card.button_link ?? ""}`}
+                          defaultValue={card.button_link || "/shop"}
+                          onBlur={(e) =>
+                            handleUpdateCard(card.card_id, { button_link: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
+                        />
+                      </div>
+                    </div>
+                    <p className="text-[11px] text-gray-400 -mt-2">
+                      Setting a discount auto-fills Button Link to this card's offer page.
+                    </p>
 
                     <div>
                       <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -695,6 +995,53 @@ export default function AdminMarketing() {
                         <div className="w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-pink-500 relative after:absolute after:left-1 after:top-0.5 after:bg-white after:h-4 after:w-4 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
                       </label>
                     </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenCardPicker((prev) => (prev === card.card_id ? null : card.card_id))
+                      }
+                      className="w-full border border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-500 rounded-xl py-2 font-medium text-sm"
+                    >
+                      {openCardPicker === card.card_id ? "Close Products" : `Select Products (${card.products?.length || 0})`}
+                    </button>
+
+                    {openCardPicker === card.card_id && (
+                      <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
+                        <input
+                          type="text"
+                          placeholder="Search products..."
+                          className="w-full border rounded-lg px-3 py-2 mb-3 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                          value={cardProductSearch}
+                          onChange={(e) => setCardProductSearch(e.target.value)}
+                        />
+                        <div className="max-h-56 overflow-y-auto rounded-lg border bg-white divide-y">
+                          {filteredCardProducts.map((product) => {
+                            const selected = card.products?.some(
+                              (p) => p.product_id === product.product_id
+                            );
+                            return (
+                              <div
+                                key={product.product_id}
+                                className="flex items-center justify-between px-3 py-2 hover:bg-gray-50"
+                              >
+                                <span className="text-sm text-gray-800">{product.name}</span>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleCardProduct(card, product)}
+                                  className={`text-xs font-semibold px-3 py-1 rounded-lg ${selected
+                                    ? "bg-red-50 text-red-600"
+                                    : "bg-pink-500 text-white"
+                                    }`}
+                                >
+                                  {selected ? "Remove" : "Add"}
+                                </button>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
 
                     <button
                       type="button"
@@ -1023,8 +1370,8 @@ export default function AdminMarketing() {
                               type="button"
                               onClick={() => handleToggleFlashProduct(product)}
                               className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${selected
-                                  ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                  : "bg-pink-500 text-white hover:bg-pink-600"
+                                ? "bg-red-50 text-red-600 hover:bg-red-100"
+                                : "bg-pink-500 text-white hover:bg-pink-600"
                                 }`}
                             >
                               {selected ? "Remove" : "Add"}
@@ -1071,8 +1418,8 @@ export default function AdminMarketing() {
                     {/* Overlay */}
                     <div
                       className={`absolute inset-0 ${flashImageFile || activeFlashSale?.banner_image
-                          ? "bg-black/40"
-                          : "bg-gradient-to-r from-gray-900 via-gray-800 to-black"
+                        ? "bg-black/40"
+                        : "bg-gradient-to-r from-gray-900 via-gray-800 to-black"
                         }`}
                     />
 
@@ -1116,7 +1463,7 @@ export default function AdminMarketing() {
                           className="flex justify-between items-center border rounded-xl px-4 py-3"
                         >
                           <div>
-                            <h4 className="font-medium">{product.name}</h4>
+                            <h4 className="font-medium">{product.product_name}</h4>
                             {product.price && (
                               <p className="text-sm text-gray-500">
                                 ₹{Number(product.price).toLocaleString("en-IN")}
@@ -1204,6 +1551,7 @@ export default function AdminMarketing() {
 
       {showCardModal && (
         <CardFormModal
+          categories={categories}
           onClose={() => setShowCardModal(false)}
           onSubmit={handleCreateCard}
         />

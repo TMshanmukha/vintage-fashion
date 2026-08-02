@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { ZodError } from "zod";
 import authRoutes from "./routes/auth.routes.js";
 import categoryRoutes from "./routes/category.routes.js";
 import productRoutes from "./routes/product.routes.js";
@@ -68,4 +69,20 @@ app.use("/api/addresses", addressRoutes);
 app.use("/api/checkout", checkoutRoutes);
 
 app.use("/api/contact", contactRoutes);
+app.use((err, req, res, next) => {
+    console.error(err);
+
+    if (err instanceof ZodError) {
+        return res.status(400).json({
+            success: false,
+            message: err.issues?.[0]?.message || "Invalid request data.",
+            errors: err.issues || [],
+        });
+    }
+
+    res.status(err.status || 500).json({
+        success: false,
+        message: err.message,
+    });
+});
 export default app;

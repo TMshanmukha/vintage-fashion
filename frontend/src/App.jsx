@@ -35,6 +35,7 @@ import AdminCategories from "./admin/pages/CategoryPage";
 import { Toaster } from "react-hot-toast";
 import AdminBrands from "./admin/pages/AdminBrands";
 import AdminReturns from "./admin/pages/AdminReturns";
+import OfferPage from "./pages/OfferPage";
 
 function StoreFront() {
   return (
@@ -48,6 +49,7 @@ function StoreFront() {
         <Route path="/wishlist" element={<LikedClothesPage />} />
         <Route path="/shop" element={<Shop />} />
         <Route path="/product/:slug" element={<ProductDetail />} />
+        <Route path="/offer/:type/:id" element={<OfferPage />} />
         <Route path="/cart" element={<Cart />} />
         <Route path="/checkout" element={<Checkout />} />
         <Route path="/about" element={<About />} />

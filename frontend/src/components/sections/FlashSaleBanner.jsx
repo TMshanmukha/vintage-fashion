@@ -136,6 +136,10 @@ export default function FlashSaleBanner() {
                 />
               </svg>
             </Link>
+            <Link
+              to={sale.discount_value > 0 ? `/offer/flash-sale/${sale.flash_sale_id}` : (sale.button_link || "/shop")}
+              className="inline-flex items-center gap-3 mt-8 px-8 py-4 rounded-full bg-white text-gray-900 font-bold transition-all duration-300 hover:bg-gray-900 hover:text-white hover:scale-105"
+            ></Link>
           </div>
 
           {/* Countdown */}

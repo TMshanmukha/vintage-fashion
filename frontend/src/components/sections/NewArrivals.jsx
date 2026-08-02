@@ -10,7 +10,7 @@ export default function NewArrivals() {
 
   useEffect(() => {
     let mounted = true;
-    getProducts({ page: 1, limit: 10 })
+    getProducts({ page: 1, limit: 10, sort: "newest" })
       .then((res) => mounted && setProducts(res.data?.data || []))
       .catch(() => {});
     return () => {

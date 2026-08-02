@@ -59,22 +59,27 @@ export const bannerSchema = z.object({
     .nullable()
     .optional(),
 
-  desktop_image_url: z.string().trim().url(),
+  desktop_image_url: z
+    .string()
+    .trim()
+    .url()
+    .nullable()
+    .optional(),
 
-    desktop_image_public_id: z
+  desktop_image_public_id: z
     .string()
     .trim()
     .optional()
     .nullable(),
 
-    mobile_image_url: z
+  mobile_image_url: z
     .string()
     .trim()
     .url()
     .optional()
     .nullable(),
 
-    mobile_image_public_id: z
+  mobile_image_public_id: z
     .string()
     .trim()
     .optional()
@@ -94,21 +99,31 @@ export const bannerSchema = z.object({
     .nullable()
     .optional(),
 
+  discount_percent: z.preprocess(
+    (v) => (v === "" ? null : v),
+    z.coerce.number().min(0).max(100).nullable().optional()
+  ),
+
   display_order: z.coerce
     .number()
     .int()
     .min(1)
     .optional(),
 
-  status: z.enum([
-        "ACTIVE",
-        "INACTIVE",
-        "SCHEDULED",
-        ]).optional(),
+  status: z.preprocess(
+    (v) => (v === "" ? undefined : v),
+    z.enum(["ACTIVE", "INACTIVE", "SCHEDULED"]).optional()
+  ),
 
-  start_date: z.string().datetime().nullable().optional(),
+  start_date: z.preprocess(
+    (v) => (v === "" ? null : v),
+    z.string().datetime().nullable().optional()
+  ),
 
-  end_date: z.string().datetime().nullable().optional(),
+  end_date: z.preprocess(
+    (v) => (v === "" ? null : v),
+    z.string().datetime().nullable().optional()
+  ),
 });
 
 /* ==========================================================
@@ -133,7 +148,7 @@ export const promotionalCardSchema = z.object({
     .string()
     .trim()
     .url(),
-  
+
   image_public_id: z
     .string()
     .trim()
@@ -154,6 +169,18 @@ export const promotionalCardSchema = z.object({
     .nullable()
     .optional(),
 
+  category_id: z.preprocess(
+    (value) => (value === "" ? null : value),
+    z.coerce.number().int().positive().nullable().optional()
+  ),
+
+  discount_percent: z.coerce
+    .number()
+    .min(0)
+    .max(100)
+    .nullable()
+    .optional(),
+
   display_order: z.coerce
     .number()
     .int()
@@ -161,12 +188,12 @@ export const promotionalCardSchema = z.object({
 
   is_active: z.preprocess(
     (value) => {
-        if (value === "true") return true;
-        if (value === "false") return false;
-        return value;
+      if (value === "true") return true;
+      if (value === "false") return false;
+      return value;
     },
     z.boolean().optional()
-    ),
+  ),
 });
 
 /* ==========================================================
@@ -256,9 +283,9 @@ export const flashSaleProductsSchema = z.object({
       z.coerce
         .number()
         .int()
-        .positive() 
+        .positive()
     )
-    
+
 });
 
 export const updateWebsiteSettingsSchema = z.object({
@@ -330,4 +357,24 @@ export const updateWebsiteSettingsSchema = z.object({
     .trim()
     .max(255)
     .optional(),
+});
+
+export const cardProductsSchema = z.object({
+  product_ids: z
+    .array(
+      z.coerce
+        .number()
+        .int()
+        .positive()
+    ),
+});
+
+export const bannerProductsSchema = z.object({
+  product_ids: z
+    .array(
+      z.coerce
+        .number()
+        .int()
+        .positive()
+    ),
 });

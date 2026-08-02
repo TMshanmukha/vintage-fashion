@@ -18,4 +18,7 @@ export const updateBanner = (id, formData) =>
 export const deleteBanner = (id) =>
   API.delete(`/admin/marketing/banners/${id}`);
 
+export const setBannerProducts = (bannerId, productIds) =>
+  API.put(`/admin/marketing/banners/${bannerId}/products`, { product_ids: productIds });
+
 export default API;

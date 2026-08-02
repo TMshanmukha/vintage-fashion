@@ -1,10 +1,5 @@
 import pool from "../../config/db.js";
 
-/* ==========================================================
-   GET CURRENT / LATEST FLASH SALE (with its products)
-   Adjust to getAllFlashSales() if you want to support running
-   more than one at a time — schema supports it either way.
-========================================================== */
 export async function getAllFlashSales() {
   const [rows] = await pool.query(
     `
@@ -33,6 +28,7 @@ export async function getFlashSaleProducts(flashSaleId) {
     SELECT
       p.product_id,
       p.name AS product_name,
+      p.slug,
       p.price,
       pi.image_url
     FROM flash_sale_products fsp
@@ -47,9 +43,6 @@ export async function getFlashSaleProducts(flashSaleId) {
   return rows;
 }
 
-/* ==========================================================
-   CREATE FLASH SALE
-========================================================== */
 export async function createFlashSale(data) {
   const {
     title, description, badge, discount_type, discount_value,
@@ -66,7 +59,7 @@ export async function createFlashSale(data) {
     `,
     [
       title, description ?? null, badge ?? null, discount_type, discount_value,
-      banner_image ?? null, button_text ?? null, button_link ?? null,
+      banner_image ?? null, button_text ?? null, button_link || "/shop",
       start_date, end_date, is_active ?? true,
     ]
   );
@@ -74,9 +67,6 @@ export async function createFlashSale(data) {
   return result.insertId;
 }
 
-/* ==========================================================
-   UPDATE FLASH SALE
-========================================================== */
 export async function updateFlashSale(flashSaleId, data) {
   const fields = Object.keys(data);
   if (fields.length === 0) return getFlashSaleById(flashSaleId);
@@ -101,9 +91,6 @@ export async function deleteFlashSale(flashSaleId) {
   return result;
 }
 
-/* ==========================================================
-   REPLACE PRODUCTS ATTACHED TO A FLASH SALE
-========================================================== */
 export async function setFlashSaleProducts(flashSaleId, productIds) {
   const conn = await pool.getConnection();
   try {

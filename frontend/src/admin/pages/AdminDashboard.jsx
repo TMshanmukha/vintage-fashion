@@ -34,6 +34,23 @@ const toDisplayStatus = (status) =>
     ? status.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")
     : "Pending";
 
+// Tolerant "is this customer active" check.
+// Your schema uses `is_active` (0/1) for soft deletes, but some endpoints
+// may also send a `status` string ("Active"/"active"). Check both so this
+// doesn't silently break again if the API response shape changes.
+const isActiveCustomer = (c) => {
+  if (c.is_active === 1 || c.is_active === true || c.is_active === "1") {
+    return true;
+  }
+  if (typeof c.account_status === "string") {
+    return c.account_status.toLowerCase() === "active";
+  }
+  if (typeof c.status === "string") {
+    return c.status.toLowerCase() === "active";
+  }
+  return false;
+};
+
 export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState(null);
@@ -130,7 +147,7 @@ export default function AdminDashboard() {
     };
   }, []);
 
-  const activeCustomers = customers.filter((c) => c.status === "Active").length;
+  const activeCustomers = customers.filter(isActiveCustomer).length;
   const unreadNotifications = notifications.filter((n) => !n.is_read).length;
 
   if (loading) {

@@ -11,13 +11,16 @@ import {
   createBanner,
   updateBanner,
   deleteBanner,
+  setBannerProducts,
 } from "../controllers/marketing/banner.controller.js";
 
 import {
   getAllCards,
+  getCard,
   createCard,
   updateCard,
   deleteCard,
+  setCardProducts,
 } from "../controllers/marketing/promotionalCard.controller.js";
 
 import {
@@ -64,7 +67,6 @@ router.post(
   ]),
   createBanner
 );
-
 router.patch(
   "/banners/:id",
   upload.fields([
@@ -75,14 +77,17 @@ router.patch(
 );
 
 router.delete("/banners/:id", deleteBanner);
+router.put("/banners/:id/products", setBannerProducts);
 
 /* ==========================================================
    PROMOTIONAL CARDS
 ========================================================== */
 router.get("/cards", getAllCards);
+router.get("/cards/:id", getCard);
 router.post("/cards", upload.single("image"), createCard);
 router.patch("/cards/:id", upload.single("image"), updateCard);
 router.delete("/cards/:id", deleteCard);
+router.put("/cards/:id/products", setCardProducts);
 
 /* ==========================================================
    FEATURED PRODUCTS

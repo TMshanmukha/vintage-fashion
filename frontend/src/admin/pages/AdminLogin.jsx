@@ -4,6 +4,7 @@ import { Eye, EyeOff, ShieldCheck, Lock, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import axios from "axios";
 import toast from "react-hot-toast";
+import { API_BASE_URL } from "../../api/apiBaseUrl";
 
 import { useAdminAuth } from "../context/AdminAuthContext";
 
@@ -43,7 +44,7 @@ export default function AdminLogin() {
                 // in dev. In production the visitor's browser tried to hit
                 // localhost:5000 on THEIR machine, not your server, which
                 // is what produced the CORS/loopback error.
-                "https://vintage-fashion.onrender.com/api/auth/admin/login",
+                `${API_BASE_URL}/auth/admin/login`,
                 formData,
                 {
                     withCredentials: true
