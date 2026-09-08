@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import AdminLayout from "../components/AdminLayout";
+import AdminLayout, { useAdminLayout } from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import toast from "react-hot-toast";
 import {
@@ -29,20 +29,22 @@ const formatTime = (isoString) =>
 export default function AdminNotifications() {
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { setUnreadCount } = useAdminLayout() || {};
 
   const loadNotifications = async () => {
     try {
       const data = await getNotifications();
-      setNotifications(
-        data.map((n) => ({
-          id: n.notification_id,
-          title: n.title,
-          body: n.body,
-          type: n.type,
-          read: !!n.is_read,
-          time: formatTime(n.created_at)
-        }))
-      );
+      const list = (data || []).map((n) => ({
+        id: n.notification_id,
+        title: n.title,
+        body: n.body,
+        type: n.type,
+        read: !!n.is_read,
+        time: formatTime(n.created_at)
+      }));
+      setNotifications(list);
+      const unread = list.filter((n) => !n.read).length;
+      if (setUnreadCount) setUnreadCount(unread);
     } catch (err) {
       toast.error("Failed to load notifications.");
       console.error(err);
@@ -61,6 +63,7 @@ export default function AdminNotifications() {
     try {
       await markNotificationRead(id);
       setNotifications((prev) => prev.map((n) => (n.id === id ? { ...n, read: true } : n)));
+      if (setUnreadCount) setUnreadCount((c) => Math.max(0, (c || 1) - 1));
     } catch (err) {
       toast.error("Failed to update notification.");
       console.error(err);
@@ -71,6 +74,8 @@ export default function AdminNotifications() {
     try {
       await markAllNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+      if (setUnreadCount) setUnreadCount(0);
+      toast.success("All notifications marked as read.");
     } catch (err) {
       toast.error("Failed to update notifications.");
       console.error(err);
@@ -79,8 +84,13 @@ export default function AdminNotifications() {
 
   const handleDelete = async (id) => {
     try {
+      const target = notifications.find((n) => n.id === id);
       await deleteNotification(id);
       setNotifications((prev) => prev.filter((n) => n.id !== id));
+      if (target && !target.read && setUnreadCount) {
+        setUnreadCount((c) => Math.max(0, (c || 1) - 1));
+      }
+      toast.success("Notification deleted.");
     } catch (err) {
       toast.error("Failed to delete notification.");
       console.error(err);

@@ -1,34 +1,33 @@
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
-import { useEffect, useMemo, useState } from "react";
-
+import ProductPickerBox from "../components/marketing/ProductPickerBox";
+import CardFormModal from "../components/marketing/CardFormModal";
 import * as siteSettingsApi from "../../api/siteSettingsApi";
 import * as bannerApi from "../../api/bannerApi";
 import * as cardApi from "../../api/promotionalCardApi";
+import * as categoryApi from "../../api/categoryApi";
 import * as featuredApi from "../../api/featuredProductApi";
 import * as flashSaleApi from "../../api/flashSaleApi";
 import * as sectionApi from "../../api/homepageSectionApi";
 import * as productPickerApi from "../../api/ProductPickerApi";
-import * as categoryApi from "../../api/categoryApi";
-import CardFormModal from "../components/marketing/Cardformmodal";
+import { useEffect, useMemo, useState } from "react";
 
 export default function AdminMarketing() {
-  /* ============== TOAST ============== */
-  const [toast, setToast] = useState(null); // { message, type: "success" | "error" }
+  const [toast, setToast] = useState(null);
 
   function showToast(message, type = "success") {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   }
 
-  /* ============== SITE SETTINGS (announcement bar) ============== */
+  /* ============== ANNOUNCEMENT BAR ============== */
   const [settings, setSettings] = useState({
     announcement_text: "",
     announcement_enabled: false,
   });
   const [savingSettings, setSavingSettings] = useState(false);
 
-  /* ============== HERO BANNER (using first banner as "the" banner) ============== */
+  /* ============== HERO BANNER ============== */
   const [banners, setBanners] = useState([]);
   const [bannerForm, setBannerForm] = useState({
     title: "",
@@ -44,17 +43,13 @@ export default function AdminMarketing() {
   const [savingBanner, setSavingBanner] = useState(false);
   const activeBanner = banners[0];
   const [showBannerProductPicker, setShowBannerProductPicker] = useState(false);
-  const [bannerProductSearch, setBannerProductSearch] = useState("");
 
-  // Live preview should reflect whatever the admin just picked locally,
-  // falling back to the saved banner's image once nothing new is selected.
   const desktopPreviewSrc = useMemo(() => {
     if (desktopImageFile) return URL.createObjectURL(desktopImageFile);
     return activeBanner?.desktop_image_url || null;
   }, [desktopImageFile, activeBanner?.desktop_image_url]);
 
   useEffect(() => {
-    // Clean up the blob URL when the file changes or component unmounts
     return () => {
       if (desktopImageFile && desktopPreviewSrc) {
         URL.revokeObjectURL(desktopPreviewSrc);
@@ -65,13 +60,12 @@ export default function AdminMarketing() {
   /* ============== PROMOTIONAL CARDS ============== */
   const [cards, setCards] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [openCardPicker, setOpenCardPicker] = useState(null); // card_id or null
-  const [cardProductSearch, setCardProductSearch] = useState("");
+  const [openCardPicker, setOpenCardPicker] = useState(null);
+  const [showCardModal, setShowCardModal] = useState(false);
 
   /* ============== FEATURED PRODUCTS ============== */
   const [featured, setFeatured] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
-  const [productSearch, setProductSearch] = useState("");
   const [showProductPicker, setShowProductPicker] = useState(false);
 
   /* ============== FLASH SALE ============== */
@@ -91,11 +85,9 @@ export default function AdminMarketing() {
   const [savingFlashSale, setSavingFlashSale] = useState(false);
   const activeFlashSale = flashSales[0];
   const [showFlashProductPicker, setShowFlashProductPicker] = useState(false);
-  const [flashProductSearch, setFlashProductSearch] = useState("");
 
   /* ============== HOMEPAGE SECTIONS ============== */
   const [sections, setSections] = useState([]);
-
   const [loading, setLoading] = useState(true);
 
   /* ==========================================================
@@ -157,9 +149,6 @@ export default function AdminMarketing() {
     setCards(res.data?.data || []);
   }
 
-  // categoryApi.getCategories() returns { success, message, data } directly
-  // — it already unwraps the axios response internally. So this is res.data,
-  // not res.data.data.
   async function loadCategories() {
     try {
       const res = await categoryApi.getCategories();
@@ -192,10 +181,8 @@ export default function AdminMarketing() {
         description: f.description || "",
         discount_value: f.discount_value || "",
         badge: f.badge || "",
-
         button_text: f.button_text || "Shop Now",
         button_link: f.button_link || "/shop",
-
         start_date: f.start_date?.slice(0, 16) || "",
         end_date: f.end_date?.slice(0, 16) || "",
       });
@@ -273,8 +260,6 @@ export default function AdminMarketing() {
     }
   }
 
-  // Only auto-fills the offer-page link once the banner already exists —
-  // brand new banners keep the /shop default until they have an id.
   function handleBannerDiscountChange(value) {
     setBannerForm((f) => ({
       ...f,
@@ -297,12 +282,12 @@ export default function AdminMarketing() {
 
     const nextIds = alreadySelected
       ? activeBanner.products
-        .filter((p) => p.product_id !== product.product_id)
-        .map((p) => p.product_id)
+          .filter((p) => p.product_id !== product.product_id)
+          .map((p) => p.product_id)
       : [
-        ...(activeBanner.products || []).map((p) => p.product_id),
-        product.product_id,
-      ];
+          ...(activeBanner.products || []).map((p) => p.product_id),
+          product.product_id,
+        ];
 
     try {
       const response = await bannerApi.setBannerProducts(activeBanner.banner_id, nextIds);
@@ -324,15 +309,9 @@ export default function AdminMarketing() {
     }
   }
 
-  const filteredBannerProducts = allProducts.filter((p) =>
-    (p.name || "").toLowerCase().includes(bannerProductSearch.toLowerCase())
-  );
-
   /* ==========================================================
      PROMOTIONAL CARDS
   ========================================================== */
-  const [showCardModal, setShowCardModal] = useState(false);
-
   async function handleCreateCard(formData) {
     formData.set("display_order", cards.length + 1);
     if (!formData.get("button_link")) {
@@ -358,8 +337,6 @@ export default function AdminMarketing() {
     }
   }
 
-  // Discount and Button Link are updated together so the link always
-  // reflects the discount state without the admin typing it manually.
   function handleCardDiscountBlur(card, value) {
     const updates = { discount_percent: value === "" ? "" : value };
     if (card.category_id) {
@@ -383,9 +360,8 @@ export default function AdminMarketing() {
       }
       updates.button_link = `/shop?${params.toString()}`;
     } else {
-      updates.button_link = card.discount_percent > 0
-        ? `/offer/card/${card.card_id}`
-        : "/shop";
+      updates.button_link =
+        card.discount_percent > 0 ? `/offer/card/${card.card_id}` : "/shop";
     }
     handleUpdateCard(card.card_id, updates);
   }
@@ -407,8 +383,8 @@ export default function AdminMarketing() {
 
     const nextIds = alreadySelected
       ? card.products
-        .filter((p) => p.product_id !== product.product_id)
-        .map((p) => p.product_id)
+          .filter((p) => p.product_id !== product.product_id)
+          .map((p) => p.product_id)
       : [...(card.products || []).map((p) => p.product_id), product.product_id];
 
     try {
@@ -431,10 +407,6 @@ export default function AdminMarketing() {
     }
   }
 
-  const filteredCardProducts = allProducts.filter((p) =>
-    (p.name || "").toLowerCase().includes(cardProductSearch.toLowerCase())
-  );
-
   /* ==========================================================
      FEATURED PRODUCTS
   ========================================================== */
@@ -447,8 +419,10 @@ export default function AdminMarketing() {
     try {
       const res = await featuredApi.setFeaturedProducts(nextIds);
       setFeatured(res.data?.data || []);
+      showToast("Featured products updated.");
     } catch (err) {
       console.error("Failed to update featured products:", err);
+      showToast("Could not update featured products.", "error");
     }
   }
 
@@ -456,19 +430,12 @@ export default function AdminMarketing() {
     try {
       const res = await featuredApi.removeFeaturedProduct(featuredId);
       setFeatured(res.data?.data || []);
+      showToast("Product removed from featured.");
     } catch (err) {
       console.error("Failed to remove featured product:", err);
+      showToast("Could not remove featured product.", "error");
     }
   }
-
-  const filteredProducts = allProducts.filter((p) =>
-    (p.name || "").toLowerCase().includes(productSearch.toLowerCase())
-  );
-  const filteredFlashProducts = allProducts.filter((p) =>
-    (p.name || "")
-      .toLowerCase()
-      .includes(flashProductSearch.toLowerCase())
-  );
 
   /* ==========================================================
      FLASH SALE
@@ -504,7 +471,7 @@ export default function AdminMarketing() {
       console.error("Failed to save flash sale:", err);
       showToast(
         err?.response?.data?.message ||
-        "Could not save flash sale. Check discount/date fields.",
+          "Could not save flash sale. Check discount/date fields.",
         "error"
       );
     } finally {
@@ -519,18 +486,17 @@ export default function AdminMarketing() {
     }
 
     const alreadySelected =
-      activeFlashSale.products?.some(
-        (p) => p.product_id === product.product_id
-      ) || false;
+      activeFlashSale.products?.some((p) => p.product_id === product.product_id) ||
+      false;
 
     const nextIds = alreadySelected
       ? activeFlashSale.products
-        .filter((p) => p.product_id !== product.product_id)
-        .map((p) => p.product_id)
+          .filter((p) => p.product_id !== product.product_id)
+          .map((p) => p.product_id)
       : [
-        ...(activeFlashSale.products || []).map((p) => p.product_id),
-        product.product_id,
-      ];
+          ...(activeFlashSale.products || []).map((p) => p.product_id),
+          product.product_id,
+        ];
 
     try {
       const response = await flashSaleApi.setFlashSaleProducts(
@@ -545,23 +511,10 @@ export default function AdminMarketing() {
           )
         );
       }
-
       showToast("Flash sale products updated.");
     } catch (err) {
       console.error(err);
       showToast("Could not update flash sale products.", "error");
-    }
-  }
-
-  /* ==========================================================
-     HOMEPAGE SECTIONS
-  ========================================================== */
-  async function handleToggleSection(sectionName, currentlyEnabled) {
-    try {
-      const res = await sectionApi.toggleSection(sectionName, !currentlyEnabled);
-      setSections(res.data?.data || []);
-    } catch (err) {
-      console.error("Failed to toggle section:", err);
     }
   }
 
@@ -578,7 +531,7 @@ export default function AdminMarketing() {
     <AdminLayout>
       <AdminTopbar
         title="Marketing & Homepage"
-        subtitle="Manage homepage banners, promotions, featured products, and storefront visibility."
+        subtitle="Manage homepage banners, promotions, featured products, and storefront marketing."
       />
 
       <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
@@ -633,7 +586,7 @@ export default function AdminMarketing() {
                 type="button"
                 disabled={savingSettings}
                 onClick={handleSaveSettings}
-                className="bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white px-6 py-2 rounded-xl font-semibold"
+                className="bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white px-6 py-2 rounded-xl font-semibold transition"
               >
                 {savingSettings ? "Saving…" : "Save Announcement"}
               </button>
@@ -665,98 +618,114 @@ export default function AdminMarketing() {
               </label>
             </div>
 
-            <div className="max-w-3xl">
-              <div className="space-y-5">
+            <div className="max-w-3xl space-y-5">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Banner Title
+                </label>
+                <input
+                  type="text"
+                  placeholder="Summer Collection 2026"
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
+                  value={bannerForm.title}
+                  onChange={(e) => setBannerForm((f) => ({ ...f, title: e.target.value }))}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Banner Description
+                </label>
+                <textarea
+                  rows={4}
+                  placeholder="Flat 50% OFF on Vintage Shirts"
+                  className="w-full rounded-xl border border-gray-300 px-4 py-3 resize-none focus:ring-2 focus:ring-pink-500 outline-none"
+                  value={bannerForm.description}
+                  onChange={(e) => setBannerForm((f) => ({ ...f, description: e.target.value }))}
+                />
+              </div>
+
+              <div className="grid md:grid-cols-3 gap-5">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Banner Title
+                    Button Text
                   </label>
                   <input
                     type="text"
-                    placeholder="Summer Collection 2026"
+                    placeholder="Shop Collection"
                     className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                    value={bannerForm.title}
+                    value={bannerForm.button_text}
                     onChange={(e) =>
-                      setBannerForm((f) => ({ ...f, title: e.target.value }))
+                      setBannerForm((f) => ({ ...f, button_text: e.target.value }))
                     }
                   />
                 </div>
-
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
-                    Banner Description
+                    Button Link
                   </label>
-                  <textarea
-                    rows={4}
-                    placeholder="Flat 50% OFF on Vintage Shirts"
-                    className="w-full rounded-xl border border-gray-300 px-4 py-3 resize-none focus:ring-2 focus:ring-pink-500 outline-none"
-                    value={bannerForm.description}
+                  <input
+                    type="text"
+                    placeholder="/shop"
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
+                    value={bannerForm.button_link}
                     onChange={(e) =>
-                      setBannerForm((f) => ({ ...f, description: e.target.value }))
+                      setBannerForm((f) => ({ ...f, button_link: e.target.value }))
                     }
                   />
+                  {bannerForm.discount_percent > 0 && activeBanner && (
+                    <p className="text-[11px] text-gray-400 mt-1">
+                      Auto-filled from discount — edit if you need a different target.
+                    </p>
+                  )}
                 </div>
-
-                <div className="grid md:grid-cols-3 gap-5">
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Button Text
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="Shop Collection"
-                      className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                      value={bannerForm.button_text}
-                      onChange={(e) =>
-                        setBannerForm((f) => ({ ...f, button_text: e.target.value }))
-                      }
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Button Link
-                    </label>
-                    <input
-                      type="text"
-                      placeholder="/shop"
-                      className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                      value={bannerForm.button_link}
-                      onChange={(e) =>
-                        setBannerForm((f) => ({ ...f, button_link: e.target.value }))
-                      }
-                    />
-                    {bannerForm.discount_percent > 0 && activeBanner && (
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Auto-filled from discount — edit if you need a different target.
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Discount %
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      placeholder="10"
-                      className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                      value={bannerForm.discount_percent}
-                      onChange={(e) => handleBannerDiscountChange(e.target.value)}
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Discount %
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    placeholder="10"
+                    className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
+                    value={bannerForm.discount_percent}
+                    onChange={(e) => handleBannerDiscountChange(e.target.value)}
+                  />
                 </div>
-                {!activeBanner && (
-                  <p className="text-[11px] text-gray-400">
-                    Link defaults to /shop until the banner is saved and a discount is set.
-                  </p>
-                )}
+              </div>
 
+              <div className="grid md:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Desktop Image
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setDesktopImageFile(e.target.files[0] || null)}
+                    className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Mobile Image
+                  </label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setMobileImageFile(e.target.files[0] || null)}
+                    className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4 pt-2">
                 <button
                   type="button"
                   disabled={savingBanner}
                   onClick={handleSaveBanner}
-                  className="w-full bg-gray-900 hover:bg-pink-600 disabled:opacity-50 transition text-white font-semibold px-6 py-3 rounded-xl"
+                  className="flex-1 bg-gray-900 hover:bg-pink-600 disabled:opacity-50 transition text-white font-semibold px-6 py-3 rounded-xl"
                 >
                   {savingBanner ? "Saving…" : activeBanner ? "Update Banner" : "Create Banner"}
                 </button>
@@ -765,72 +734,24 @@ export default function AdminMarketing() {
                   type="button"
                   disabled={!activeBanner}
                   onClick={() => setShowBannerProductPicker((prev) => !prev)}
-                  className="w-full border border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-500 disabled:opacity-50 rounded-xl py-2.5 font-medium text-sm"
+                  className="flex-1 border border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-500 disabled:opacity-50 rounded-xl py-3 font-semibold text-sm transition"
                 >
                   {showBannerProductPicker
                     ? "Close Products"
                     : `Select Products (${activeBanner?.products?.length || 0})`}
                 </button>
-
-                {showBannerProductPicker && (
-                  <div className="border border-gray-200 rounded-2xl p-5 bg-gray-50">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-800">Banner Products</h3>
-                      <span className="text-xs bg-pink-100 text-pink-600 px-3 py-1 rounded-full">
-                        {activeBanner?.products?.length || 0} Selected
-                      </span>
-                    </div>
-
-                    <input
-                      type="text"
-                      placeholder="Search products..."
-                      className="w-full border rounded-xl px-4 py-3 mb-4 focus:ring-2 focus:ring-pink-500 outline-none"
-                      value={bannerProductSearch}
-                      onChange={(e) => setBannerProductSearch(e.target.value)}
-                    />
-
-                    <div className="max-h-72 overflow-y-auto rounded-xl border bg-white divide-y">
-                      {filteredBannerProducts.length === 0 && (
-                        <p className="text-sm text-gray-400 text-center py-6">
-                          No products match "{bannerProductSearch}".
-                        </p>
-                      )}
-                      {filteredBannerProducts.map((product) => {
-                        const selected = activeBanner?.products?.some(
-                          (p) => p.product_id === product.product_id
-                        );
-
-                        return (
-                          <div
-                            key={product.product_id}
-                            className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
-                          >
-                            <div>
-                              <h4 className="font-medium text-gray-800">{product.name}</h4>
-                              {product.price && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  ₹{Number(product.price).toLocaleString("en-IN")}
-                                </p>
-                              )}
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleToggleBannerProduct(product)}
-                              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${selected
-                                ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                : "bg-pink-500 text-white hover:bg-pink-600"
-                                }`}
-                            >
-                              {selected ? "Remove" : "Add"}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
               </div>
+
+              {showBannerProductPicker && (
+                <ProductPickerBox
+                  allProducts={allProducts}
+                  selectedIds={activeBanner?.products || []}
+                  onToggleProduct={handleToggleBannerProduct}
+                  categories={categories}
+                  title="Hero Banner Products"
+                  onClose={() => setShowBannerProductPicker(false)}
+                />
+              )}
             </div>
           </section>
 
@@ -846,7 +767,7 @@ export default function AdminMarketing() {
               <button
                 type="button"
                 onClick={() => setShowCardModal(true)}
-                className="px-5 py-2 bg-pink-500 hover:bg-pink-600 text-white rounded-lg text-sm font-semibold"
+                className="px-5 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-xl text-sm font-semibold shadow-sm transition"
               >
                 + Add Card
               </button>
@@ -862,191 +783,168 @@ export default function AdminMarketing() {
               {cards.map((card) => (
                 <div
                   key={card.card_id}
-                  className="border rounded-2xl overflow-hidden bg-white hover:shadow-lg transition"
+                  className="border rounded-2xl overflow-hidden bg-white hover:shadow-lg transition flex flex-col justify-between"
                 >
-                  <div className="relative h-44 bg-gradient-to-r from-gray-900 via-gray-800 to-black">
-                    {card.image_url && (
-                      <img
-                        src={card.image_url}
-                        alt={card.title}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    )}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
-                    {card.discount_percent > 0 && (
-                      <span className="absolute top-3 right-3 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full">
-                        {card.discount_percent}% OFF
-                      </span>
-                    )}
-                    <div className="absolute inset-x-0 bottom-0 px-4 pb-3">
-                      <h3 className="text-white font-bold text-lg drop-shadow-md">{card.title}</h3>
-                      <p className="text-gray-200 text-xs mt-1 drop-shadow-sm">{card.subtitle}</p>
+                  <div>
+                    <div className="relative h-44 bg-gradient-to-r from-gray-900 via-gray-800 to-black">
+                      {card.image_url && (
+                        <img
+                          src={card.image_url}
+                          alt={card.title}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      )}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/5 to-transparent" />
+                      {card.discount_percent > 0 && (
+                        <span className="absolute top-3 right-3 bg-pink-500 text-white text-xs font-bold px-3 py-1 rounded-full shadow">
+                          {card.discount_percent}% OFF
+                        </span>
+                      )}
+                      <div className="absolute inset-x-0 bottom-0 px-4 pb-3">
+                        <h3 className="text-white font-bold text-lg drop-shadow-md">{card.title}</h3>
+                        <p className="text-gray-200 text-xs mt-1 drop-shadow-sm">{card.subtitle}</p>
+                      </div>
+                    </div>
+
+                    <div className="p-5 space-y-4">
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Title
+                        </label>
+                        <input
+                          defaultValue={card.title}
+                          onBlur={(e) => handleUpdateCard(card.card_id, { title: e.target.value })}
+                          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none text-sm"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Subtitle
+                        </label>
+                        <input
+                          defaultValue={card.subtitle}
+                          onBlur={(e) =>
+                            handleUpdateCard(card.card_id, { subtitle: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none text-sm"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Category
+                        </label>
+                        <select
+                          key={`cat-${card.card_id}-${card.category_id ?? "none"}`}
+                          defaultValue={card.category_id ?? ""}
+                          onChange={(e) => handleCardCategoryChange(card, e.target.value)}
+                          className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none bg-white text-sm"
+                        >
+                          <option value="">No category</option>
+                          {categories.map((cat) => (
+                            <option key={cat.category_id} value={cat.category_id}>
+                              {cat.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Discount %
+                          </label>
+                          <input
+                            key={`discount-${card.card_id}-${card.discount_percent ?? ""}`}
+                            type="number"
+                            min="0"
+                            max="100"
+                            defaultValue={card.discount_percent ?? ""}
+                            onBlur={(e) => handleCardDiscountBlur(card, e.target.value)}
+                            placeholder="10"
+                            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none text-sm"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-semibold text-gray-700 mb-2">
+                            Button Link
+                          </label>
+                          <input
+                            key={`link-${card.card_id}-${card.button_link ?? ""}`}
+                            defaultValue={card.button_link || "/shop"}
+                            onBlur={(e) =>
+                              handleUpdateCard(card.card_id, { button_link: e.target.value })
+                            }
+                            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none text-sm"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                          Replace Image
+                        </label>
+                        <label className="block border-2 border-dashed border-gray-300 rounded-xl py-4 text-center hover:border-pink-500 transition cursor-pointer">
+                          <span className="text-pink-500 font-semibold text-xs">
+                            Upload New Image
+                          </span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files[0];
+                              if (file) handleUpdateCard(card.card_id, { image: file });
+                            }}
+                          />
+                        </label>
+                      </div>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <span className="text-sm font-medium text-gray-700">Active</span>
+                        <label className="inline-flex items-center cursor-pointer">
+                          <input
+                            type="checkbox"
+                            className="sr-only peer"
+                            checked={!!card.is_active}
+                            onChange={(e) =>
+                              handleUpdateCard(card.card_id, { is_active: e.target.checked })
+                            }
+                          />
+                          <div className="w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-pink-500 relative after:absolute after:left-1 after:top-0.5 after:bg-white after:h-4 after:w-4 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
+                        </label>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setOpenCardPicker((prev) => (prev === card.card_id ? null : card.card_id))
+                        }
+                        className="w-full border border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-500 rounded-xl py-2.5 font-medium text-sm transition"
+                      >
+                        {openCardPicker === card.card_id
+                          ? "Close Products"
+                          : `Select Products (${card.products?.length || 0})`}
+                      </button>
+
+                      {openCardPicker === card.card_id && (
+                        <ProductPickerBox
+                          allProducts={allProducts}
+                          selectedIds={card.products || []}
+                          onToggleProduct={(product) => handleToggleCardProduct(card, product)}
+                          categories={categories}
+                          title={`${card.title || "Card"} Products`}
+                          onClose={() => setOpenCardPicker(null)}
+                        />
+                      )}
                     </div>
                   </div>
 
-                  <div className="p-5 space-y-4">
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Title
-                      </label>
-                      <input
-                        defaultValue={card.title}
-                        onBlur={(e) => handleUpdateCard(card.card_id, { title: e.target.value })}
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Subtitle
-                      </label>
-                      <input
-                        defaultValue={card.subtitle}
-                        onBlur={(e) =>
-                          handleUpdateCard(card.card_id, { subtitle: e.target.value })
-                        }
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Category
-                      </label>
-                      <select
-                        key={`cat-${card.card_id}-${card.category_id ?? "none"}`}
-                        defaultValue={card.category_id ?? ""}
-                        onChange={(e) => handleCardCategoryChange(card, e.target.value)}
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none bg-white"
-                      >
-                        <option value="">No category</option>
-                        {categories.map((cat) => (
-                          <option key={cat.category_id} value={cat.category_id}>
-                            {cat.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Discount %
-                        </label>
-                        <input
-                          key={`discount-${card.card_id}-${card.discount_percent ?? ""}`}
-                          type="number"
-                          min="0"
-                          max="100"
-                          defaultValue={card.discount_percent ?? ""}
-                          onBlur={(e) => handleCardDiscountBlur(card, e.target.value)}
-                          placeholder="10"
-                          className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-semibold text-gray-700 mb-2">
-                          Button Link
-                        </label>
-                        <input
-                          key={`link-${card.card_id}-${card.button_link ?? ""}`}
-                          defaultValue={card.button_link || "/shop"}
-                          onBlur={(e) =>
-                            handleUpdateCard(card.card_id, { button_link: e.target.value })
-                          }
-                          className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none"
-                        />
-                      </div>
-                    </div>
-                    <p className="text-[11px] text-gray-400 -mt-2">
-                      Setting a discount auto-fills Button Link to this card's offer page.
-                    </p>
-
-                    <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-2">
-                        Replace Image
-                      </label>
-                      <label className="block border-2 border-dashed border-gray-300 rounded-xl py-6 text-center hover:border-pink-500 transition cursor-pointer">
-                        <span className="text-pink-500 font-semibold text-sm">
-                          Upload Image
-                        </span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="hidden"
-                          onChange={(e) => {
-                            const file = e.target.files[0];
-                            if (file) handleUpdateCard(card.card_id, { image: file });
-                          }}
-                        />
-                      </label>
-                    </div>
-
-                    <div className="flex items-center justify-between pt-2">
-                      <span className="text-sm font-medium text-gray-700">Active</span>
-                      <label className="inline-flex items-center cursor-pointer">
-                        <input
-                          type="checkbox"
-                          className="sr-only peer"
-                          checked={!!card.is_active}
-                          onChange={(e) =>
-                            handleUpdateCard(card.card_id, { is_active: e.target.checked })
-                          }
-                        />
-                        <div className="w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-pink-500 relative after:absolute after:left-1 after:top-0.5 after:bg-white after:h-4 after:w-4 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
-                      </label>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setOpenCardPicker((prev) => (prev === card.card_id ? null : card.card_id))
-                      }
-                      className="w-full border border-gray-300 text-gray-700 hover:border-pink-500 hover:text-pink-500 rounded-xl py-2 font-medium text-sm"
-                    >
-                      {openCardPicker === card.card_id ? "Close Products" : `Select Products (${card.products?.length || 0})`}
-                    </button>
-
-                    {openCardPicker === card.card_id && (
-                      <div className="border border-gray-200 rounded-xl p-4 bg-gray-50">
-                        <input
-                          type="text"
-                          placeholder="Search products..."
-                          className="w-full border rounded-lg px-3 py-2 mb-3 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
-                          value={cardProductSearch}
-                          onChange={(e) => setCardProductSearch(e.target.value)}
-                        />
-                        <div className="max-h-56 overflow-y-auto rounded-lg border bg-white divide-y">
-                          {filteredCardProducts.map((product) => {
-                            const selected = card.products?.some(
-                              (p) => p.product_id === product.product_id
-                            );
-                            return (
-                              <div
-                                key={product.product_id}
-                                className="flex items-center justify-between px-3 py-2 hover:bg-gray-50"
-                              >
-                                <span className="text-sm text-gray-800">{product.name}</span>
-                                <button
-                                  type="button"
-                                  onClick={() => handleToggleCardProduct(card, product)}
-                                  className={`text-xs font-semibold px-3 py-1 rounded-lg ${selected
-                                    ? "bg-red-50 text-red-600"
-                                    : "bg-pink-500 text-white"
-                                    }`}
-                                >
-                                  {selected ? "Remove" : "Add"}
-                                </button>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
+                  <div className="p-5 pt-0">
                     <button
                       type="button"
                       onClick={() => handleDeleteCard(card.card_id)}
-                      className="w-full mt-2 border border-red-300 text-red-500 hover:bg-red-50 rounded-xl py-2 font-medium"
+                      className="w-full border border-red-200 text-red-500 hover:bg-red-50 rounded-xl py-2 font-medium text-sm transition"
                     >
                       Delete Card
                     </button>
@@ -1074,56 +972,31 @@ export default function AdminMarketing() {
               <button
                 type="button"
                 onClick={() => setShowProductPicker((s) => !s)}
-                className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-lg font-semibold text-sm"
+                className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2.5 rounded-xl font-semibold text-sm shadow-sm transition"
               >
-                {showProductPicker ? "Close" : "+ Select Products"}
+                {showProductPicker ? "Close Products" : "+ Select Products"}
               </button>
             </div>
 
             {showProductPicker && (
-              <div className="mb-8">
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Search Products
-                </label>
-                <input
-                  type="text"
-                  placeholder="Search by product name..."
-                  className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:ring-2 focus:ring-pink-500 outline-none mb-4"
-                  value={productSearch}
-                  onChange={(e) => setProductSearch(e.target.value)}
-                />
-                <div className="max-h-72 overflow-y-auto border rounded-xl divide-y">
-                  {filteredProducts.map((p) => {
-                    const isFeatured = featured.some((f) => f.product_id === p.product_id);
-                    return (
-                      <div
-                        key={p.product_id}
-                        className="flex items-center justify-between px-4 py-3"
-                      >
-                        <span className="text-sm text-gray-800">{p.name}</span>
-                        <button
-                          type="button"
-                          onClick={() => handleToggleFeatured(p)}
-                          className={`text-sm font-semibold ${isFeatured ? "text-red-500" : "text-pink-600"
-                            }`}
-                        >
-                          {isFeatured ? "Remove" : "Add"}
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
+              <ProductPickerBox
+                allProducts={allProducts}
+                selectedIds={featured || []}
+                onToggleProduct={handleToggleFeatured}
+                categories={categories}
+                title="Featured Products"
+                onClose={() => setShowProductPicker(false)}
+              />
             )}
 
-            <div className="grid lg:grid-cols-2 gap-5">
+            <div className="grid lg:grid-cols-2 gap-5 mt-6">
               {featured.map((item) => (
                 <div
                   key={item.featured_id}
-                  className="flex items-center justify-between border rounded-xl p-4 hover:shadow-md transition"
+                  className="flex items-center justify-between border rounded-2xl p-4 hover:shadow-md transition bg-white"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-20 h-20 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
+                    <div className="w-16 h-16 rounded-xl bg-gray-100 flex items-center justify-center overflow-hidden border border-gray-100">
                       {item.image_url ? (
                         <img
                           src={item.image_url}
@@ -1131,12 +1004,12 @@ export default function AdminMarketing() {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-gray-400 text-xs">No image</span>
+                        <span className="text-gray-400 text-xs">👗</span>
                       )}
                     </div>
                     <div>
-                      <h3 className="font-semibold text-gray-900">{item.product_name}</h3>
-                      <p className="text-pink-600 font-semibold mt-2">
+                      <h3 className="font-semibold text-gray-900 text-sm">{item.product_name}</h3>
+                      <p className="text-pink-600 font-bold mt-1 text-sm">
                         ₹{Number(item.price).toLocaleString("en-IN")}
                       </p>
                     </div>
@@ -1144,7 +1017,7 @@ export default function AdminMarketing() {
                   <button
                     type="button"
                     onClick={() => handleRemoveFeatured(item.featured_id)}
-                    className="text-red-500 hover:text-red-600 text-sm font-semibold"
+                    className="text-red-500 hover:text-red-700 text-xs font-semibold px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-50 transition"
                   >
                     Remove
                   </button>
@@ -1166,14 +1039,12 @@ export default function AdminMarketing() {
 
           {/* Flash Sale */}
           <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-
-            {/* Header */}
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-8">
               <div>
                 <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                   ⚡ Flash Sale
                 </h2>
-                <p className="text-gray-500 mt-1">
+                <p className="text-gray-500 mt-1 text-sm">
                   Create limited-time promotional campaigns for selected products.
                 </p>
               </div>
@@ -1193,7 +1064,7 @@ export default function AdminMarketing() {
                   type="button"
                   disabled={!activeFlashSale}
                   onClick={() => setShowFlashProductPicker((prev) => !prev)}
-                  className="bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-xl font-medium"
+                  className="bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl font-semibold text-sm transition"
                 >
                   {showFlashProductPicker ? "Close Products" : "Select Products"}
                 </button>
@@ -1201,193 +1072,119 @@ export default function AdminMarketing() {
             </div>
 
             <div className="grid lg:grid-cols-2 gap-8 items-start">
-
               {/* LEFT SIDE */}
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-2 gap-5">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold mb-2">Sale Title</label>
-                    <input
-                      type="text"
-                      className="w-full border rounded-xl px-4 py-3"
-                      placeholder="Mega Weekend Sale"
-                      value={flashForm.title}
-                      onChange={(e) => setFlashForm((f) => ({ ...f, title: e.target.value }))}
-                    />
-                  </div>
+              <div className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Sale Title</label>
+                  <input
+                    type="text"
+                    className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
+                    placeholder="Mega Weekend Sale"
+                    value={flashForm.title}
+                    onChange={(e) => setFlashForm((f) => ({ ...f, title: e.target.value }))}
+                  />
+                </div>
 
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-semibold mb-2">Description</label>
-                    <textarea
-                      rows={3}
-                      className="w-full border rounded-xl px-4 py-3 resize-none"
-                      placeholder="Up to 50% OFF..."
-                      value={flashForm.description}
-                      onChange={(e) => setFlashForm((f) => ({ ...f, description: e.target.value }))}
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Description</label>
+                  <textarea
+                    rows={3}
+                    className="w-full border rounded-xl px-4 py-3 resize-none outline-none focus:ring-2 focus:ring-pink-500"
+                    placeholder="Up to 50% OFF..."
+                    value={flashForm.description}
+                    onChange={(e) => setFlashForm((f) => ({ ...f, description: e.target.value }))}
+                  />
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold mb-2">Discount %</label>
                     <input
                       type="number"
-                      className="w-full border rounded-xl px-4 py-3"
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                       value={flashForm.discount_value}
                       onChange={(e) => setFlashForm((f) => ({ ...f, discount_value: e.target.value }))}
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-semibold mb-2">Badge</label>
                     <input
                       type="text"
-                      className="w-full border rounded-xl px-4 py-3"
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                       value={flashForm.badge}
                       onChange={(e) => setFlashForm((f) => ({ ...f, badge: e.target.value }))}
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold mb-2">Button Text</label>
                     <input
                       type="text"
-                      className="w-full border rounded-xl px-4 py-3"
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                       value={flashForm.button_text}
                       onChange={(e) => setFlashForm((f) => ({ ...f, button_text: e.target.value }))}
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-semibold mb-2">Button Link</label>
                     <input
                       type="text"
-                      className="w-full border rounded-xl px-4 py-3"
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                       value={flashForm.button_link}
                       onChange={(e) => setFlashForm((f) => ({ ...f, button_link: e.target.value }))}
                     />
                   </div>
+                </div>
 
+                <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-semibold mb-2">Start Date</label>
                     <input
                       type="datetime-local"
-                      className="w-full border rounded-xl px-4 py-3"
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                       value={flashForm.start_date}
                       onChange={(e) => setFlashForm((f) => ({ ...f, start_date: e.target.value }))}
                     />
                   </div>
-
                   <div>
                     <label className="block text-sm font-semibold mb-2">End Date</label>
                     <input
                       type="datetime-local"
-                      className="w-full border rounded-xl px-4 py-3"
+                      className="w-full border rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-pink-500"
                       value={flashForm.end_date}
                       onChange={(e) => setFlashForm((f) => ({ ...f, end_date: e.target.value }))}
                     />
                   </div>
                 </div>
 
-                <div className="grid lg:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Banner Image</label>
-                    <div className="border-2 border-dashed rounded-xl p-6 text-center">
-                      <p className="text-sm text-gray-600">
-                        {flashImageFile ? flashImageFile.name : "Upload Flash Sale Image"}
-                      </p>
-                      <label className="inline-block mt-4 bg-pink-500 hover:bg-pink-600 text-white px-5 py-2 rounded-lg cursor-pointer">
-                        Choose Image
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept="image/*"
-                          onChange={(e) => setFlashImageFile(e.target.files[0])}
-                        />
-                      </label>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-semibold mb-2">Selected Products</label>
-                    <div className="border rounded-xl h-44 overflow-y-auto divide-y">
-                      {activeFlashSale?.products?.length ? (
-                        activeFlashSale.products.map((product) => (
-                          <div
-                            key={product.product_id}
-                            className="flex justify-between items-center px-4 py-3"
-                          >
-                            <span className="text-sm">{product.product_name}</span>
-                            <span className="text-pink-600 font-semibold">₹{product.price}</span>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="flex items-center justify-center h-full text-sm text-gray-400">
-                          No products selected
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                <div>
+                  <label className="block text-sm font-semibold mb-2">Banner Image</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setFlashImageFile(e.target.files[0] || null)}
+                    className="text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-pink-50 file:text-pink-700 hover:file:bg-pink-100"
+                  />
                 </div>
 
                 {showFlashProductPicker && (
-                  <div className="border border-gray-200 rounded-2xl p-5 bg-gray-50">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-800">Flash Sale Products</h3>
-                      <span className="text-xs bg-pink-100 text-pink-600 px-3 py-1 rounded-full">
-                        {activeFlashSale?.products?.length || 0} Selected
-                      </span>
-                    </div>
-
-                    <input
-                      type="text"
-                      placeholder="Search products..."
-                      className="w-full border rounded-xl px-4 py-3 mb-4 focus:ring-2 focus:ring-pink-500 outline-none"
-                      value={flashProductSearch}
-                      onChange={(e) => setFlashProductSearch(e.target.value)}
-                    />
-
-                    <div className="max-h-72 overflow-y-auto rounded-xl border bg-white divide-y">
-                      {filteredFlashProducts.map((product) => {
-                        const selected = activeFlashSale?.products?.some(
-                          (p) => p.product_id === product.product_id
-                        );
-
-                        return (
-                          <div
-                            key={product.product_id}
-                            className="flex items-center justify-between px-4 py-3 hover:bg-gray-50"
-                          >
-                            <div>
-                              <h4 className="font-medium text-gray-800">{product.name}</h4>
-                              {product.price && (
-                                <p className="text-xs text-gray-500 mt-1">
-                                  ₹{Number(product.price).toLocaleString("en-IN")}
-                                </p>
-                              )}
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => handleToggleFlashProduct(product)}
-                              className={`px-4 py-2 rounded-lg text-sm font-semibold transition ${selected
-                                ? "bg-red-50 text-red-600 hover:bg-red-100"
-                                : "bg-pink-500 text-white hover:bg-pink-600"
-                                }`}
-                            >
-                              {selected ? "Remove" : "Add"}
-                            </button>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                  <ProductPickerBox
+                    allProducts={allProducts}
+                    selectedIds={activeFlashSale?.products || []}
+                    onToggleProduct={handleToggleFlashProduct}
+                    categories={categories}
+                    title="Flash Sale Products"
+                    onClose={() => setShowFlashProductPicker(false)}
+                  />
                 )}
 
                 <button
                   type="button"
                   disabled={savingFlashSale}
                   onClick={handleSaveFlashSale}
-                  className="w-full bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white py-3 rounded-xl font-semibold transition"
+                  className="w-full bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white py-3 rounded-xl font-semibold transition shadow-md"
                 >
                   {savingFlashSale ? "Saving..." : activeFlashSale ? "Update Flash Sale" : "Create Flash Sale"}
                 </button>
@@ -1397,49 +1194,36 @@ export default function AdminMarketing() {
               <div className="space-y-6">
                 <div>
                   <h3 className="font-semibold text-gray-800 mb-3">Live Preview</h3>
-                  <div className="relative min-h-[360px] w-full overflow-hidden rounded-2xl border shadow-sm">
-                    <div
-                      className="absolute inset-0"
-                      style={{
-                        backgroundImage: flashImageFile
-                          ? `url(${URL.createObjectURL(flashImageFile)})`
-                          : activeFlashSale?.banner_image
-                            ? `url(${activeFlashSale.banner_image})`
-                            : undefined,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        background:
-                          !flashImageFile && !activeFlashSale?.banner_image
-                            ? "linear-gradient(to right,#dc2626,#db2777,#ea580c)"
-                            : undefined,
-                      }}
-                    />
+                  <div className="relative min-h-[320px] w-full overflow-hidden rounded-2xl border shadow-sm flex flex-col justify-center items-center text-center p-8 bg-gradient-to-r from-gray-900 via-gray-800 to-black">
+                    {flashImageFile ? (
+                      <img
+                        src={URL.createObjectURL(flashImageFile)}
+                        alt="Flash Preview"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : activeFlashSale?.banner_image ? (
+                      <img
+                        src={activeFlashSale.banner_image}
+                        alt="Flash Preview"
+                        className="absolute inset-0 w-full h-full object-cover"
+                      />
+                    ) : null}
 
-                    {/* Overlay */}
-                    <div
-                      className={`absolute inset-0 ${flashImageFile || activeFlashSale?.banner_image
-                        ? "bg-black/40"
-                        : "bg-gradient-to-r from-gray-900 via-gray-800 to-black"
-                        }`}
-                    />
+                    <div className="absolute inset-0 bg-black/50" />
 
-                    {/* Center Content */}
-                    <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-10">
-                      <span className="mb-5 rounded-full bg-white px-4 py-2 text-xs font-bold tracking-widest text-red-600 shadow">
+                    <div className="relative z-10 flex flex-col items-center">
+                      <span className="mb-4 rounded-full bg-white px-4 py-1.5 text-xs font-bold tracking-widest text-red-600 shadow">
                         {flashForm.badge || "HOT DEAL"}
                       </span>
-
-                      <h2 className="text-4xl font-extrabold text-white drop-shadow-lg">
+                      <h2 className="text-3xl font-extrabold text-white drop-shadow-lg">
                         {flashForm.title || "Sale Title"}
                       </h2>
-
-                      <p className="mt-5 max-w-xl text-red-50 text-base leading-relaxed drop-shadow">
-                        {flashForm.description || "Sale description"}
+                      <p className="mt-3 max-w-md text-red-100 text-sm leading-relaxed drop-shadow">
+                        {flashForm.description || "Sale description goes here..."}
                       </p>
-
                       <button
                         type="button"
-                        className="mt-8 rounded-full bg-white px-8 py-3 font-semibold text-red-600 shadow-lg transition hover:scale-105 hover:bg-red-50"
+                        className="mt-6 rounded-full bg-white px-6 py-2.5 font-bold text-red-600 shadow-lg text-sm"
                       >
                         {flashForm.button_text || "Shop Now"}
                       </button>
@@ -1449,23 +1233,23 @@ export default function AdminMarketing() {
 
                 <div className="border rounded-2xl p-5 bg-white shadow-sm">
                   <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold text-gray-800">Selected Products</h3>
-                    <span className="text-xs text-gray-500">
+                    <h3 className="font-semibold text-gray-800 text-sm">Selected Products</h3>
+                    <span className="text-xs bg-pink-50 text-pink-600 font-bold px-2.5 py-1 rounded-full">
                       {activeFlashSale?.products?.length || 0} Items
                     </span>
                   </div>
 
                   {activeFlashSale?.products?.length ? (
-                    <div className="space-y-3">
+                    <div className="space-y-2 max-h-60 overflow-y-auto divide-y">
                       {activeFlashSale.products.map((product) => (
                         <div
                           key={product.product_id}
-                          className="flex justify-between items-center border rounded-xl px-4 py-3"
+                          className="flex justify-between items-center py-2.5 text-sm"
                         >
                           <div>
-                            <h4 className="font-medium">{product.product_name}</h4>
+                            <h4 className="font-medium text-gray-800">{product.product_name}</h4>
                             {product.price && (
-                              <p className="text-sm text-gray-500">
+                              <p className="text-xs text-pink-600 font-bold mt-0.5">
                                 ₹{Number(product.price).toLocaleString("en-IN")}
                               </p>
                             )}
@@ -1473,7 +1257,7 @@ export default function AdminMarketing() {
                           <button
                             type="button"
                             onClick={() => handleToggleFlashProduct(product)}
-                            className="text-red-500 hover:text-red-600 text-sm font-semibold"
+                            className="text-red-500 hover:text-red-700 text-xs font-semibold px-2 py-1"
                           >
                             Remove
                           </button>
@@ -1481,59 +1265,10 @@ export default function AdminMarketing() {
                       ))}
                     </div>
                   ) : (
-                    <div className="text-center py-10 text-gray-400">No products selected yet.</div>
+                    <div className="text-center py-8 text-xs text-gray-400">No products selected yet.</div>
                   )}
                 </div>
               </div>
-            </div>
-          </section>
-
-          {/* Homepage Sections */}
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
-            <div className="mb-8">
-              <h2 className="text-lg font-bold text-gray-900">🏠 Homepage Sections</h2>
-              <p className="text-sm text-gray-500 mt-1">
-                Enable or disable sections displayed on your storefront homepage.
-              </p>
-            </div>
-
-            <div className="grid lg:grid-cols-2 gap-5">
-              {sections.map((section) => (
-                <div
-                  key={section.section_id}
-                  className="border rounded-xl p-5 flex items-center justify-between hover:border-pink-300 hover:shadow-sm transition"
-                >
-                  <div>
-                    <h3 className="font-semibold text-gray-900">{section.section_name}</h3>
-                  </div>
-                  <label className="inline-flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={!!section.is_enabled}
-                      onChange={() =>
-                        handleToggleSection(section.section_name, section.is_enabled)
-                      }
-                      className="sr-only peer"
-                    />
-                    <div className="w-11 h-6 bg-gray-300 rounded-full peer peer-checked:bg-pink-500 relative after:absolute after:left-1 after:top-1 after:bg-white after:h-4 after:w-4 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
-                  </label>
-                </div>
-              ))}
-
-              {sections.length === 0 && (
-                <p className="text-sm text-gray-500 col-span-full">
-                  No sections found — run the seed insert in promotional_cards.sql
-                  to populate the 8 default rows.
-                </p>
-              )}
-            </div>
-
-            <div className="mt-8 rounded-xl bg-pink-50 border border-pink-200 p-5">
-              <h4 className="font-semibold text-pink-700">💡 Tip</h4>
-              <p className="text-sm text-pink-600 mt-2">
-                Disabling a section hides it from your customers without deleting
-                any data. You can enable it again anytime.
-              </p>
             </div>
           </section>
 
@@ -1542,8 +1277,9 @@ export default function AdminMarketing() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-xl shadow-lg text-white font-medium text-sm ${toast.type === "error" ? "bg-red-500" : "bg-emerald-500"
-            }`}
+          className={`fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-xl shadow-lg text-white font-medium text-sm ${
+            toast.type === "error" ? "bg-red-500" : "bg-emerald-500"
+          }`}
         >
           {toast.message}
         </div>

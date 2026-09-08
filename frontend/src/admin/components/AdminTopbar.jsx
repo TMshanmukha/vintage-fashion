@@ -1,32 +1,8 @@
-import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { getNotifications } from "../../api/notificationApi";
-import useAdminSocket from "../../hooks/Useadminsocket";
 import { useAdminLayout } from "./AdminLayout";
 
 export default function AdminTopbar({ title, subtitle }) {
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  useEffect(() => {
-    const loadUnreadCount = async () => {
-      try {
-        const notifications = await getNotifications();
-        setUnreadCount(notifications.filter((n) => !n.is_read).length);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadUnreadCount();
-  }, []);
-
-  useAdminSocket({
-      "admin:new-notification": () => {
-          setUnreadCount((count) => count + 1);
-      },
-  });
-
-  const { setSidebarOpen } = useAdminLayout() || {};
+  const { setSidebarOpen, unreadCount, setUnreadCount } = useAdminLayout() || {};
 
   return (
     <header className="bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-4 sm:py-5 flex items-center justify-between sticky top-0 z-10">

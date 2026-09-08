@@ -1,9 +1,7 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
 import { useAdminAuth } from "../context/AdminAuthContext";
-import { getNotifications } from "../../api/notificationApi";
+import { useAdminLayout } from "./AdminLayout";
 import toast from "react-hot-toast";
-import useAdminSocket from "../../hooks/Useadminsocket";
 
 const navItems = [
   {
@@ -73,31 +71,7 @@ const navItems = [
 export default function AdminSidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { logout } = useAdminAuth();
-  const [unreadCount, setUnreadCount] = useState(0);
-
-  // Initial count on mount/reload only — after this, the badge updates
-  // live via the socket push below instead of re-polling the endpoint.
-  useEffect(() => {
-    const loadUnreadCount = async () => {
-      try {
-        const notifications = await getNotifications();
-        setUnreadCount(notifications.filter((n) => !n.is_read).length);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
-    loadUnreadCount();
-  }, []);
-
-  // Bumps the badge the instant a new notification is created anywhere —
-  // order status changes, returns, new signups, emails sent, etc. — no
-  // more waiting on a 30s poll interval.
-  useAdminSocket({
-    "admin:new-notification": () => {
-      setUnreadCount((count) => count + 1);
-    },
-  });
+  const { unreadCount, setUnreadCount } = useAdminLayout() || {};
 
   const handleLogout = async () => {
 

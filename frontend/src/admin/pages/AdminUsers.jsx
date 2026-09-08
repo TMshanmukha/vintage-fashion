@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import ConfirmDialog from "../components/ConfirmDialog";
 import toast from "react-hot-toast";
 import { getCustomers, updateUserStatus, deleteCustomer } from "../../api/userApi";
-import { sendSingleEmail } from "../../api/emailApi";
 
 export default function AdminUsers() {
+  const navigate = useNavigate();
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -67,18 +68,10 @@ export default function AdminUsers() {
     }
   };
 
-  const quickEmail = async (user) => {
-    try {
-      await sendSingleEmail({
-        userId: user.id,
-        subject: "A message from Vintage Fashion",
-        body: "Thanks for being part of Vintage Fashion — here's 10% off your next order."
-      });
-      toast.success(`Email sent to ${user.email}`);
-    } catch (err) {
-      toast.error("Failed to send email.");
-      console.error(err);
-    }
+  const handleEmailUser = (user) => {
+    navigate(
+      `/admin/emails?userId=${user.id}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}`
+    );
   };
 
   return (
@@ -139,7 +132,7 @@ export default function AdminUsers() {
                   </td>
                   <td className="px-6 py-4 text-right">
                     <div className="flex justify-end gap-2">
-                      <button onClick={() => quickEmail(u)} title="Send email" className="text-gray-400 hover:text-gray-900 p-1.5 hover:bg-gray-100 rounded-lg transition-colors">
+                      <button onClick={() => handleEmailUser(u)} title="Send custom email" className="text-gray-400 hover:text-pink-500 p-1.5 hover:bg-pink-50 rounded-lg transition-colors">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                         </svg>
