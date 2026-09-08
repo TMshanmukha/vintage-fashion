@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getFeaturedProducts } from "../../api/marketingApi";
 import ProductCard from "../ui/ProductCard";
 import SectionWrapper from "../ui/SectionWrapper";
+import { normalizeProduct } from "../../utils/normalizeProduct";
 
 function FeaturedProductsSkeleton() {
   return (
@@ -129,27 +130,12 @@ export default function FeaturedProducts() {
                 {/* Products */}
                 <div className="mt-10 grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
                     {[...new Map(items.map(item => [item.product_id, item])).values()]
-                        .map((item) => {
-                            const rawPrice = Number(item.final_price ?? item.price) || 0;
-                            const originalPrice = item.original_price != null ? Number(item.original_price) : Number(item.price || rawPrice);
-                            const discountPercent = Number(item.discount_percent) || 0;
-
-                            return (
-                                <ProductCard
-                                    key={item.featured_id}
-                                    product={{
-                                        id: item.product_id,
-                                        name: item.product_name || item.name,
-                                        slug: item.slug,
-                                        price: rawPrice,
-                                        originalPrice: originalPrice > rawPrice ? originalPrice : undefined,
-                                        discountPercent: discountPercent,
-                                        image: item.image_url,
-                                        images: item.image_url ? [item.image_url] : [],
-                                    }}
-                                />
-                            );
-                        })}
+                        .map((item) => (
+                            <ProductCard
+                                key={item.featured_id || item.product_id}
+                                product={normalizeProduct(item)}
+                            />
+                        ))}
                 </div>
 
             </section>

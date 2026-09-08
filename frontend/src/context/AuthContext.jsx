@@ -30,6 +30,7 @@ export default function AuthProvider({ children }) {
 
         localStorage.removeItem("user");
         localStorage.removeItem("accessToken");
+        localStorage.removeItem("pendingCartAction");
 
         setUser(null);
         setAccessToken("");

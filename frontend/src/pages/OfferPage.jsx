@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import ProductCard from "../components/ui/ProductCard";
 import { getCardById, getBannerById, getFlashSaleById } from "../api/marketingApi";
+import { normalizeProduct } from "../utils/normalizeProduct";
 
 const FETCHERS = {
   card: getCardById,
@@ -21,10 +22,13 @@ function normalize(type, raw) {
       subtitle: raw.description,
       discount: Number(raw.discount_value) || 0,
       products: (raw.products || []).map((p) => ({
+        ...p,
         product_id: p.product_id,
-        name: p.name,
+        name: p.name || p.product_name,
         slug: p.slug,
-        price: p.price,
+        price: Number(p.final_price ?? p.price),
+        original_price: p.original_price != null ? Number(p.original_price) : Number(p.price),
+        discount_percent: Number(p.discount_percent) || Number(raw.discount_value) || 0,
         image_url: p.image_url,
       })),
     };
@@ -35,10 +39,13 @@ function normalize(type, raw) {
     subtitle: raw.subtitle,
     discount: Number(raw.discount_percent) || 0,
     products: (raw.products || []).map((p) => ({
+      ...p,
       product_id: p.product_id,
-      name: p.product_name,
+      name: p.product_name || p.name,
       slug: p.slug,
-      price: p.price,
+      price: Number(p.final_price ?? p.price),
+      original_price: p.original_price != null ? Number(p.original_price) : Number(p.price),
+      discount_percent: Number(p.discount_percent) || Number(raw.discount_percent) || 0,
       image_url: p.image_url,
     })),
   };
@@ -106,27 +113,12 @@ export default function OfferPage() {
 
       {products.length ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((p) => {
-            const rawPrice = Number(p.price);
-            const finalPrice =
-              discount > 0 ? +(rawPrice * (1 - discount / 100)).toFixed(2) : rawPrice;
-
-            return (
-              <ProductCard
-                key={p.product_id}
-                product={{
-                  id: p.product_id,
-                  slug: p.slug,
-                  name: p.name,
-                  price: finalPrice,
-                  originalPrice: discount > 0 ? rawPrice : null,
-                  discountPercent: discount > 0 ? discount : 0,
-                  image: p.image_url,
-                  images: p.image_url ? [p.image_url] : [],
-                }}
-              />
-            );
-          })}
+          {products.map((p) => (
+            <ProductCard
+              key={p.product_id}
+              product={normalizeProduct(p)}
+            />
+          ))}
         </div>
       ) : (
         <p className="text-sm text-gray-400 py-16 text-center">

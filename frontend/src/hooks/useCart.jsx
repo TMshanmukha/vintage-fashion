@@ -103,6 +103,8 @@ export function CartProvider({ children }) {
   // in during the current SPA session without a refresh.
   useEffect(() => {
     if (!user) {
+      setCartItems([]);
+      setWishlist([]);
       setCartLoading(false);
       setWishlistLoading(false);
       return;
@@ -180,15 +182,18 @@ export function CartProvider({ children }) {
 
   const clearCart = () => setCartItems([]);
 
-  const cartTotal = cartItems.reduce(
+  const effectiveCartItems = user ? cartItems : [];
+  const effectiveWishlist = user ? wishlist : [];
+
+  const cartTotal = effectiveCartItems.reduce(
     (sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1),
     0
   );
-  const cartCount = cartItems.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
+  const cartCount = effectiveCartItems.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
 
   // --- WISHLIST ---
 
-  const isWishlisted = (productId) => wishlist.some((w) => w.id === productId);
+  const isWishlisted = (productId) => effectiveWishlist.some((w) => w.id === productId);
 
   // Accepts either a product-like object { id, name, image, price, slug } or a raw productId
   const toggleWishlist = async (product) => {
@@ -229,7 +234,7 @@ export function CartProvider({ children }) {
   return (
     <CartContext.Provider
       value={{
-        cartItems,
+        cartItems: effectiveCartItems,
         cartLoading,
         addToCart,
         updateQty,
@@ -238,7 +243,7 @@ export function CartProvider({ children }) {
         cartTotal,
         cartCount,
 
-        wishlist,
+        wishlist: effectiveWishlist,
         wishlistLoading,
         toggleWishlist,
         removeFromWishlist,
