@@ -88,37 +88,41 @@ export default function Hero() {
         </div>
       ))}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 flex items-center w-full justify-center md:justify-end">
-        <div className="mx-auto md:ml-auto max-w-md md:max-w-sm text-center md:text-right">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28 flex items-center w-full justify-center lg:justify-end">
+        <div className="max-w-md lg:max-w-lg text-center lg:text-right lg:ml-auto">
           {text.subtitle && (
-            <p className="text-sm font-medium text-white/90 tracking-[0.3em] uppercase mb-2 flex items-center justify-center md:justify-end gap-3">
+            <p className="text-sm font-medium text-white/90 tracking-[0.3em] uppercase mb-3 flex items-center justify-center lg:justify-end gap-3">
               <span className="block w-8 h-px bg-white/70" />
               {text.subtitle}
-              <span className="block w-8 h-px bg-white/70" />
+              <span className="block w-8 h-px bg-white/70 lg:hidden" />
             </p>
           )}
-          <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-3 drop-shadow-sm">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-4 drop-shadow-md">
             {text.title}
           </h1>
           {text.description && (
-            <p className="text-sm text-white/90 mb-8">{text.description}</p>
+            <p className="text-sm md:text-base text-white/90 mb-8 max-w-md lg:ml-auto leading-relaxed drop-shadow">
+              {text.description}
+            </p>
           )}
-          <Link
-            to={linkTarget}
-            className="inline-block border border-white text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-white hover:text-gray-900 transition-all duration-300"
-          >
-            {text.button_text}
-          </Link>
+          <div className="flex justify-center lg:justify-end">
+            <Link
+              to={linkTarget}
+              className="inline-block border-2 border-white bg-white/10 backdrop-blur-sm text-white text-xs font-bold uppercase tracking-widest px-8 py-3.5 hover:bg-white hover:text-gray-900 transition-all duration-300 shadow-lg"
+            >
+              {text.button_text}
+            </Link>
+          </div>
 
-          <div className="flex justify-center md:justify-end gap-2 mt-6">
+          <div className="flex justify-center lg:justify-end gap-2 mt-8">
             {HERO_IMAGES.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setImageIndex(i)}
                 aria-label={`Go to background ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === imageIndex ? "w-6 bg-white" : "w-1.5 bg-white/50"
+                className={`h-1.5 rounded-full transition-all duration-300 ${
+                  i === imageIndex ? "w-8 bg-white" : "w-2 bg-white/50 hover:bg-white/75"
                 }`}
               />
             ))}
