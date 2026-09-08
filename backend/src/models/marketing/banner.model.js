@@ -161,6 +161,8 @@ export async function getBannerProducts(bannerId) {
       p.name AS product_name,
       p.slug,
       p.price,
+      p.original_price,
+      p.badge,
       pi.image_url
     FROM banner_products bp
     JOIN products p ON p.product_id = bp.product_id

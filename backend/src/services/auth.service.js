@@ -8,7 +8,7 @@ import {
 import { createSession, deleteSession } from "../models/session.model.js";
 
 import {
-    hashPassword, comparePassword
+    hashPassword, comparePassword, hashToken, compareTokenHash
 } from "../utils/hash.js";
 
 import {
@@ -17,7 +17,6 @@ import {
 } from "../utils/jwt.js";
 
 import crypto from "crypto";
-import bcrypt from "bcrypt";
 import {
     createPasswordReset,
     deletePasswordResetsByUserId,
@@ -51,7 +50,7 @@ export const refreshTokenService = async ({ sessionId, refreshToken }) => {
         throw new Error("Session expired.");
     }
 
-    const isValid = await bcrypt.compare(refreshToken, session.refresh_token_hash);
+    const isValid = await compareTokenHash(refreshToken, session.refresh_token_hash);
 
     if (!isValid) {
         // Token doesn't match what's on record — treat as compromised, kill the session
@@ -79,7 +78,7 @@ export const refreshTokenService = async ({ sessionId, refreshToken }) => {
         role: user.role
     });
 
-    const newRefreshTokenHash = await hashPassword(newRefreshToken);
+    const newRefreshTokenHash = hashToken(newRefreshToken);
 
     const sessionDuration =
         user.role === "admin"
@@ -117,7 +116,7 @@ export const resetPasswordService = async ({
 
         console.log("Checking token:", reset.reset_id);
 
-        const matched = await bcrypt.compare(
+        const matched = await compareTokenHash(
             token,
             reset.token_hash
         );
@@ -181,7 +180,7 @@ export const forgotPasswordService = async (email) => {
 
     const token = crypto.randomBytes(32).toString("hex");
 
-    const tokenHash = await hashPassword(token);
+    const tokenHash = hashToken(token);
 
     await deletePasswordResetsByUserId(
         user.user_id
@@ -267,12 +266,12 @@ export const signupService = async ({
 
     const userId = result.insertId;
 
-    await NotificationService.createNotification({
+    NotificationService.createNotification({
         title: "New User Registered",
         body: `${name} created a new account.`,
         type: "user",
         referenceId: userId
-    });
+    }).catch(err => console.error("Notification creation failed:", err));
 
     // 4. Generate Tokens
 
@@ -286,7 +285,7 @@ export const signupService = async ({
         email
     });
 
-    const refreshTokenHash = await hashPassword(refreshToken);
+    const refreshTokenHash = hashToken(refreshToken);
 
     // 5. Create Session
 
@@ -364,7 +363,7 @@ export const loginService = async ({
         role: user.role
     });
 
-    const refreshTokenHash = await hashPassword(refreshToken);
+    const refreshTokenHash = hashToken(refreshToken);
 
     // Save Session
 
@@ -456,8 +455,7 @@ export const adminLoginService = async ({
     });
 
 
-    const refreshTokenHash =
-        await hashPassword(refreshToken);
+    const refreshTokenHash = hashToken(refreshToken);
 
 
     const sessionId = uuidv4();

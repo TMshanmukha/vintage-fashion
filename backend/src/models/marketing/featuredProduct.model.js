@@ -16,6 +16,8 @@ export async function getAllFeatured() {
       p.name AS product_name,
       p.slug,
       p.price,
+      p.original_price,
+      p.badge,
 
       pi.image_url
 

@@ -7,14 +7,22 @@ export async function getAllCards() {
   const [rows] = await pool.query(
     `
     SELECT
-      card_id, title, subtitle, image_url, image_public_id,
-      button_text, button_link, category_id, discount_percent,
-      display_order, is_active,
-      created_at, updated_at
+      card_id,
+      title,
+      subtitle,
+      image_url,
+      button_text,
+      button_link,
+      display_order,
+      is_active,
+      badge,
+      created_at,
+      updated_at
     FROM promotional_cards
     ORDER BY display_order ASC, card_id DESC
     `
   );
+
   return rows;
 }
 
@@ -23,9 +31,15 @@ export async function getAllCards() {
 ========================================================== */
 export async function getCardById(cardId) {
   const [rows] = await pool.query(
-    `SELECT * FROM promotional_cards WHERE card_id = ? LIMIT 1`,
+    `
+    SELECT *
+    FROM promotional_cards
+    WHERE card_id = ?
+    LIMIT 1
+    `,
     [cardId]
   );
+
   return rows[0];
 }
 
@@ -40,32 +54,36 @@ export async function createCard(data) {
     image_public_id,
     button_text,
     button_link,
-    category_id,
-    discount_percent,
     display_order,
     is_active,
+    badge,
   } = data;
 
   const [result] = await pool.query(
     `
     INSERT INTO promotional_cards (
-      title, subtitle, image_url, image_public_id,
-      button_text, button_link, category_id, discount_percent,
-      display_order, is_active
+      title,
+      subtitle,
+      image_url,
+      image_public_id,
+      button_text,
+      button_link,
+      display_order,
+      is_active,
+      badge
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       title,
-      subtitle ?? null,
+      subtitle || null,
       image_url,
-      image_public_id ?? null,
-      button_text ?? null,
+      image_public_id,
+      button_text || "Shop Now",
       button_link || "/shop",
-      category_id ?? null,
-      discount_percent ?? null,
-      display_order,
+      display_order || 1,
       is_active ?? true,
+      badge ?? null,
     ]
   );
 
@@ -77,14 +95,21 @@ export async function createCard(data) {
 ========================================================== */
 export async function updateCard(cardId, data) {
   const fields = Object.keys(data);
-  if (fields.length === 0) return getCardById(cardId);
 
-  const setClause = fields.map((f) => `${f} = ?`).join(", ");
-  const values = fields.map((f) => data[f]);
+  if (fields.length === 0) {
+    return getCardById(cardId);
+  }
+
+  const setClause = fields.map((field) => `${field} = ?`).join(", ");
+  const values = fields.map((field) => data[field]);
   values.push(cardId);
 
   await pool.query(
-    `UPDATE promotional_cards SET ${setClause} WHERE card_id = ?`,
+    `
+    UPDATE promotional_cards
+    SET ${setClause}
+    WHERE card_id = ?
+    `,
     values
   );
 
@@ -113,6 +138,8 @@ export async function getCardProducts(cardId) {
       p.name AS product_name,
       p.slug,
       p.price,
+      p.original_price,
+      p.badge,
       pi.image_url
     FROM promotional_card_products pcp
     JOIN products p ON p.product_id = pcp.product_id

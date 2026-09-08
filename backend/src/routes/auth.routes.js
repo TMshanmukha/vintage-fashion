@@ -20,6 +20,10 @@ const router = express.Router();
 router.post("/refresh", refresh);
 
 router.post("/signup", (req, res, next) => {
+  const contentType = req.headers["content-type"] || "";
+  if (!contentType.includes("multipart/form-data")) {
+    return next();
+  }
   upload.single("avatar")(req, res, (err) => {
     if (err) {
       console.error("UPLOAD ERROR:", err);

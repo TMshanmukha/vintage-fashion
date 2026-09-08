@@ -7,24 +7,42 @@ import {
   getCardProducts,
   setCardProducts,
 } from "../../models/marketing/promotionalCard.model.js";
-
+import {
+  resolvePromotionsForProducts,
+  applyPromotion,
+} from "../pricing/pricing.service.js";
 import cloudinary from "../../config/cloudinary.js";
+
+async function attachProducts(card) {
+  if (!card) return card;
+  const products = await getCardProducts(card.card_id);
+  if (!products || !products.length) return { ...card, products: [] };
+
+  const promotions = await resolvePromotionsForProducts(
+    products.map((p) => p.product_id)
+  );
+
+  const formattedProducts = products.map((p) => {
+    const promo = promotions[p.product_id];
+    const pricing = applyPromotion(p.price, p.original_price, promo);
+    return {
+      ...p,
+      ...pricing,
+    };
+  });
+
+  return { ...card, products: formattedProducts };
+}
 
 export async function getAllCardsService() {
   const cards = await getAllCards();
-  return Promise.all(
-    cards.map(async (card) => ({
-      ...card,
-      products: await getCardProducts(card.card_id),
-    }))
-  );
+  return Promise.all(cards.map(attachProducts));
 }
 
 export async function getCardByIdService(cardId) {
   const card = await getCardById(cardId);
   if (!card) return null;
-  const products = await getCardProducts(cardId);
-  return { ...card, products };
+  return attachProducts(card);
 }
 
 export async function createCardService(data) {

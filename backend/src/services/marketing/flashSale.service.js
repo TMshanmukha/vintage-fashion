@@ -7,11 +7,36 @@ import {
   deleteFlashSale,
   setFlashSaleProducts,
 } from "../../models/marketing/flashSale.model.js";
+import {
+  resolvePromotionsForProducts,
+  applyPromotion,
+} from "../pricing/pricing.service.js";
 
 async function attachProducts(sale) {
   if (!sale) return sale;
   const products = await getFlashSaleProducts(sale.flash_sale_id);
-  return { ...sale, products };
+  if (!products || !products.length) return { ...sale, products: [] };
+
+  const promotions = await resolvePromotionsForProducts(
+    products.map((p) => p.product_id)
+  );
+
+  const formattedProducts = products.map((p) => {
+    let promo = promotions[p.product_id];
+    if (!promo && sale.discount_type && sale.discount_value) {
+      promo = {
+        discount_type: sale.discount_type,
+        discount_value: sale.discount_value,
+      };
+    }
+    const pricing = applyPromotion(p.price, p.original_price, promo);
+    return {
+      ...p,
+      ...pricing,
+    };
+  });
+
+  return { ...sale, products: formattedProducts };
 }
 
 export async function getAllFlashSalesService() {

@@ -30,6 +30,8 @@ export async function getFlashSaleProducts(flashSaleId) {
       p.name AS product_name,
       p.slug,
       p.price,
+      p.original_price,
+      p.badge,
       pi.image_url
     FROM flash_sale_products fsp
     JOIN products p ON p.product_id = fsp.product_id

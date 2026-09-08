@@ -7,13 +7,37 @@ import {
   getBannerProducts,
   setBannerProducts,
 } from "../../models/marketing/banner.model.js";
-
+import {
+  resolvePromotionsForProducts,
+  applyPromotion,
+} from "../pricing/pricing.service.js";
 import cloudinary from "../../config/cloudinary.js";
 
 async function attachProducts(banner) {
   if (!banner) return banner;
   const products = await getBannerProducts(banner.banner_id);
-  return { ...banner, products };
+  if (!products || !products.length) return { ...banner, products: [] };
+
+  const promotions = await resolvePromotionsForProducts(
+    products.map((p) => p.product_id)
+  );
+
+  const formattedProducts = products.map((p) => {
+    let promo = promotions[p.product_id];
+    if (!promo && banner.discount_percent && Number(banner.discount_percent) > 0) {
+      promo = {
+        discount_type: "PERCENTAGE",
+        discount_value: Number(banner.discount_percent),
+      };
+    }
+    const pricing = applyPromotion(p.price, p.original_price, promo);
+    return {
+      ...p,
+      ...pricing,
+    };
+  });
+
+  return { ...banner, products: formattedProducts };
 }
 
 export async function getAllBannersService() {
