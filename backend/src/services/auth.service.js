@@ -32,6 +32,7 @@ import { getSessionById, updateSessionRefreshToken } from "../models/session.mod
 import { findUserById } from "../models/user.model.js";
 
 import * as NotificationService from "./notificationService.js";
+import { sendWelcomeEmail } from "./emailService.js";
 
 export const refreshTokenService = async ({ sessionId, refreshToken }) => {
 
@@ -272,6 +273,9 @@ export const signupService = async ({
         type: "user",
         referenceId: userId
     }).catch(err => console.error("Notification creation failed:", err));
+
+    sendWelcomeEmail({ to: email, customerName: name })
+        .catch(err => console.error("Welcome email dispatch failed:", err));
 
     // 4. Generate Tokens
 
