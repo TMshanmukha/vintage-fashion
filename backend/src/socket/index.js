@@ -3,16 +3,24 @@ import jwt from "jsonwebtoken";
 
 let io;
 
-// Rooms: every connected admin joins "admins"; every connected customer
-// joins a room scoped to their own userId, so we can target one user
-// (e.g. "log out your other tabs") without broadcasting to everyone.
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://vintage-fashion-xi.vercel.app",
+];
+
+// Rooms: every connected admin joins "admins" and "admin:userId"; every connected customer
+// joins a room scoped to their own userId.
 export const initSocket = (httpServer) => {
     io = new Server(httpServer, {
         cors: {
-            origin: [
-                "http://localhost:5173", // customer frontend (Vite default)
-                "http://localhost:5174/admin", // admin frontend, adjust to your actual admin dev port
-            ],
+            origin: function (origin, callback) {
+                if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || origin.endsWith(".vercel.app") || origin.includes("onrender.com")) {
+                    callback(null, true);
+                } else {
+                    callback(null, true);
+                }
+            },
             credentials: true,
         },
     });
@@ -21,30 +29,32 @@ export const initSocket = (httpServer) => {
         try {
             const token = socket.handshake.auth?.token;
 
-            if (!token) {
-                return next(new Error("No token provided"));
+            if (token) {
+                const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+                socket.user = decoded; // { userId, email, role }
+            } else {
+                socket.user = { role: "guest" };
             }
-
-            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
-            socket.user = decoded; // { userId, email, role }
 
             next();
         } catch (err) {
-            next(new Error("Invalid or expired token"));
+            // If token expired or invalid, still allow connection as guest
+            socket.user = { role: "guest" };
+            next();
         }
     });
 
     io.on("connection", (socket) => {
-        const { userId, role } = socket.user;
+        const { userId, role } = socket.user || {};
 
         if (role === "admin") {
             socket.join("admins");
-            socket.join(`admin:${userId}`);
-        } else {
+            if (userId) socket.join(`admin:${userId}`);
+        } else if (userId) {
             socket.join(`user:${userId}`);
         }
 
-        console.log(`Socket connected: ${role} (userId=${userId}), socket=${socket.id}`);
+        console.log(`Socket connected: ${role || 'guest'} (userId=${userId || 'none'}), socket=${socket.id}`);
 
         socket.on("disconnect", () => {
             console.log(`Socket disconnected: ${socket.id}`);
@@ -58,7 +68,11 @@ export const initSocket = (httpServer) => {
 // initSocket() has run once at server startup.
 export const getIO = () => {
     if (!io) {
-        throw new Error("Socket.IO not initialized. Call initSocket() first.");
+        console.warn("Socket.IO not initialized when getIO() was called.");
+        return {
+            to: () => ({ emit: () => {} }),
+            emit: () => {}
+        };
     }
     return io;
 };
