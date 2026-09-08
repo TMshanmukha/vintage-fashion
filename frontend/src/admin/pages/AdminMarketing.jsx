@@ -1,7 +1,7 @@
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import ProductPickerBox from "../components/marketing/ProductPickerBox";
-import CardFormModal from "../components/marketing/CardFormModal";
+import CardFormModal from "../components/marketing/Cardformmodal";
 import * as siteSettingsApi from "../../api/siteSettingsApi";
 import * as bannerApi from "../../api/bannerApi";
 import * as cardApi from "../../api/promotionalCardApi";
