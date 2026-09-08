@@ -1,24 +1,41 @@
 import API from "./AdminApi";
+import { cachedAxiosGet, invalidateCache } from "../utils/apiCache";
 
-export const getFlashSales = () => API.get("/admin/marketing/flash-sales");
+export const getFlashSales = () => cachedAxiosGet(API, "/admin/marketing/flash-sales");
 
 export const getFlashSale = (id) =>
-  API.get(`/admin/marketing/flash-sales/${id}`);
+  cachedAxiosGet(API, `/admin/marketing/flash-sales/${id}`);
 
-export const createFlashSale = (formData) =>
-  API.post("/admin/marketing/flash-sales", formData, {
+export const createFlashSale = async (formData) => {
+  const res = await API.post("/admin/marketing/flash-sales", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  invalidateCache("flash-sales");
+  invalidateCache("marketing");
+  return res;
+};
 
-export const updateFlashSale = (id, formData) =>
-  API.patch(`/admin/marketing/flash-sales/${id}`, formData, {
+export const updateFlashSale = async (id, formData) => {
+  const res = await API.patch(`/admin/marketing/flash-sales/${id}`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
+  invalidateCache("flash-sales");
+  invalidateCache("marketing");
+  return res;
+};
 
-export const deleteFlashSale = (id) =>
-  API.delete(`/admin/marketing/flash-sales/${id}`);
+export const deleteFlashSale = async (id) => {
+  const res = await API.delete(`/admin/marketing/flash-sales/${id}`);
+  invalidateCache("flash-sales");
+  invalidateCache("marketing");
+  return res;
+};
 
-export const setFlashSaleProducts = (id, productIds) =>
-  API.put(`/admin/marketing/flash-sales/${id}/products`, {
+export const setFlashSaleProducts = async (id, productIds) => {
+  const res = await API.put(`/admin/marketing/flash-sales/${id}/products`, {
     product_ids: productIds,
   });
+  invalidateCache("flash-sales");
+  invalidateCache("marketing");
+  return res;
+};

@@ -120,6 +120,7 @@ export default function OfferPage() {
                   name: p.name,
                   price: finalPrice,
                   originalPrice: discount > 0 ? rawPrice : null,
+                  discountPercent: discount > 0 ? discount : 0,
                   image: p.image_url,
                   images: p.image_url ? [p.image_url] : [],
                 }}

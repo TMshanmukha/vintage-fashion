@@ -7,6 +7,7 @@ import BrandFormModal from "../components/BrandFormModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 import api from "../../api/brandApi";
+import { invalidateCache, cachedAxiosGet } from "../../utils/apiCache";
 
 export default function AdminBrands() {
   const [brands, setBrands] = useState([]);
@@ -29,8 +30,10 @@ export default function AdminBrands() {
     try {
       setLoading(true);
 
-      const res = await api.get("/brands", {
-        params: { page: currentPage, limit: LIMIT, search: search || undefined }
+      const res = await cachedAxiosGet(api, "/brands", {
+        page: currentPage,
+        limit: LIMIT,
+        search: search || undefined,
       });
 
       setBrands(res.data.data || []);
@@ -55,7 +58,7 @@ export default function AdminBrands() {
   const openEditModal = async (slug) => {
     try {
       setLoading(true);
-      const res = await api.get(`/brands/${slug}`);
+      const res = await cachedAxiosGet(api, `/brands/${slug}`);
       setEditingBrand(res.data.data);
       setModalOpen(true);
     } catch (error) {
@@ -87,6 +90,7 @@ export default function AdminBrands() {
         toast.success("Brand created successfully.");
       }
 
+      invalidateCache("brands");
       setModalOpen(false);
       fetchBrands();
     } catch (error) {
@@ -100,6 +104,7 @@ export default function AdminBrands() {
   const confirmDelete = async () => {
     try {
       await api.delete(`/brands/${deleteTarget.brand_id}`);
+      invalidateCache("brands");
       toast.success("Brand deleted successfully.");
       setDeleteTarget(null);
       fetchBrands();

@@ -7,6 +7,7 @@ import ProductFormModal from "../components/ProductFormModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 
 import api from "../../api/productApi";
+import { invalidateCache, cachedAxiosGet } from "../../utils/apiCache";
 
 export default function AdminProducts() {
 
@@ -40,11 +41,9 @@ export default function AdminProducts() {
 
             setLoading(true);
 
-            const res = await api.get("/products", {
-                params: {
-                    page: currentPage,
-                    limit: LIMIT,
-                },
+            const res = await cachedAxiosGet(api, "/products", {
+                page: currentPage,
+                limit: LIMIT,
             });
 
             setProducts(res.data.data || []);
@@ -227,6 +226,8 @@ export default function AdminProducts() {
             toast.success("Product created successfully.");
             }
 
+            invalidateCache("products");
+            invalidateCache("marketing");
             setModalOpen(false);
             fetchProducts();
         } catch (error) {
@@ -249,6 +250,8 @@ export default function AdminProducts() {
                 `/products/${deleteTarget.product_id}`
             );
 
+            invalidateCache("products");
+            invalidateCache("marketing");
             toast.success("Product deleted successfully.");
 
             setDeleteTarget(null);

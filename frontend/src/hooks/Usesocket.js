@@ -1,17 +1,22 @@
 import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import useAuth from "./useAuth";
+import { API_BASE_URL } from "../api/apiBaseUrl";
 
-// Keeps a single socket connection alive for as long as the user is
-// logged in, and RECONNECTS whenever login state changes — this is the
-// part that was missing before. Depending on `user` (not an empty [])
-// means: log in without a page refresh -> effect re-runs -> socket
-// connects with the fresh token. Log out -> effect cleans up -> socket
-// disconnects. A stale, mount-time-only token check meant events like
-// "session:changed" were silently never received in same-tab flows.
+const SOCKET_SERVER_URL = API_BASE_URL.replace(/\/api\/?$/, "");
+
+/**
+ * Customer Socket Hook
+ * Keeps a single socket connection alive for as long as the user is logged in.
+ * Dynamically proxies incoming events to the latest handlers to avoid stale closures.
+ */
 export default function useSocket(handlers = {}) {
     const socketRef = useRef(null);
+    const handlersRef = useRef(handlers);
     const { user } = useAuth();
+
+    // Always keep latest handler functions in ref
+    handlersRef.current = handlers;
 
     useEffect(() => {
         const token = localStorage.getItem("accessToken");
@@ -22,40 +27,40 @@ export default function useSocket(handlers = {}) {
             return;
         }
 
-        const socket = io("http://localhost:5000", {
+        const socket = io(SOCKET_SERVER_URL, {
             auth: { token },
             withCredentials: true,
+            transports: ["websocket", "polling"],
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
         });
 
         socketRef.current = socket;
 
         socket.on("connect", () => {
-            console.log("[socket] connected:", socket.id);
+            console.log("[socket] customer connected:", socket.id);
         });
 
-        // TEMPORARY debug visibility — logs every event this socket
-        // receives, regardless of whether a handler is registered for it.
-        // If you change a status in the admin panel and DON'T see a line
-        // here in the customer tab's console, the event isn't reaching
-        // the browser at all (server-side emit/room issue). If you DO see
-        // it here but the UI doesn't update, the bug is in the handler
-        // logic instead. Remove this once things are confirmed working.
         socket.onAny((event, payload) => {
             console.log("[socket] event received:", event, payload);
-        });
-
-        Object.entries(handlers).forEach(([event, handler]) => {
-            socket.on(event, handler);
+            if (handlersRef.current && typeof handlersRef.current[event] === "function") {
+                try {
+                    handlersRef.current[event](payload);
+                } catch (err) {
+                    console.error(`[socket] error in handler for ${event}:`, err);
+                }
+            }
         });
 
         socket.on("connect_error", (err) => {
-            console.warn("Socket connection failed:", err.message);
+            console.warn("[socket] connection warning:", err.message);
         });
 
         return () => {
             socket.disconnect();
+            socketRef.current = null;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [user]);
 
     return socketRef;

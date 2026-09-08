@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import api, {
     restoreCategory
 } from "../../api/categoryApi";
+import { invalidateCache, cachedAxiosGet } from "../../utils/apiCache";
 import { getThumbnail } from "../../utils/cloudinary";
 
 export default function AdminCategories() {
@@ -58,11 +59,9 @@ export default function AdminCategories() {
 
             setLoading(true);
 
-            const res = await api.get("/categories", {
-                params: {
-                    page: currentPage,
-                    limit: LIMIT,
-                },
+            const res = await cachedAxiosGet(api, "/categories", {
+                page: currentPage,
+                limit: LIMIT,
             });
 
             console.log(res.data);
@@ -158,6 +157,7 @@ export default function AdminCategories() {
 
             }
 
+            invalidateCache("categories");
             setModalOpen(false);
 
             setEditingCategory(null);
@@ -189,6 +189,7 @@ export default function AdminCategories() {
                 `/categories/${deleteTarget.category_id}`
             );
 
+            invalidateCache("categories");
             toast.success("Category deleted successfully.");
 
             setDeleteTarget(null);

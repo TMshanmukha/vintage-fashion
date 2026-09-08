@@ -1,13 +1,22 @@
 import { useEffect, useRef } from "react";
 import { io } from "socket.io-client";
 import { useAdminAuth } from "../../src/admin/context/AdminAuthContext";
+import { API_BASE_URL } from "../api/apiBaseUrl";
 
-// Same fix as the customer useSocket hook: reconnects whenever admin
-// login state changes, instead of only checking for a token once at
-// mount (which meant admin login mid-session never actually connected).
+const SOCKET_SERVER_URL = API_BASE_URL.replace(/\/api\/?$/, "");
+
+/**
+ * Admin Socket Hook
+ * Keeps a single socket connection alive for as long as admin is logged in.
+ * Dynamically proxies incoming events to the latest handlers to avoid stale closures.
+ */
 export default function useAdminSocket(handlers = {}) {
     const socketRef = useRef(null);
+    const handlersRef = useRef(handlers);
     const { admin } = useAdminAuth();
+
+    // Always keep latest handler functions in ref
+    handlersRef.current = handlers;
 
     useEffect(() => {
         const token = localStorage.getItem("adminAccessToken");
@@ -18,9 +27,13 @@ export default function useAdminSocket(handlers = {}) {
             return;
         }
 
-        const socket = io("http://localhost:5000", {
+        const socket = io(SOCKET_SERVER_URL, {
             auth: { token },
             withCredentials: true,
+            transports: ["websocket", "polling"],
+            reconnection: true,
+            reconnectionAttempts: 10,
+            reconnectionDelay: 1000,
         });
 
         socketRef.current = socket;
@@ -29,24 +42,25 @@ export default function useAdminSocket(handlers = {}) {
             console.log("[admin socket] connected:", socket.id);
         });
 
-        // TEMPORARY — same debug visibility as the customer socket hook.
-        // Remove once live updates are confirmed working end-to-end.
         socket.onAny((event, payload) => {
             console.log("[admin socket] event received:", event, payload);
-        });
-
-        Object.entries(handlers).forEach(([event, handler]) => {
-            socket.on(event, handler);
+            if (handlersRef.current && typeof handlersRef.current[event] === "function") {
+                try {
+                    handlersRef.current[event](payload);
+                } catch (err) {
+                    console.error(`[admin socket] error in handler for ${event}:`, err);
+                }
+            }
         });
 
         socket.on("connect_error", (err) => {
-            console.warn("Admin socket connection failed:", err.message);
+            console.warn("[admin socket] connection warning:", err.message);
         });
 
         return () => {
             socket.disconnect();
+            socketRef.current = null;
         };
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [admin]);
 
     return socketRef;

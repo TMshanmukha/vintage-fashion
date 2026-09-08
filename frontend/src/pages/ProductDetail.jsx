@@ -336,16 +336,30 @@ export default function ProductDetail() {
         {/* Info */}
         <div className="flex flex-col justify-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-xl font-bold text-gray-900">
-              ₹ {(Number(product.price) || 0).toFixed(2)}
-            </span>
-            {product.original_price && Number(product.original_price) > (Number(product.price) || 0) && (
-              <span className="text-sm text-gray-400 line-through">
-                ₹ {(Number(product.original_price) || 0).toFixed(2)}
-              </span>
-            )}
-          </div>
+          {(() => {
+            const currentPrice = Number(product.final_price ?? product.price) || 0;
+            const originalPrice = product.original_price != null ? Number(product.original_price) : Number(product.price || currentPrice);
+            const discountPercent = Number(product.discount_percent) || (originalPrice > currentPrice ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0);
+            const hasDiscount = discountPercent > 0 && originalPrice > currentPrice;
+
+            return (
+              <div className="flex items-center gap-3 mb-4 flex-wrap">
+                <span className="text-2xl font-extrabold text-gray-900">
+                  ₹ {currentPrice.toFixed(2)}
+                </span>
+                {hasDiscount && (
+                  <>
+                    <span className="text-base text-gray-400 line-through">
+                      ₹ {originalPrice.toFixed(2)}
+                    </span>
+                    <span className="text-xs font-bold text-pink-600 bg-pink-50 px-2.5 py-1 rounded-full">
+                      {discountPercent}% OFF
+                    </span>
+                  </>
+                )}
+              </div>
+            );
+          })()}
 
           {/* Stars */}
           <div className="flex items-center gap-1 mb-6">
