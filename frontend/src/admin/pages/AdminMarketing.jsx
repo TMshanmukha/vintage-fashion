@@ -569,7 +569,7 @@ export default function AdminMarketing() {
     return (
       <AdminLayout>
         <AdminTopbar title="Marketing & Homepage" subtitle="Loading..." />
-        <div className="p-8 text-center text-gray-500">Loading marketing data…</div>
+        <div className="p-4 sm:p-6 lg:p-8 text-center text-gray-500">Loading marketing data…</div>
       </AdminLayout>
     );
   }
@@ -581,11 +581,11 @@ export default function AdminMarketing() {
         subtitle="Manage homepage banners, promotions, featured products, and storefront visibility."
       />
 
-      <div className="p-8 bg-gray-50 min-h-screen">
-        <div className="max-w-7xl mx-auto space-y-8">
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+        <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
 
           {/* Announcement Bar */}
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between mb-6">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">📢 Announcement Bar</h2>
@@ -641,7 +641,7 @@ export default function AdminMarketing() {
           </section>
 
           {/* Hero Banner */}
-          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-6">
+          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-lg font-bold text-gray-900">🖼 Hero Banner</h2>

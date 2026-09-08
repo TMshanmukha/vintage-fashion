@@ -13,19 +13,26 @@ function isLoggedIn() {
 }
 
 function mapCartItem(row) {
+  const price = Number(row.price);
+  const safePrice = isNaN(price) ? 0 : price;
+  const originalPrice = row.original_price != null ? Number(row.original_price) : safePrice;
+  const safeOriginalPrice = isNaN(originalPrice) || originalPrice < safePrice ? safePrice : originalPrice;
+  const qty = Number(row.quantity);
+  const safeQty = isNaN(qty) || qty < 1 ? 1 : qty;
+
   return {
     id: row.cart_item_id,
     variantId: row.variant_id,
     productId: row.product_id,
-    name: row.name,
-    price: Number(row.price),
+    name: row.name || "Product",
+    price: safePrice,
     image: row.image_url,
-    qty: row.quantity,
+    qty: safeQty,
     size: row.size,
     color: row.color,
     slug: row.slug,
 
-    original_price: row.original_price != null ? Number(row.original_price) : Number(row.price),
+    original_price: safeOriginalPrice,
     discount_percent: Number(row.discount_percent) || 0,
     discount_amount: Number(row.discount_amount) || 0,
     promotion_id: row.promotion_id,
@@ -33,11 +40,14 @@ function mapCartItem(row) {
 }
 
 function mapWishlistItem(row) {
+  const price = Number(row.price);
+  const safePrice = isNaN(price) ? 0 : price;
+
   return {
     id: row.product_id,
-    name: row.name,
+    name: row.name || "Product",
     image: row.image_url,
-    price: Number(row.price),
+    price: safePrice,
     slug: row.slug,
     path: `/product/${row.slug}`,
   };
@@ -170,8 +180,11 @@ export function CartProvider({ children }) {
 
   const clearCart = () => setCartItems([]);
 
-  const cartTotal = cartItems.reduce((sum, item) => sum + item.price * item.qty, 0);
-  const cartCount = cartItems.reduce((sum, item) => sum + item.qty, 0);
+  const cartTotal = cartItems.reduce(
+    (sum, item) => sum + (Number(item.price) || 0) * (Number(item.qty) || 1),
+    0
+  );
+  const cartCount = cartItems.reduce((sum, item) => sum + (Number(item.qty) || 1), 0);
 
   // --- WISHLIST ---
 

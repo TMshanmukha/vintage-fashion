@@ -39,25 +39,37 @@ export default function AuthPage() {
   const isLogin = mode === "login";
 
   const getFriendlyError = (err) => {
-    const message = err?.response?.data?.message || "";
-    switch (message) {
-      case "Email already registered":
-        return "This email is already registered.";
+    const message = err?.response?.data?.message || err?.message || "";
+    const lower = message.toLowerCase();
 
-      case "Invalid email or password":
-        return "Incorrect email or password.";
-
-      case "Your account has been blocked by admin":
-        return "Your account has been blocked by the admin. Please contact support.";
-
-      case "Network Error":
-        return "No Internet Connection.";
-      case "Admin cannot login here":
-        return "Incorrect email or password."
-
-      default:
-        return "Something went wrong. Please try again.";
+    if (lower.includes("email already") || lower.includes("already registered")) {
+      return "An account with this email already exists. Please sign in instead.";
     }
+    if (lower.includes("invalid email or password") || lower.includes("incorrect") || lower.includes("invalid password")) {
+      return "Incorrect email or password. Please check and try again.";
+    }
+    if (lower.includes("blocked")) {
+      return "Your account has been suspended. Please reach out to customer support.";
+    }
+    if (lower.includes("admin cannot login here")) {
+      return "This portal is for customers. Admin accounts cannot log in here.";
+    }
+    if (lower.includes("network") || !navigator.onLine) {
+      return "Unable to connect. Please check your internet connection and try again.";
+    }
+    if (lower.includes("password must")) {
+      return "Password must be at least 6 characters long.";
+    }
+    if (lower.includes("valid email")) {
+      return "Please enter a valid email address (e.g. yourname@example.com).";
+    }
+    if (lower.includes("name must")) {
+      return "Please provide your name (at least 2 characters).";
+    }
+    if (message && typeof message === "string" && message.length < 100 && !message.includes("SQL") && !message.includes("Error:") && !message.includes("{")) {
+      return message;
+    }
+    return "Something went wrong while processing your request. Please try again.";
   };
 
   const updateField = (event) => {
@@ -168,12 +180,12 @@ export default function AuthPage() {
         </div>
       )}
 
-      <main className="min-h-screen w-full bg-white-50/60 flex items-center justify-center px-5 py-10">
+      <main className="min-h-screen w-full bg-slate-50/60 flex items-center justify-center px-5 py-10">
         <motion.section
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4, ease: "easeOut" }}
-          className="w-full max-w-md rounded-2xl border border-pink-500 bg-white p-8 shadow-m"
+          className="w-full max-w-md rounded-2xl border border-pink-500 bg-white p-8 shadow-md"
         >
           <div className="text-center">
             <Link

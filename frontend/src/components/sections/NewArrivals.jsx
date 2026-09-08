@@ -11,7 +11,11 @@ export default function NewArrivals() {
   useEffect(() => {
     let mounted = true;
     getProducts({ page: 1, limit: 10, sort: "newest" })
-      .then((res) => mounted && setProducts(res.data?.data || []))
+      .then((res) => {
+        if (!mounted) return;
+        const list = Array.isArray(res?.data) ? res.data : (Array.isArray(res) ? res : []);
+        setProducts(list);
+      })
       .catch(() => {});
     return () => {
       mounted = false;

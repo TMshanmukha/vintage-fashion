@@ -93,8 +93,9 @@ export default function Checkout() {
     setSavingAddress(false);
   };
 
-  const shippingFee = calculateShipping(cartTotal, announcementText);
-  const total = cartTotal + shippingFee;
+  const safeCartTotal = isNaN(Number(cartTotal)) ? 0 : Number(cartTotal);
+  const shippingFee = calculateShipping(safeCartTotal, announcementText);
+  const total = safeCartTotal + shippingFee;
 
   const handlePlaceOrder = async () => {
     if (!selectedAddressId) {
@@ -501,14 +502,16 @@ export default function Checkout() {
               {cartItems.map((item) => (
                 <div key={item.id} className="flex justify-between">
                   <span className="text-gray-500 truncate flex-1">{item.name} × {item.qty}</span>
-                  <span className="font-semibold ml-2">₹ {(item.price * item.qty).toFixed(2)}</span>
+                  <span className="font-semibold ml-2">
+                    ₹ {((Number(item.price) || 0) * (Number(item.qty) || 1)).toFixed(2)}
+                  </span>
                 </div>
               ))}
             </div>
             <div className="border-t border-gray-200 pt-3 space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-gray-500">Subtotal</span>
-                <span className="font-semibold">₹ {cartTotal.toFixed(2)}</span>
+                <span className="font-semibold">₹ {safeCartTotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-gray-500">Shipping</span>

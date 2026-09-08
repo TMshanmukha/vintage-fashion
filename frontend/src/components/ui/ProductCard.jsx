@@ -14,15 +14,13 @@ export default function ProductCard({ product }) {
 
   const wishlisted = isWishlisted(product.id);
 
-const price = Number(product.price);
+  const rawPrice = Number(product.price);
+  const price = isNaN(rawPrice) ? 0 : rawPrice;
+  const rawOriginal = Number(product.originalPrice ?? product.original_price ?? price);
+  const originalPrice = isNaN(rawOriginal) || rawOriginal < price ? price : rawOriginal;
 
-const originalPrice = Number(product.originalPrice ?? price);
-
-const discountPercent = Number(product.discountPercent) || 0;
-
-const hasDiscount =
-  discountPercent > 0 &&
-  originalPrice > price;
+  const discountPercent = Number(product.discountPercent || product.discount_percent) || 0;
+  const hasDiscount = discountPercent > 0 && originalPrice > price;
     
   const handleWishlist = (e) => {
     e.preventDefault();
@@ -30,7 +28,7 @@ const hasDiscount =
 
     if (!user) {
       setPendingAction({ action: "wishlist", slug: product.slug });
-      toast("Please log in to use your wishlist.");
+      toast("Please log in to save items to your wishlist.");
       navigate(`/auth?redirect=/product/${product.slug}`);
       return;
     }
@@ -39,7 +37,7 @@ const hasDiscount =
       id: product.id,
       name: product.name,
       image: product.image || product.images?.[0],
-      price: product.price,
+      price: price,
       slug: product.slug,
     });
   };
@@ -74,8 +72,7 @@ const hasDiscount =
         if (variants[0].stock_quantity <= 0) {
           toast.error("This product is out of stock.");
         } else {
-          addToCart(variants[0].variant_id, 1);
-          toast.success("Added to cart!");
+          await addToCart(variants[0].variant_id, 1);
         }
       } else {
         toast("Please choose a size and color first.");
@@ -142,22 +139,21 @@ const hasDiscount =
       <h3 className="text-sm font-medium text-gray-800 group-hover:text-pink-500 transition-colors line-clamp-2 mb-1">
         {product.name}
       </h3>
-      <div className="flex items-center gap-2">
-
+      <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-gray-900">
             ₹{price.toFixed(2)}
         </span>
 
-        <span className="text-xs text-gray-400 line-through">
-            ₹{originalPrice.toFixed(2)}
-        </span>
-
-        {/* {hasDiscount && (
-            <span className="text-xs font-semibold text-pink-500">
+        {hasDiscount && (
+          <>
+            <span className="text-xs text-gray-400 line-through">
+                ₹{originalPrice.toFixed(2)}
+            </span>
+            <span className="text-xs font-semibold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded">
                 {discountPercent}% OFF
             </span>
-        )} */}
-
+          </>
+        )}
       </div>
     </Link>
   );

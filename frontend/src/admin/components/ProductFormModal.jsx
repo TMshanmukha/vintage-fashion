@@ -298,7 +298,7 @@ export default function ProductFormModal({
           {/* PRICING */}
           <div>
             <h3 className="text-lg font-bold text-gray-800 mb-6">Pricing</h3>
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
               <div>
                 <label className={labelClass}>Price (₹)</label>
                 <input
@@ -402,7 +402,7 @@ export default function ProductFormModal({
                   )}
                 </div>
 
-                <div className="grid grid-cols-4 gap-5">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                   {newImages.map((image, index) => (
                     <div
                       key={image.url}
@@ -451,7 +451,7 @@ export default function ProductFormModal({
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-4 gap-5">
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
                 {existingImages.map((image, index) => (
                   <div
                     key={image.image_id ?? index}
@@ -518,8 +518,8 @@ export default function ProductFormModal({
                 </p>
               </div>
             ) : (
-              <div className="overflow-hidden rounded-2xl border border-gray-200">
-                <table className="w-full">
+              <div className="overflow-x-auto rounded-2xl border border-gray-200">
+                <table className="w-full min-w-[500px]">
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-5 py-4 text-left text-xs uppercase text-gray-500">
@@ -593,7 +593,7 @@ export default function ProductFormModal({
 
             {showVariantForm && (
               <div className="mt-6 rounded-2xl border p-6 bg-gray-50">
-                <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                   <input
                     placeholder="Size (e.g. M)"
                     value={variantForm.size}
@@ -696,7 +696,7 @@ export default function ProductFormModal({
               <h3 className="text-lg font-bold text-gray-800 mb-6">
                 Product Information
               </h3>
-              <div className="grid grid-cols-2 lg:grid-cols-3 gap-5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
                   <p className="text-xs uppercase tracking-wider text-gray-500">
                     Product ID

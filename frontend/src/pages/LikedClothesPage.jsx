@@ -10,9 +10,11 @@ function getItemName(item) {
 }
 
 function getItemPrice(item) {
-  if (item.price !== undefined) return item.price;
-  if (item.newPrice !== undefined) return item.newPrice;
-  if (item.salePrice !== undefined) return item.salePrice;
+  const p = item.price ?? item.newPrice ?? item.salePrice;
+  if (p !== undefined && p !== null && p !== "") {
+    const num = Number(p);
+    return isNaN(num) ? String(p) : `₹${num.toFixed(2)}`;
+  }
   return "";
 }
 
@@ -46,22 +48,22 @@ export default function LikedClothesPage() {
         <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-wide text-pink-500">Wishlist</p>
-            <h1 className="mt-2 text-3xl font-bold text-gray-900">Liked clothes</h1>
+            <h1 className="mt-2 text-3xl font-bold text-gray-900">Liked Clothes</h1>
             <p className="mt-2 text-sm text-gray-500">
-              Your liked clothes from the shop page are saved here.
+              Your saved favorite fashion pieces are all in one place.
             </p>
           </div>
 
           <Link
             to="/shop"
-            className="inline-flex items-center justify-center rounded-md bg-pink-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-pink-600"
+            className="inline-flex items-center justify-center rounded-md bg-pink-500 px-5 py-3 text-sm font-bold text-white transition hover:bg-pink-600 shadow-sm"
           >
-            Continue shopping
+            Continue Shopping
           </Link>
         </div>
 
         {wishlist.length === 0 ? (
-          <div className="rounded-lg border border-dashed border-gray-300 bg-white px-6 py-14 text-center">
+          <div className="rounded-xl border border-dashed border-gray-300 bg-white px-6 py-14 text-center shadow-sm">
             <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-pink-50 text-pink-500">
               <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -73,7 +75,7 @@ export default function LikedClothesPage() {
               </svg>
             </div>
             <h2 className="text-xl font-bold text-gray-900">No liked clothes yet</h2>
-            <p className="mt-2 text-sm text-gray-500">Click the heart button on a shop item to save it here.</p>
+            <p className="mt-2 text-sm text-gray-500">Click the heart button on any product to save it here.</p>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -81,10 +83,11 @@ export default function LikedClothesPage() {
               const image = getItemImage(item);
               const name = getItemName(item);
               const price = getItemPrice(item);
+              const productUrl = item.path || (item.slug ? `/product/${item.slug}` : `/product/${item.id}`);
 
               return (
-                <article key={item.id} className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-sm">
-                  <Link to={item.path || `/product/${item.id}`} className="block bg-gray-100">
+                <article key={item.id} className="overflow-hidden rounded-xl border border-gray-100 bg-white shadow-sm hover:shadow-md transition">
+                  <Link to={productUrl} className="block bg-gray-100">
                     {image ? (
                       <img
                         src={image}
@@ -101,7 +104,7 @@ export default function LikedClothesPage() {
                   <div className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
-                        <h2 className="text-base font-bold text-gray-900">{name}</h2>
+                        <h2 className="text-base font-bold text-gray-900 line-clamp-1">{name}</h2>
                         {item.category && <p className="mt-1 text-sm text-gray-500">{item.category}</p>}
                       </div>
 
@@ -122,10 +125,10 @@ export default function LikedClothesPage() {
                     <div className="mt-4 flex items-center justify-between gap-3">
                       <p className="text-lg font-extrabold text-gray-900">{price}</p>
                       <Link
-                        to={item.path || `/product/${item.id}`}
+                        to={productUrl}
                         className="rounded-md border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition hover:border-pink-300 hover:text-pink-500"
                       >
-                        View item
+                        View Item
                       </Link>
                     </div>
                   </div>

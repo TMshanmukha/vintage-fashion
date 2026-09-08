@@ -88,16 +88,16 @@ export default function Hero() {
         </div>
       ))}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 flex items-center w-full">
-        <div className="ml-auto max-w-sm text-right">
+      <div className="relative z-10 max-w-7xl mx-auto px-6 py-20 flex items-center w-full justify-center md:justify-end">
+        <div className="mx-auto md:ml-auto max-w-md md:max-w-sm text-center md:text-right">
           {text.subtitle && (
-            <p className="text-sm font-medium text-white/90 tracking-[0.3em] uppercase mb-2 flex items-center justify-end gap-3">
+            <p className="text-sm font-medium text-white/90 tracking-[0.3em] uppercase mb-2 flex items-center justify-center md:justify-end gap-3">
               <span className="block w-8 h-px bg-white/70" />
               {text.subtitle}
               <span className="block w-8 h-px bg-white/70" />
             </p>
           )}
-          <h1 className="text-5xl font-extrabold text-white leading-tight mb-3 drop-shadow-sm">
+          <h1 className="text-4xl md:text-5xl font-extrabold text-white leading-tight mb-3 drop-shadow-sm">
             {text.title}
           </h1>
           {text.description && (
@@ -110,7 +110,7 @@ export default function Hero() {
             {text.button_text}
           </Link>
 
-          <div className="flex justify-end gap-2 mt-6">
+          <div className="flex justify-center md:justify-end gap-2 mt-6">
             {HERO_IMAGES.map((_, i) => (
               <button
                 key={i}

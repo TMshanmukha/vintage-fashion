@@ -278,15 +278,15 @@ export default function AdminProducts() {
             subtitle="Manage all products available in your store."
         />
 
-        <div className="p-8">
+        <div className="p-4 sm:p-6 lg:p-8">
 
             {/* Toolbar */}
 
-            <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
 
                 {/* Search */}
 
-                <div className="relative w-full max-w-sm">
+                <div className="relative w-full sm:max-w-xs md:max-w-sm">
 
                     <svg
                         className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
@@ -316,7 +316,7 @@ export default function AdminProducts() {
 
                 <button
                     onClick={openAddModal}
-                    className="flex items-center justify-center gap-2 rounded-xl bg-pink-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-pink-600"
+                    className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-pink-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-pink-600 shadow-sm"
                 >
 
                     <svg
@@ -341,9 +341,9 @@ export default function AdminProducts() {
 
             {/* Products Table */}
 
-            <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
 
-                <table className="w-full">
+                <table className="w-full min-w-[700px]">
 
                     <thead>
 
@@ -603,13 +603,13 @@ export default function AdminProducts() {
 
     </div>
 
-    <div className="mt-6 flex items-center justify-between">
+    <div className="mt-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
 
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-gray-500 text-center sm:text-left">
             Showing page {currentPage} of {totalPages}
         </p>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-center">
 
             <button
                 disabled={currentPage === 1}

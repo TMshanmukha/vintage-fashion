@@ -34,3 +34,8 @@ export const getMyReturn = async (orderId) => {
   const { data } = await API.get(`/orders/my/${orderId}/return`);
   return data;
 };
+
+export const trackMyOrder = async (orderId) => {
+  const { data } = await API.get(`/orders/my/${orderId}/track`);
+  return data;
+};

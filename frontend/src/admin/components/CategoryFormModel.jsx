@@ -166,17 +166,17 @@ export default function CategoryFormModal({
 
     if (!open) return null;
     return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
 
-        <div className="w-full max-w-lg max-h-[90vh] rounded-2xl bg-white shadow-2xl flex flex-col">
+        <div className="w-full max-w-lg max-h-[90vh] rounded-2xl bg-white shadow-2xl flex flex-col overflow-hidden">
 
             {/* Header */}
 
-            <div className="border-b border-gray-200 px-8 py-6 flex items-start justify-between">
+            <div className="border-b border-gray-200 px-5 py-4 sm:px-6 sm:py-5 flex items-start justify-between">
 
                 <div>
 
-                    <h2 className="text-2xl font-bold text-gray-900">
+                    <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
 
                         {initialData
                             ? "Edit Category"
@@ -184,7 +184,7 @@ export default function CategoryFormModal({
 
                     </h2>
 
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-0.5 text-xs sm:text-sm text-gray-500">
 
                         {initialData
                             ? "Update your category details."
@@ -210,14 +210,14 @@ export default function CategoryFormModal({
             <form
                 onSubmit={handleSubmit}
                 id="category-form"
-                className="flex-1 overflow-y-auto scrollbar-hide p-6 space-y-6"
+                className="flex-1 overflow-y-auto scrollbar-hide p-4 sm:p-6 space-y-4 sm:space-y-6"
             >
 
                 {/* Category Name */}
 
                 <div>
 
-                    <label className="mb-2 block text-sm font-semibold text-gray-700">
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">
 
                         Category Name *
 
@@ -230,10 +230,10 @@ export default function CategoryFormModal({
                         onChange={handleChange}
                         disabled={saving}
                         placeholder="Example: Men's Fashion"
-                        className="w-full rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-pink-500 focus:ring-4 focus:ring-pink-100"
+                        className="w-full rounded-xl border border-gray-300 px-4 py-2.5 sm:py-3 text-sm outline-none transition focus:border-pink-500 focus:ring-4 focus:ring-pink-100"
                     />
 
-                    <p className="mt-2 text-xs text-gray-400">
+                    <p className="mt-1.5 text-xs text-gray-400">
 
                         This name will be visible to customers.
 
@@ -245,7 +245,7 @@ export default function CategoryFormModal({
 
                 <div>
 
-                    <div className="mb-2 flex items-center justify-between">
+                    <div className="mb-1.5 flex items-center justify-between">
 
                         <label className="text-sm font-semibold text-gray-700">
 
@@ -262,14 +262,14 @@ export default function CategoryFormModal({
                     </div>
 
                     <textarea
-                        rows={4}
+                        rows={3}
                         maxLength={300}
                         name="description"
                         value={form.description}
                         onChange={handleChange}
                         disabled={saving}
                         placeholder="Write a short description..."
-                        className="w-full resize-none rounded-xl border border-gray-300 px-4 py-3 outline-none transition focus:border-pink-500 focus:ring-4 focus:ring-pink-100"
+                        className="w-full resize-none rounded-xl border border-gray-300 px-4 py-2.5 sm:py-3 text-sm outline-none transition focus:border-pink-500 focus:ring-4 focus:ring-pink-100"
                     />
 
                 </div>
@@ -278,7 +278,7 @@ export default function CategoryFormModal({
 
                 <div>
 
-                    <label className="mb-2 block text-sm font-semibold text-gray-700">
+                    <label className="mb-1.5 block text-sm font-semibold text-gray-700">
 
                         Category Image
 
@@ -286,16 +286,16 @@ export default function CategoryFormModal({
 
                     <div
                         onClick={() => fileInputRef.current?.click()}
-                        className="cursor-pointer rounded-2xl border-2 border-dashed border-gray-300 p-8 text-center transition hover:border-pink-500 hover:bg-pink-50"
+                        className="cursor-pointer rounded-2xl border-2 border-dashed border-gray-300 p-5 sm:p-6 text-center transition hover:border-pink-500 hover:bg-pink-50"
                     >
 
-                        <div className="text-5xl">
+                        <div className="text-4xl sm:text-5xl">
 
                             🖼️
 
                         </div>
 
-                        <p className="mt-4 text-sm font-semibold text-gray-700">
+                        <p className="mt-3 text-sm font-semibold text-gray-700">
 
                             Click to upload an image
 
@@ -325,7 +325,7 @@ export default function CategoryFormModal({
 
                     <div>
 
-                        <div className="mb-3 flex items-center justify-between">
+                        <div className="mb-2 flex items-center justify-between">
 
                             <h3 className="text-sm font-semibold text-gray-700">
 
@@ -337,7 +337,7 @@ export default function CategoryFormModal({
                                 type="button"
                                 disabled={saving}
                                 onClick={removeImage}
-                                className="text-sm font-medium text-red-500 transition hover:text-red-600"
+                                className="text-xs sm:text-sm font-medium text-red-500 transition hover:text-red-600"
                             >
                                 Remove Image
                             </button>
@@ -353,7 +353,7 @@ export default function CategoryFormModal({
                                         : getThumbnail(preview)
                                 }
                                 alt="Preview"
-                                className="h-64 w-full object-cover"
+                                className="h-48 sm:h-56 w-full object-cover"
                             />
 
                         </div>
@@ -364,22 +364,21 @@ export default function CategoryFormModal({
 
                 {/* Footer */}
 
-                <div className="flex items-center justify-center gap-4 border-t border-gray-200 bg-white px-6 py-5">
+                <div className="flex flex-col-reverse sm:flex-row items-center justify-end gap-3 border-t border-gray-200 bg-white pt-4">
 
                     <button
                         type="button"
                         disabled={saving}
                         onClick={handleClose}
-                        className="rounded-xl border border-gray-300 px-6 py-3 font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
+                        className="w-full sm:w-auto rounded-xl border border-gray-300 px-5 py-2.5 sm:py-3 text-sm font-medium text-gray-700 transition hover:bg-gray-100 disabled:opacity-50"
                     >
                         Cancel
                     </button>
 
                     <button
                         type="submit"
-                        id="category-form"
                         disabled={saving}
-                        className="flex items-center gap-2 rounded-xl bg-pink-500 px-6 py-3 font-semibold text-white transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-pink-500 px-6 py-2.5 sm:py-3 text-sm font-semibold text-white transition hover:bg-pink-600 disabled:cursor-not-allowed disabled:opacity-60"
                     >
 
                         {saving && (
@@ -397,8 +396,6 @@ export default function CategoryFormModal({
                 </div>
 
             </form>
-
-            
 
         </div>
 

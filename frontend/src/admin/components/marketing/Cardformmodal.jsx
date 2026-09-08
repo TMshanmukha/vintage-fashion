@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-//import { getCategories } from "../../../api/categoryApi"; // ⚠️ adjust to your actual admin categories fetch export/path
 
 export default function CardFormModal({ categories = [], initialData, onClose, onSubmit }) {
   const [title, setTitle] = useState(initialData?.title || "");
@@ -9,17 +8,10 @@ export default function CardFormModal({ categories = [], initialData, onClose, o
   const [displayOrder, setDisplayOrder] = useState(initialData?.display_order || 1);
   const [categoryId, setCategoryId] = useState(initialData?.category_id || "");
   const [discountPercent, setDiscountPercent] = useState(initialData?.discount_percent || "");
-  //const [categories, setCategories] = useState([]);
   const [linkTouched, setLinkTouched] = useState(false);
   const [imageFile, setImageFile] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-
-  // useEffect(() => {
-  //   getCategories()
-  //     .then((res) => setCategories(res?.data ?? []))
-  //     .catch((err) => console.error("Failed to load categories:", err));
-  // }, []);
 
   // Auto-build the link from category + discount unless the admin typed their own.
   useEffect(() => {
@@ -68,22 +60,22 @@ export default function CardFormModal({ categories = [], initialData, onClose, o
   }
 
   return (
-    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl w-full max-w-md p-6 space-y-4">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-3 sm:p-4">
+      <div className="bg-white rounded-2xl w-full max-w-md p-5 sm:p-6 space-y-4 max-h-[90vh] overflow-y-auto">
         <h3 className="text-lg font-bold text-gray-900">
           {initialData ? "Edit Promotional Card" : "New Promotional Card"}
         </h3>
 
         {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg px-4 py-2">
+          <div className="bg-red-50 border border-red-200 text-red-600 text-xs sm:text-sm rounded-lg px-4 py-2.5">
             {error}
           </div>
         )}
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Title</label>
+          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Title</label>
           <input
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none"
+            className="w-full rounded-xl border border-gray-300 px-4 py-2 sm:py-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             placeholder="Buy 2 Get 1"
@@ -91,20 +83,20 @@ export default function CardFormModal({ categories = [], initialData, onClose, o
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">Subtitle</label>
+          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Subtitle</label>
           <input
-            className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none"
+            className="w-full rounded-xl border border-gray-300 px-4 py-2 sm:py-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
             value={subtitle}
             onChange={(e) => setSubtitle(e.target.value)}
             placeholder="On Selected Shirts"
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Category</label>
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">Category</label>
             <select
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none bg-white"
+              className="w-full rounded-xl border border-gray-300 px-3 sm:px-4 py-2 sm:py-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none bg-white"
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
             >
@@ -117,14 +109,14 @@ export default function CardFormModal({ categories = [], initialData, onClose, o
             </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
               Discount %
             </label>
             <input
               type="number"
               min="0"
               max="100"
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none"
+              className="w-full rounded-xl border border-gray-300 px-4 py-2 sm:py-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
               value={discountPercent}
               onChange={(e) => setDiscountPercent(e.target.value)}
               placeholder="10"
@@ -132,24 +124,24 @@ export default function CardFormModal({ categories = [], initialData, onClose, o
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
               Button Text
             </label>
             <input
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none"
+              className="w-full rounded-xl border border-gray-300 px-4 py-2 sm:py-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
               value={buttonText}
               onChange={(e) => setButtonText(e.target.value)}
               placeholder="Shop Now"
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">
+            <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
               Button Link
             </label>
             <input
-              className="w-full rounded-xl border border-gray-300 px-4 py-2.5 focus:ring-2 focus:ring-pink-500 outline-none"
+              className="w-full rounded-xl border border-gray-300 px-4 py-2 sm:py-2.5 text-sm focus:ring-2 focus:ring-pink-500 outline-none"
               value={buttonLink}
               onChange={(e) => {
                 setLinkTouched(true);
@@ -158,7 +150,7 @@ export default function CardFormModal({ categories = [], initialData, onClose, o
               placeholder="/shop"
             />
             {categoryId && !linkTouched && (
-              <p className="text-[11px] text-gray-400 mt-1">
+              <p className="text-[10px] text-gray-400 mt-1">
                 Auto-generated from category + discount.
               </p>
             )}
@@ -166,22 +158,22 @@ export default function CardFormModal({ categories = [], initialData, onClose, o
         </div>
 
         <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-1">
+          <label className="block text-xs sm:text-sm font-semibold text-gray-700 mb-1">
             {initialData ? "Replace Image (optional)" : "Card Image"}
           </label>
           <input
             type="file"
             accept="image/*"
             onChange={(e) => setImageFile(e.target.files[0])}
-            className="w-full text-sm"
+            className="w-full text-xs sm:text-sm file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-pink-50 file:text-pink-600 hover:file:bg-pink-100"
           />
         </div>
 
-        <div className="flex justify-end gap-3 pt-2">
+        <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 pt-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-semibold text-sm hover:bg-gray-50 transition"
           >
             Cancel
           </button>
@@ -189,7 +181,7 @@ export default function CardFormModal({ categories = [], initialData, onClose, o
             type="button"
             disabled={submitting}
             onClick={handleSubmit}
-            className="px-5 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white font-semibold"
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-pink-500 hover:bg-pink-600 disabled:opacity-50 text-white font-semibold text-sm transition flex items-center justify-center gap-2"
           >
             {submitting ? "Saving…" : "Save Card"}
           </button>

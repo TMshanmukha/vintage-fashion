@@ -1,7 +1,7 @@
 export default function StatCard({ label, value, change, positive = true, icon }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-6">
-      <div className="flex items-start justify-between mb-4">
+    <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 shadow-sm">
+      <div className="flex items-start justify-between mb-3 sm:mb-4">
         <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">{label}</span>
         <span className="w-9 h-9 bg-pink-50 text-pink-500 rounded-lg flex items-center justify-center">
           <svg className="w-4.5 h-4.5 w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">

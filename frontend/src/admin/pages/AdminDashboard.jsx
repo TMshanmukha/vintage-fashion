@@ -34,10 +34,6 @@ const toDisplayStatus = (status) =>
     ? status.split("_").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")
     : "Pending";
 
-// Tolerant "is this customer active" check.
-// Your schema uses `is_active` (0/1) for soft deletes, but some endpoints
-// may also send a `status` string ("Active"/"active"). Check both so this
-// doesn't silently break again if the API response shape changes.
 const isActiveCustomer = (c) => {
   if (c.is_active === 1 || c.is_active === true || c.is_active === "1") {
     return true;
@@ -77,7 +73,7 @@ export default function AdminDashboard() {
         ] = await Promise.allSettled([
           getOrderStats(),
           getOrders({ limit: 5 }),
-          getProducts({ limit: 100 }), // pulled client-side to derive low-stock; swap for a real ?lowStock=true param if backend supports it
+          getProducts({ limit: 100 }),
           getCustomers(),
           getNotifications(),
           getEmailLog(),
@@ -105,10 +101,6 @@ export default function AdminDashboard() {
                   ? raw.products
                   : [];
 
-          if (allProducts.length === 0 && raw && !Array.isArray(raw)) {
-            console.warn("getProducts() returned an unexpected shape:", raw);
-          }
-
           setLowStockProducts(
             allProducts
               .filter((p) => (p.stock_quantity ?? 0) <= 5)
@@ -129,10 +121,6 @@ export default function AdminDashboard() {
             Array.isArray(emailsRes.value) ? emailsRes.value.length : 0
           );
         }
-
-        [statsRes, ordersRes, productsRes, customersRes, notificationsRes, emailsRes]
-          .filter((r) => r.status === "rejected")
-          .forEach((r) => console.error("Dashboard fetch failed:", r.reason));
       } catch (err) {
         console.error(err);
         toast.error("Couldn't load dashboard data");
@@ -148,14 +136,13 @@ export default function AdminDashboard() {
   }, []);
 
   const activeCustomers = customers.filter(isActiveCustomer).length;
-  const unreadNotifications = notifications.filter((n) => !n.is_read).length;
 
   if (loading) {
     return (
       <AdminLayout>
         <AdminTopbar title="Dashboard" subtitle="Loading your store overview..." />
-        <div className="p-8">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="h-24 rounded-xl bg-gray-100 animate-pulse" />
             ))}
@@ -169,9 +156,9 @@ export default function AdminDashboard() {
     <AdminLayout>
       <AdminTopbar title="Dashboard" subtitle="Welcome back, here's what's happening with your store." />
 
-      <div className="p-8">
+      <div className="p-4 sm:p-6 lg:p-8">
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5 mb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-5 mb-8">
           <StatCard
             label="Revenue"
             value={formatINR(stats?.total_revenue)}
@@ -208,7 +195,7 @@ export default function AdminDashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Recent orders */}
-          <div className="lg:col-span-2 bg-white border border-gray-100 rounded-xl p-6">
+          <div className="lg:col-span-2 bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-sm font-bold text-gray-900">Recent Orders</h2>
               <Link to="/admin/orders" className="text-xs font-semibold text-pink-500 hover:underline">Manage all →</Link>
@@ -220,24 +207,25 @@ export default function AdminDashboard() {
                 {recentOrders.map((o) => {
                   const displayStatus = toDisplayStatus(o.order_status);
                   return (
-                    <div key={o.order_id} className="flex items-center gap-4 py-2">
+                    <div key={o.order_id} className="flex items-center justify-between gap-3 py-2 border-b border-gray-50 last:border-0">
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800 truncate">
                           #{o.order_number}
                         </p>
-                        <p className="text-xs text-gray-400">
+                        <p className="text-xs text-gray-400 truncate">
                           {o.customer_name || "Customer"}
                         </p>
                       </div>
-                      <span
-                        className={`text-xs font-semibold px-2.5 py-1 rounded-full whitespace-nowrap ${statusStyles[displayStatus] || statusStyles.Pending
-                          }`}
-                      >
-                        {displayStatus}
-                      </span>
-                      <span className="text-sm font-semibold text-gray-700 whitespace-nowrap">
-                        {formatINR(o.total_amount)}
-                      </span>
+                      <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+                        <span
+                          className={`text-[11px] sm:text-xs font-semibold px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full whitespace-nowrap ${statusStyles[displayStatus] || statusStyles.Pending}`}
+                        >
+                          {displayStatus}
+                        </span>
+                        <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap">
+                          {formatINR(o.total_amount)}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
@@ -246,7 +234,7 @@ export default function AdminDashboard() {
           </div>
 
           {/* Recent notifications */}
-          <div className="bg-white border border-gray-100 rounded-xl p-6">
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-sm font-bold text-gray-900">Recent Activity</h2>
               <Link to="/admin/notifications" className="text-xs font-semibold text-pink-500 hover:underline">View all →</Link>
@@ -258,8 +246,8 @@ export default function AdminDashboard() {
                 {notifications.slice(0, 4).map((n) => (
                   <div key={n.notification_id} className="flex items-start gap-3">
                     <span className={`w-2 h-2 rounded-full mt-1.5 flex-shrink-0 ${n.is_read ? "bg-gray-200" : "bg-pink-500"}`} />
-                    <div>
-                      <p className="text-xs font-semibold text-gray-800">{n.title}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-gray-800 line-clamp-1">{n.title}</p>
                       <p className="text-xs text-gray-400 mt-0.5">{n.created_at}</p>
                     </div>
                   </div>
@@ -271,28 +259,30 @@ export default function AdminDashboard() {
 
         {/* Low stock alert row */}
         {lowStockProducts.length > 0 && (
-          <div className="bg-white border border-gray-100 rounded-xl p-6 mt-6">
+          <div className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 mt-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-sm font-bold text-gray-900">Low Stock Products</h2>
               <Link to="/admin/products" className="text-xs font-semibold text-pink-500 hover:underline">Manage all →</Link>
             </div>
             <div className="space-y-3">
               {lowStockProducts.map((p) => (
-                <div key={p.product_id} className="flex items-center gap-4 py-2">
-                  {p.image_url && (
-                    <img
-                      src={p.image_url}
-                      alt={p.name}
-                      className="w-11 h-11 rounded-lg object-cover bg-gray-50"
-                    />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
-                    <p className="text-xs text-red-500 font-medium">
-                      {p.stock_quantity ?? 0} left
-                    </p>
+                <div key={p.product_id} className="flex items-center justify-between gap-3 py-2 border-b border-gray-50 last:border-0">
+                  <div className="flex items-center gap-3 min-w-0">
+                    {p.image_url && (
+                      <img
+                        src={p.image_url}
+                        alt={p.name}
+                        className="w-10 h-10 rounded-lg object-cover bg-gray-50 flex-shrink-0"
+                      />
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-gray-800 truncate">{p.name}</p>
+                      <p className="text-xs text-red-500 font-medium">
+                        {p.stock_quantity ?? 0} left
+                      </p>
+                    </div>
                   </div>
-                  <span className="text-sm font-semibold text-gray-700">{formatINR(p.price)}</span>
+                  <span className="text-xs sm:text-sm font-semibold text-gray-700 whitespace-nowrap flex-shrink-0">{formatINR(p.price)}</span>
                 </div>
               ))}
             </div>
@@ -300,16 +290,16 @@ export default function AdminDashboard() {
         )}
 
         {/* Quick actions */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mt-6">
-          <Link to="/admin/products" className="bg-gray-900 text-white rounded-xl p-6 hover:bg-gray-800 transition-colors">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 mt-6">
+          <Link to="/admin/products" className="bg-gray-900 text-white rounded-xl p-5 sm:p-6 hover:bg-gray-800 transition-colors shadow-sm">
             <p className="text-sm font-bold mb-1">+ Add New Product</p>
             <p className="text-xs text-gray-400">List a new item in your catalog</p>
           </Link>
-          <Link to="/admin/offers" className="bg-pink-500 text-white rounded-xl p-6 hover:bg-pink-600 transition-colors">
+          <Link to="/admin/offers" className="bg-pink-500 text-white rounded-xl p-5 sm:p-6 hover:bg-pink-600 transition-colors shadow-sm">
             <p className="text-sm font-bold mb-1">Update Homepage Offer</p>
             <p className="text-xs text-pink-100">Edit banners, cards and flash sales</p>
           </Link>
-          <Link to="/admin/emails" className="bg-white border border-gray-200 text-gray-900 rounded-xl p-6 hover:border-gray-900 transition-colors">
+          <Link to="/admin/emails" className="bg-white border border-gray-200 text-gray-900 rounded-xl p-5 sm:p-6 hover:border-gray-900 transition-colors shadow-sm">
             <p className="text-sm font-bold mb-1">Email Subscribers</p>
             <p className="text-xs text-gray-400">{emailCount} emails sent so far</p>
           </Link>

@@ -117,9 +117,9 @@ export default function AdminBrands() {
     <AdminLayout>
       <AdminTopbar title="Brands" subtitle="Manage the brands sold on your store." />
 
-      <div className="p-8">
-        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div className="relative w-full max-w-sm">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="relative w-full sm:max-w-xs md:max-w-sm">
             <svg
               className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400"
               fill="none"
@@ -144,7 +144,7 @@ export default function AdminBrands() {
 
           <button
             onClick={openAddModal}
-            className="flex items-center justify-center gap-2 rounded-xl bg-pink-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-pink-600"
+            className="flex w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-pink-500 px-6 py-3 text-sm font-semibold text-white transition hover:bg-pink-600 shadow-sm"
           >
             <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -153,8 +153,8 @@ export default function AdminBrands() {
           </button>
         </div>
 
-        <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm">
-          <table className="w-full">
+        <div className="overflow-x-auto rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="border-b bg-gray-50 text-left text-xs font-bold uppercase tracking-wider text-gray-500">
                 <th className="px-6 py-4">Brand</th>

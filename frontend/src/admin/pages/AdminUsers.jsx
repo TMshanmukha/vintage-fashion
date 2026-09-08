@@ -85,9 +85,9 @@ export default function AdminUsers() {
     <AdminLayout>
       <AdminTopbar title="Users" subtitle="View, manage, and message your customers." />
 
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-6">
-          <div className="relative w-72">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
+          <div className="relative w-full sm:w-72">
             <svg className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -102,8 +102,8 @@ export default function AdminUsers() {
           <p className="text-xs text-gray-400">{filtered.length} of {users.length} users</p>
         </div>
 
-        <div className="bg-white border border-gray-100 rounded-xl overflow-hidden">
-          <table className="w-full">
+        <div className="bg-white border border-gray-100 rounded-xl overflow-x-auto shadow-sm">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="bg-gray-50 text-xs font-bold uppercase tracking-widest text-gray-500">
                 <th className="text-left px-6 py-4">User</th>

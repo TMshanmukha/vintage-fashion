@@ -91,7 +91,7 @@ export default function AdminNotifications() {
     <AdminLayout>
       <AdminTopbar title="Notifications" subtitle="Stay on top of orders, users, and stock alerts." />
 
-      <div className="p-8 max-w-3xl">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-3xl">
         <div className="flex items-center justify-between mb-6">
           <p className="text-sm text-gray-500">{unreadCount} unread notification{unreadCount !== 1 ? "s" : ""}</p>
           {unreadCount > 0 && (

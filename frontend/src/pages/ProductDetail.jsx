@@ -166,7 +166,6 @@ export default function ProductDetail() {
     }
 
     addToCart(selectedVariant ? selectedVariant.variant_id : null, qty);
-    toast.success("Added to cart!");
   };
 
   // Replay a pending cart/wishlist action once the user is logged in
@@ -301,26 +300,28 @@ export default function ProductDetail() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
         {/* Images */}
-        <div className="flex gap-4">
-          <div className="flex flex-col gap-3">
+        <div className="flex flex-col-reverse sm:flex-row gap-4">
+          <div className="flex sm:flex-col gap-3 overflow-x-auto sm:overflow-x-visible pb-2 sm:pb-0">
             {product.images?.map((img, index) => (
               <button
-                key={img.image_id}
+                key={img.image_id || index}
+                type="button"
+                onClick={() => setActiveImage(index)}
                 onMouseEnter={() => setActiveImage(index)}
-                className={`overflow-hidden border-2 transition ${
+                className={`overflow-hidden rounded-md border-2 flex-shrink-0 transition ${
                   activeImage === index
-                    ? "border-pink-500"
-                    : "border-gray-200"
+                    ? "border-pink-500 shadow-sm"
+                    : "border-gray-200 hover:border-gray-400"
                 }`}>
                 <img
                   src={img.image_url}
                   alt=""
-                  className="w-20 h-24 object-cover"
+                  className="w-16 h-20 sm:w-20 sm:h-24 object-cover"
                 />
               </button>
             ))}
           </div>
-          <div className="flex-1 bg-gray-50 aspect-square overflow-hidden">
+          <div className="flex-1 bg-gray-50 rounded-xl aspect-square overflow-hidden border border-gray-100">
             <img
               src={
                 product.images?.[activeImage]?.image_url ||
@@ -336,10 +337,12 @@ export default function ProductDetail() {
         <div className="flex flex-col justify-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
           <div className="flex items-center gap-3 mb-4">
-            <span className="text-xl font-bold text-gray-900">₹ {Number(product.price).toFixed(2)}</span>
-            {product.original_price && Number(product.original_price) !== Number(product.price) && (
+            <span className="text-xl font-bold text-gray-900">
+              ₹ {(Number(product.price) || 0).toFixed(2)}
+            </span>
+            {product.original_price && Number(product.original_price) > (Number(product.price) || 0) && (
               <span className="text-sm text-gray-400 line-through">
-                ₹ {Number(product.original_price).toFixed(2)}
+                ₹ {(Number(product.original_price) || 0).toFixed(2)}
               </span>
             )}
           </div>

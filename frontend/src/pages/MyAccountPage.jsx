@@ -8,6 +8,7 @@ import {
   getMyOrderDetail,
   cancelMyOrder,
   requestReturn,
+  trackMyOrder,
 } from "../api/myOrdersApi";
 import useSocket from "../hooks/Usesocket";
 import OrderProgressTracker from "../components/Orderprogresstracker";
@@ -80,6 +81,8 @@ export default function MyAccountPage() {
   const [returnForm, setReturnForm] = useState({ reason: "", description: "" });
   const [returnPhotos, setReturnPhotos] = useState([]);
   const [submittingReturn, setSubmittingReturn] = useState(false);
+  const [trackingData, setTrackingData] = useState(null);
+  const [trackingLoading, setTrackingLoading] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -134,6 +137,23 @@ export default function MyAccountPage() {
           : current
       );
     },
+    // NEW — live shipping status push, no manual refresh needed if the
+    // customer already has this page open when admin acts.
+    "order:shipping-updated": ({ orderId, shipping_status, awb_number, courier_name }) => {
+      setOrderDetail((current) =>
+        current && current.order?.order_id === orderId
+          ? {
+              ...current,
+              order: {
+                ...current.order,
+                shipping_status,
+                ...(awb_number && { awb_number }),
+                ...(courier_name && { courier_name }),
+              },
+            }
+          : current
+      );
+    },
   });
 
   const totalSpent = useMemo(() => {
@@ -146,6 +166,7 @@ export default function MyAccountPage() {
     () => orders.filter((order) => RETURNABLE.includes(order.order_status)).length,
     [orders]
   );
+
 
   if (!user) {
     return <Navigate to="/auth" replace />;
@@ -174,6 +195,19 @@ export default function MyAccountPage() {
       toast.error("Couldn't load order details.");
     } finally {
       setDetailLoading(false);
+    }
+  };
+
+  const handleRefreshTracking = async () => {
+    if (!selectedOrder) return;
+    setTrackingLoading(true);
+    try {
+      const res = await trackMyOrder(selectedOrder.order_id);
+      setTrackingData(res.data);
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Couldn't load tracking info.");
+    } finally {
+      setTrackingLoading(false);
     }
   };
 
@@ -296,26 +330,36 @@ export default function MyAccountPage() {
                 const canCancel = CANCELLABLE.includes(order.order_status);
 
                 return (
-                  <article key={order.order_id} className="rounded-lg border border-gray-100 bg-white p-5 shadow-sm">
+                  <article
+                    key={order.order_id}
+                    onClick={() => handleSelectOrder(order)}
+                    className={`rounded-lg border p-5 shadow-sm cursor-pointer transition-all duration-200 ${
+                      selectedOrder?.order_id === order.order_id
+                        ? "border-pink-500 bg-pink-50/10 ring-1 ring-pink-500"
+                        : "border-gray-100 bg-white hover:border-pink-200 hover:shadow-md"
+                    }`}
+                  >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <button type="button" onClick={() => handleSelectOrder(order)} className="text-left">
+                      <div className="text-left">
                         <h2 className="text-lg font-bold text-gray-900">
                           #{order.order_number || order.order_id}
                         </h2>
                         <p className="mt-1 text-sm text-gray-500">
                           Placed on {new Date(order.ordered_at).toLocaleDateString()}
                         </p>
-                      </button>
-                      <span
-                        className={`w-fit rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[displayStatus] || statusStyles.Confirmed}`}
-                      >
-                        {displayStatus}
-                      </span>
-                      {order.payment_status === "refunded" && (
-                        <span className="ml-2 w-fit rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
-                          Refunded
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`w-fit rounded-full border px-3 py-1 text-xs font-bold ${statusStyles[displayStatus] || statusStyles.Confirmed}`}
+                        >
+                          {displayStatus}
                         </span>
-                      )}
+                        {order.payment_status === "refunded" && (
+                          <span className="w-fit rounded-full border border-green-200 bg-green-50 px-3 py-1 text-xs font-bold text-green-700">
+                            Refunded
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -324,7 +368,10 @@ export default function MyAccountPage() {
                       </p>
                       {canCancel && (
                         <button
-                          onClick={() => handleCancelOrder(order)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCancelOrder(order);
+                          }}
                           className="rounded-md border border-red-200 px-4 py-2 text-sm font-bold text-red-600 transition hover:bg-red-50"
                         >
                           Cancel order
@@ -381,11 +428,45 @@ export default function MyAccountPage() {
                   ) : (
                     <>
                       <div className="mb-6">
-                        <OrderProgressTracker orderStatus={selectedOrder.order_status} />
-                        {orderDetail?.order?.tracking_id && (
+                        <OrderProgressTracker
+                          orderStatus={selectedOrder.order_status}
+                          shippingStatus={orderDetail?.order?.shipping_status}
+                        />
+
+                        {orderDetail?.order?.awb_number ? (
+                          <div className="mt-4 rounded-md border border-gray-100 p-4">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm font-bold text-gray-800">
+                                  AWB: {orderDetail.order.awb_number}
+                                </p>
+                                {orderDetail.order.courier_name && (
+                                  <p className="text-xs text-gray-400">{orderDetail.order.courier_name}</p>
+                                )}
+                              </div>
+                              <button
+                                onClick={handleRefreshTracking}
+                                disabled={trackingLoading}
+                                className="text-xs font-bold text-pink-500 hover:underline disabled:opacity-50"
+                              >
+                                {trackingLoading ? "Refreshing…" : "Refresh Tracking"}
+                              </button>
+                            </div>
+
+                            {trackingData?.tracking_data?.shipment_track_activities?.length > 0 && (
+                              <div className="mt-4 space-y-2 border-t border-gray-100 pt-3">
+                                {trackingData.tracking_data.shipment_track_activities.map((a, i) => (
+                                  <div key={i} className="text-xs">
+                                    <p className="font-semibold text-gray-700">{a.activity}</p>
+                                    <p className="text-gray-400">{a.location} — {a.date}</p>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ) : (
                           <p className="mt-3 text-center text-xs text-gray-400">
-                            Tracking ID: {orderDetail.order.tracking_id}
-                            {orderDetail.order.courier_partner ? ` · ${orderDetail.order.courier_partner}` : ""}
+                            Shipment not created yet.
                           </p>
                         )}
                       </div>

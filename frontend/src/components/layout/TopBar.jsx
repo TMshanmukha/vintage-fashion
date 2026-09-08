@@ -40,20 +40,23 @@ export default function TopBar() {
   }, []);
 
   return (
-    <div className="bg-white border-b border-gray-100 text-xs text-gray-500 px-6 py-2">
-      <div className="max-w-7xl mx-auto flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <span className="flex items-center gap-1">
+    <div className="bg-white border-b border-gray-100 text-xs text-gray-500 px-4 sm:px-6 py-2">
+      <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-1.5 sm:gap-4">
+        <div className="flex items-center gap-2.5 sm:gap-4 flex-wrap justify-center sm:justify-start">
+          <span className="flex items-center gap-1 font-medium text-gray-600">
             {settings.language}
           </span>
-          <span className="flex items-center gap-1">
+          <span className="text-gray-300">·</span>
+          <span className="flex items-center gap-1 font-medium text-gray-600">
             {settings.currency}
           </span>
-          <span>|</span>
-          <span>Call Us {settings.support_phone}</span>
+          <span className="text-gray-300">·</span>
+          <span className="text-gray-600">
+            Call Us: <a href={`tel:${settings.support_phone}`} className="hover:text-pink-600 font-medium">{settings.support_phone}</a>
+          </span>
         </div>
         {settings.announcement_enabled && settings.announcement_text && (
-          <p className="text-center text-xs">{settings.announcement_text}</p>
+          <p className="text-center text-xs text-pink-600 font-medium tracking-wide line-clamp-1">{settings.announcement_text}</p>
         )}
       </div>
     </div>

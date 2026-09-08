@@ -58,17 +58,17 @@ export default function BrandFormModal({
   const labelClass = "text-sm font-semibold text-gray-700";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-5">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5">
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-lg bg-white rounded-3xl shadow-2xl flex flex-col max-h-[90vh]"
+        className="w-full max-w-lg bg-white rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col max-h-[90vh] overflow-hidden"
       >
-        <div className="flex items-center justify-between px-8 py-6 border-b">
+        <div className="flex items-center justify-between px-5 sm:px-8 py-4 sm:py-6 border-b">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               {initialData ? "Edit Brand" : "Add Brand"}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
               Manage brand name, logo and description.
             </p>
           </div>
@@ -76,18 +76,18 @@ export default function BrandFormModal({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="w-10 h-10 rounded-xl hover:bg-gray-100 transition text-gray-500"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl hover:bg-gray-100 transition text-gray-500 flex items-center justify-center"
           >
             ✕
           </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-8 py-8 space-y-6">
+        <div className="flex-1 overflow-y-auto px-5 sm:px-8 py-5 sm:py-6 space-y-4 sm:space-y-6">
           {/* Logo */}
           <div>
             <label className={labelClass}>Logo</label>
-            <div className="mt-2 flex items-center gap-5">
-              <div className="h-24 w-24 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
+            <div className="mt-2 flex items-center gap-4 sm:gap-5">
+              <div className="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl border-2 border-dashed border-gray-300 flex items-center justify-center overflow-hidden bg-gray-50 shrink-0">
                 {logoPreview ? (
                   <img
                     src={logoPreview}
@@ -95,7 +95,7 @@ export default function BrandFormModal({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span className="text-3xl">🏷️</span>
+                  <span className="text-2xl sm:text-3xl">🏷️</span>
                 )}
               </div>
               <div>
@@ -109,11 +109,11 @@ export default function BrandFormModal({
                 />
                 <label
                   htmlFor="brand-logo"
-                  className="cursor-pointer inline-block rounded-xl bg-pink-500 px-5 py-2 text-sm font-semibold text-white hover:bg-pink-600 transition"
+                  className="cursor-pointer inline-block rounded-xl bg-pink-500 px-4 sm:px-5 py-2 text-xs sm:text-sm font-semibold text-white hover:bg-pink-600 transition"
                 >
                   {logoPreview ? "Change Logo" : "Upload Logo"}
                 </label>
-                <p className="mt-2 text-xs text-gray-400">
+                <p className="mt-1.5 text-xs text-gray-400">
                   PNG, JPG or WEBP.
                 </p>
               </div>
@@ -122,12 +122,13 @@ export default function BrandFormModal({
 
           {/* Name */}
           <div>
-            <label className={labelClass}>Brand Name</label>
+            <label className={labelClass}>Brand Name *</label>
             <input
               type="text"
               required
               value={form.name}
               disabled={saving}
+              placeholder="e.g. Nike, Zara, Vintage Club"
               onChange={(e) => setForm({ ...form, name: e.target.value })}
               className={inputClass}
             />
@@ -137,9 +138,10 @@ export default function BrandFormModal({
           <div>
             <label className={labelClass}>Description</label>
             <textarea
-              rows={4}
+              rows={3}
               value={form.description}
               disabled={saving}
+              placeholder="Short brand overview..."
               onChange={(e) =>
                 setForm({ ...form, description: e.target.value })
               }
@@ -164,23 +166,23 @@ export default function BrandFormModal({
           )}
         </div>
 
-        <div className="border-t bg-white px-8 py-5 rounded-b-3xl">
-          <div className="flex justify-center gap-4">
+        <div className="border-t bg-white px-5 sm:px-8 py-4 sm:py-5">
+          <div className="flex flex-col-reverse sm:flex-row justify-end gap-3 sm:gap-4">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="min-w-[160px] rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-100 transition"
+              className="w-full sm:w-auto rounded-xl border border-gray-300 px-6 py-2.5 sm:py-3 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="min-w-[200px] rounded-xl bg-pink-500 px-6 py-3 font-semibold text-white hover:bg-pink-600 transition flex items-center justify-center gap-3"
+              className="w-full sm:w-auto rounded-xl bg-pink-500 px-6 py-2.5 sm:py-3 text-sm font-semibold text-white hover:bg-pink-600 transition flex items-center justify-center gap-2"
             >
               {saving && (
-                <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
               )}
               {saving
                 ? "Saving..."

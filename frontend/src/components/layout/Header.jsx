@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useCart } from "../../hooks/useCart";
 import useAuth from "../../hooks/useAuth";
 
@@ -15,9 +15,21 @@ const navLinks = [
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchVal, setSearchVal] = useState("");
   const { cartCount, wishlist } = useCart();
   const location = useLocation();
+  const navigate = useNavigate();
   const { user } = useAuth();
+
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchVal.trim()) {
+      navigate(`/shop?search=${encodeURIComponent(searchVal.trim())}`);
+      setSearchOpen(false);
+      setSearchVal("");
+    }
+  };
 
   return (
     <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
@@ -57,7 +69,11 @@ export default function Header() {
 
         {/* Icons */}
         <div className="flex items-center gap-5">
-          <button className="text-gray-600 hover:text-pink-500 transition-colors">
+          <button
+            onClick={() => setSearchOpen(!searchOpen)}
+            className="text-gray-600 hover:text-pink-500 transition-colors"
+            aria-label="Toggle search bar"
+          >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
@@ -105,6 +121,35 @@ export default function Header() {
           </button>
         </div>
       </div>
+
+      {/* Search Overlay */}
+      {searchOpen && (
+        <div className="bg-gray-50 border-t border-gray-100 py-3.5 px-6">
+          <form onSubmit={handleSearchSubmit} className="max-w-3xl mx-auto flex items-center gap-3">
+            <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+            <input
+              type="text"
+              value={searchVal}
+              onChange={(e) => setSearchVal(e.target.value)}
+              placeholder="Search for products, brands, or categories..."
+              className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+              autoFocus
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setSearchOpen(false);
+                setSearchVal("");
+              }}
+              className="text-gray-400 hover:text-gray-600 text-sm font-medium"
+            >
+              Close
+            </button>
+          </form>
+        </div>
+      )}
 
       {/* Mobile Nav */}
       {menuOpen && (

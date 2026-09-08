@@ -70,7 +70,7 @@ const navItems = [
   },
 ];
 
-export default function AdminSidebar() {
+export default function AdminSidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { logout } = useAdminAuth();
   const [unreadCount, setUnreadCount] = useState(0);
@@ -120,11 +120,33 @@ export default function AdminSidebar() {
   };
 
   return (
-    <aside className="w-64 bg-gray-950 min-h-screen flex flex-col fixed left-0 top-0 bottom-0">
-      <div className="px-6 py-6 border-b border-gray-800">
-        <h1 className="text-xl font-extrabold text-white">Vintage fashion<span className="text-pink-500">.</span></h1>
-        <p className="text-xs text-gray-500 mt-0.5">Admin Dashboard</p>
-      </div>
+    <>
+      {/* Mobile Sidebar Overlay */}
+      {isOpen && (
+        <div
+          onClick={onClose}
+          className="fixed inset-0 bg-black/60 z-20 lg:hidden transition-opacity"
+        />
+      )}
+
+      <aside className={`w-64 bg-gray-950 min-h-screen flex flex-col fixed left-0 top-0 bottom-0 z-30 shadow-xl transform lg:translate-x-0 transition-transform duration-300 ease-in-out ${
+        isOpen ? "translate-x-0" : "-translate-x-full"
+      }`}>
+        <div className="px-6 py-6 border-b border-gray-800 flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-extrabold text-white">Vintage fashion<span className="text-pink-500">.</span></h1>
+            <p className="text-xs text-gray-500 mt-0.5">Admin Dashboard</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="lg:hidden text-gray-400 hover:text-white transition-colors"
+            aria-label="Close sidebar"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
       <nav className="flex-1 px-3 py-6 space-y-1">
         {navItems.map((item) => (
@@ -136,13 +158,10 @@ export default function AdminSidebar() {
               }`
             }
             onClick={() => {
-              // Opening the Notifications page is the natural "I've seen
-              // these" moment — clear the badge locally. The actual
-              // is_read flags in the DB still get set by whatever mark-read
-              // logic already exists on that page.
               if (item.label === "Notifications") {
                 setUnreadCount(0);
               }
+              onClose?.();
             }}
           >
             <span className="flex items-center gap-3">
@@ -178,5 +197,6 @@ export default function AdminSidebar() {
         </button>
       </div>
     </aside>
+    </>
   );
 }

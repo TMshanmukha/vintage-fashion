@@ -47,3 +47,51 @@
     -webkit-line-clamp: 2;
   }
 }
+
+/* Responsive overrides for mobile screens (viewport < 640px) */
+@media (max-width: 640px) {
+  h1, h2, h3, .text-5xl, .text-4xl, .text-3xl {
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+  }
+
+  .text-5xl {
+    font-size: 2.25rem !important; /* 36px */
+    line-height: 2.5rem !important;
+  }
+
+  .text-4xl {
+    font-size: 1.875rem !important; /* 30px */
+    line-height: 2.25rem !important;
+  }
+
+  .text-3xl {
+    font-size: 1.5rem !important; /* 24px */
+    line-height: 2rem !important;
+  }
+
+  .text-2xl {
+    font-size: 1.25rem !important; /* 20px */
+    line-height: 1.75rem !important;
+  }
+
+  /* Responsive layout padding overrides for mobile */
+  .p-8 {
+    padding: 1.25rem !important;
+  }
+
+  .px-8 {
+    padding-left: 1.25rem !important;
+    padding-right: 1.25rem !important;
+  }
+
+  .py-20 {
+    padding-top: 3rem !important;
+    padding-bottom: 3rem !important;
+  }
+
+  .py-16 {
+    padding-top: 2.5rem !important;
+    padding-bottom: 2.5rem !important;
+  }
+}

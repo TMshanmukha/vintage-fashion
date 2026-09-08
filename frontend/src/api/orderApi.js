@@ -37,3 +37,28 @@ export const updateReturnStatus = async (returnId, action) => {
     const { data } = await axiosAdmin.patch(`/admin/orders/returns/${returnId}/status`, { action });
     return data;
 };
+
+export const confirmOrder = async (orderId) => {
+    const { data } = await axiosAdmin.patch(`/admin/orders/${orderId}/status`, { status: "confirmed" });
+    return data;
+};
+
+export const createShipment = async (orderId) => {
+    const { data } = await axiosAdmin.post(`/shipping/create/${orderId}`);
+    return data;
+};
+
+export const trackShipment = async (orderId) => {
+    const { data } = await axiosAdmin.get(`/shipping/track/${orderId}`);
+    return data;
+};
+
+export const cancelOrder = async (orderId) => {
+    const { data } = await axiosAdmin.patch(`/admin/orders/${orderId}/status`, { status: "cancelled" });
+    return data;
+};
+
+export const cancelShipment = async (orderId) => {
+    const { data } = await axiosAdmin.post(`/shipping/cancel/${orderId}`);
+    return data;
+};

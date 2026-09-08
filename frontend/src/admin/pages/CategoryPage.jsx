@@ -216,13 +216,13 @@ export default function AdminCategories() {
                 subtitle="Create and manage your product categories."
             />
 
-            <div className="p-8">
+            <div className="p-4 sm:p-6 lg:p-8">
 
                 {/* Toolbar */}
 
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between mb-6">
 
-                    <div className="relative w-72">
+                    <div className="relative w-full sm:w-72">
 
                         <svg
                             className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
@@ -250,7 +250,7 @@ export default function AdminCategories() {
 
                     <button
                         onClick={openAddModal}
-                        className="bg-gray-900 hover:bg-pink-500 transition text-white px-5 py-3 rounded-lg text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+                        className="bg-gray-900 hover:bg-pink-500 transition text-white px-5 py-3 rounded-lg text-xs font-bold uppercase tracking-widest flex w-full sm:w-auto items-center justify-center gap-2 shadow-sm"
                     >
 
                         <svg
@@ -275,9 +275,9 @@ export default function AdminCategories() {
 
                 {/* Table */}
 
-                <div className="min-h-[600px] bg-white rounded-xl border border-gray-100 overflow-hidden">
+                <div className="min-h-[400px] bg-white rounded-xl border border-gray-100 overflow-x-auto shadow-sm">
 
-                    <table className="w-full">
+                    <table className="w-full min-w-[650px]">
 
                         <thead>
 
@@ -488,13 +488,13 @@ export default function AdminCategories() {
 
                 </div>
 
-                <div className="mt-6 flex items-center justify-between">
+                <div className="mt-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
 
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 text-center sm:text-left">
                         Page {currentPage} of {totalPages}
                     </p>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap justify-center">
 
                         <button
                             disabled={currentPage === 1}

@@ -21,17 +21,23 @@ const courierIcon = L.divIcon({
 // Placeholder is roughly central Bucharest, matching the address on your Contact page.
 const SHOP_LOCATION = { lat: 44.4268, lng: 26.1025 };
 
-// How far along the route the courier marker sits, based on order status.
-// This is a visual approximation, not real GPS — see the note in chat
-// about why (courier API is mocked, no live position feed exists yet).
-const STATUS_PROGRESS = {
-  pending: 0,
-  confirmed: 0.08,
-  packed: 0.25,
-  shipped: 0.65,
-  delivered: 1,
-  cancelled: 0,
-};
+// Same matching rules as OrderProgressTracker — kept in sync by hand
+// since Shiprocket's status text isn't a fixed enum. If you add a new
+// phrase there, add it here too.
+function resolveProgressFraction(orderStatus, shippingStatus) {
+  if (orderStatus === "cancelled" || orderStatus === "pending") return 0;
+  if (!shippingStatus) return 0.05;
+
+  const s = shippingStatus.toLowerCase();
+
+  if (/deliver/.test(s)) return 1;
+  if (/out for delivery/.test(s)) return 0.85;
+  if (/transit|in transit|reached|hub/.test(s)) return 0.6;
+  if (/picked up|pickup complete/.test(s)) return 0.3;
+  if (/shipment created|awb|manifest/.test(s)) return 0.1;
+
+  return 0.1;
+}
 
 function interpolate(a, b, t) {
   return { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t };
@@ -107,7 +113,7 @@ export default function OrderMapTracker({ order }) {
     );
   }
 
-  const progress = STATUS_PROGRESS[order.order_status] ?? 0;
+  const progress = resolveProgressFraction(order.order_status, order.shipping_status);
   const courierPosition = interpolate(SHOP_LOCATION, customerLocation, progress);
   const bounds = [
     [SHOP_LOCATION.lat, SHOP_LOCATION.lng],

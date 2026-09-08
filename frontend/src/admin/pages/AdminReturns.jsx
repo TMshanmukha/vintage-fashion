@@ -111,12 +111,12 @@ export default function AdminReturns() {
     <AdminLayout>
       <AdminTopbar title="Returns" subtitle="Review, approve, and process customer return requests." />
 
-      <div className="p-8">
-        <div className="flex items-center justify-between mb-6 gap-3">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-3">
           <select
             value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(1); }}
-            className="border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-pink-500 bg-white"
+            className="w-full sm:w-auto border border-gray-200 rounded-lg px-4 py-2.5 text-sm outline-none focus:border-pink-500 bg-white"
           >
             <option value="">All statuses</option>
             {RETURN_STATUSES.map((s) => <option key={s} value={s}>{formatStatusLabel(s)}</option>)}

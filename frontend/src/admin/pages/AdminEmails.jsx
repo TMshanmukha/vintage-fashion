@@ -79,7 +79,7 @@ export default function AdminEmails() {
     <AdminLayout>
       <AdminTopbar title="Email Center" subtitle="Send announcements, offers, or direct messages to your users." />
 
-      <div className="p-8 grid grid-cols-1 lg:grid-cols-5 gap-8">
+      <div className="p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8">
         {/* Compose */}
         <div className="lg:col-span-3">
           {sent && (
@@ -87,7 +87,7 @@ export default function AdminEmails() {
               ✓ Email sent successfully.
             </div>
           )}
-          <form onSubmit={handleSend} className="bg-white border border-gray-100 rounded-xl p-6 space-y-5">
+          <form onSubmit={handleSend} className="bg-white border border-gray-100 rounded-xl p-4 sm:p-6 space-y-5 shadow-sm">
             <div>
               <label className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-2 block">Recipients</label>
               <div className="flex gap-3">
