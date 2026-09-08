@@ -17,7 +17,7 @@ import {
 } from "../models/checkout.model.js";
 
 import { createPayment, updatePaymentStatus } from "../models/payment.model.js";
-import { sendAdminEmail } from "./emailService.js";
+import { sendOrderConfirmationEmail } from "./emailService.js";
 
 import {
     initiateCheckoutSchema,
@@ -257,26 +257,13 @@ export const verifyPaymentService = async (userId, body) => {
             );
 
             if (customer?.email) {
-
-                const itemLines = orderItemRows
-                    .map((item) => {
-                        const variant = [item.size, item.color].filter(Boolean).join(", ");
-                        return `${item.product_name}${variant ? ` (${variant})` : ""} — Qty ${item.quantity} — ₹${Number(item.total_price).toFixed(2)}`;
-                    })
-                    .join("\n");
-
-                // NOTE: sendOrderConfirmationEmail is not imported/defined
-                // anywhere in this file's current imports — only
-                // sendAdminEmail is. I don't have emailService.js to know
-                // whether that function exists there under a different name.
-                // Paste emailService.js and I'll wire this correctly instead
-                // of guessing an export that may not exist.
-                await sendAdminEmail({
+                await sendOrderConfirmationEmail({
                     to: customer.email,
-                    subject: `Order Confirmation — #${order.order_number}`,
-                    text: `Hi ${customer.name},\n\nYour order #${order.order_number} is confirmed.\n\n${itemLines}\n\nTotal: ₹${Number(order.total_amount).toFixed(2)}`,
+                    customerName: customer.name,
+                    orderNumber: order.order_number,
+                    items: orderItemRows,
+                    totalAmount: order.total_amount,
                 });
-
             }
 
         } catch (emailError) {

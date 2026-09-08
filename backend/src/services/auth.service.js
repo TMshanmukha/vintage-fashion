@@ -304,26 +304,17 @@ export const signupService = async ({
     });
 
     return {
-
         user: {
-
             id: userId,
-
             name,
-
             email,
-
             phone,
-
-            avatarUrl
-
+            avatarUrl,
+            role: "customer"
         },
-
         accessToken,
-
         refreshToken,
         sessionId
-
     };
 
 };

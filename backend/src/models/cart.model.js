@@ -120,10 +120,26 @@ export const getCartItems = async (cartId) => {
     // final_price is frozen at add-to-cart time via upsertCartItem. It's what
     // the customer actually gets charged. variant_price (live) is only kept
     // as a fallback for any pre-migration rows where final_price is NULL.
-    return rows.map((row) => ({
-        ...row,
-        price: row.final_price != null ? Number(row.final_price) : Number(row.variant_price),
-    }));
+    return rows.map((row) => {
+        const finalPrice = Number(row.final_price);
+        const variantPrice = Number(row.variant_price);
+        const safePrice = !isNaN(finalPrice) && finalPrice >= 0
+            ? finalPrice
+            : (!isNaN(variantPrice) ? variantPrice : 0);
+        const originalPrice = Number(row.original_price);
+        const safeOriginalPrice = !isNaN(originalPrice) && originalPrice >= safePrice
+            ? originalPrice
+            : safePrice;
+
+        return {
+            ...row,
+            price: safePrice,
+            original_price: safeOriginalPrice,
+            discount_percent: Number(row.discount_percent) || 0,
+            discount_amount: Number(row.discount_amount) || 0,
+            quantity: Number(row.quantity) || 1,
+        };
+    });
 
 };
 
@@ -134,7 +150,8 @@ export const getVariantById = async (variantId) => {
         SELECT
             v.*,
             p.product_id,
-            (p.price + v.price_modifier) AS price
+            (p.price + v.price_modifier) AS price,
+            p.original_price
         FROM product_variants v
         JOIN products p ON p.product_id = v.product_id
         WHERE v.variant_id = ?

@@ -64,11 +64,23 @@ export async function resolvePromotionsForProducts(productIds) {
 // Pure calculation — given a base price and a promotion, compute the shape
 // every API response should share.
 export function applyPromotion(price, originalPrice, promotion) {
+    let actualOriginalPrice = originalPrice;
+    let actualPromo = promotion;
 
-    const sellingPrice = Number(price);
-    const mrp = Number(originalPrice ?? price);
+    // Handle 2-arg signature: applyPromotion(price, promotion)
+    if (promotion === undefined && typeof originalPrice === "object") {
+        actualPromo = originalPrice;
+        actualOriginalPrice = price;
+    } else if (actualOriginalPrice === undefined || actualOriginalPrice === null) {
+        actualOriginalPrice = price;
+    }
 
-    if (!promotion) {
+    const numPrice = Number(price);
+    const sellingPrice = isNaN(numPrice) ? 0 : numPrice;
+    const numMrp = Number(actualOriginalPrice);
+    const mrp = isNaN(numMrp) || numMrp < sellingPrice ? sellingPrice : numMrp;
+
+    if (!actualPromo) {
         return {
             original_price: mrp,
             final_price: sellingPrice,
@@ -79,23 +91,29 @@ export function applyPromotion(price, originalPrice, promotion) {
         };
     }
 
+    const discountValue = Number(actualPromo.discount_value || 0);
+    const safeDiscountValue = isNaN(discountValue) ? 0 : discountValue;
+
     // Apply promotion on selling price
     const discount_amount =
-        promotion.discount_type === "PERCENTAGE"
-            ? +(sellingPrice * Number(promotion.discount_value) / 100).toFixed(2)
-            : Math.min(Number(promotion.discount_value), sellingPrice);
+        actualPromo.discount_type === "PERCENTAGE"
+            ? +(sellingPrice * safeDiscountValue / 100).toFixed(2)
+            : Math.min(safeDiscountValue, sellingPrice);
 
-    const final_price = +(sellingPrice - discount_amount).toFixed(2);
+    const safeDiscountAmount = isNaN(discount_amount) ? 0 : Math.max(0, discount_amount);
+    const final_price = +(sellingPrice - safeDiscountAmount).toFixed(2);
+    const safeFinalPrice = isNaN(final_price) ? sellingPrice : Math.max(0, final_price);
 
-    const discount_percent =
-        +(((sellingPrice - final_price) / sellingPrice) * 100).toFixed(2);
+    const discount_percent = sellingPrice > 0
+        ? +(((sellingPrice - safeFinalPrice) / sellingPrice) * 100).toFixed(2)
+        : 0;
 
     return {
         original_price: mrp,
-        final_price,
-        discount_amount,
-        discount_percent,
-        promotion_id: promotion.promotion_id,
-        promotion_type: promotion.promotion_type,
+        final_price: safeFinalPrice,
+        discount_amount: safeDiscountAmount,
+        discount_percent: isNaN(discount_percent) ? 0 : discount_percent,
+        promotion_id: actualPromo.promotion_id || null,
+        promotion_type: actualPromo.promotion_type || null,
     };
 }

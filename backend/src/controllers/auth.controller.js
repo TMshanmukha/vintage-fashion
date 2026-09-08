@@ -67,17 +67,16 @@ export const resetPassword = async (req, res) => {
 
         res.status(200).json(result);
 
-    }catch (error) {
+    } catch (error) {
 
         console.error(error);
 
         res.status(400).json({
             success: false,
-            message: error.message,
-            stack: error.stack
+            message: error.message || "Unable to reset password. Please try again."
         });
 
-}
+    }
 
 };
 
@@ -282,8 +281,7 @@ export const signup = async (req, res) => {
 
         res.status(400).json({
             success: false,
-            message: error.message,
-            stack: error.stack
+            message: error.message || "Failed to create account. Please check your details."
         });
 
     }

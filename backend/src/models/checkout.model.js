@@ -26,6 +26,9 @@ export const createOrder = async (connection, order) => {
 
 export const createOrderItem = async (connection, orderId, item) => {
 
+    const unitPrice = item.final_price ?? item.price;
+    const totalPrice = unitPrice * item.quantity;
+
     await connection.query(
         `
         INSERT INTO order_items
@@ -40,8 +43,8 @@ export const createOrderItem = async (connection, orderId, item) => {
             item.size,
             item.color,
             item.quantity,
-            item.price,
-            item.price * item.quantity
+            unitPrice,
+            totalPrice
         ]
     );
 

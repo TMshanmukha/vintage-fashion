@@ -117,3 +117,19 @@ export const getMyReturn = async (req, res) => {
         res.status(500).json({ message: "Failed to fetch return status." });
     }
 };
+
+// in whatever controller file exports getMyOrderDetail, cancelOrder, etc.
+export const trackMyOrder = async (req, res, next) => {
+    try {
+        const result = await CustomerOrderService.trackMyOrderService(req.params.orderId, req.user.userId);
+        if (result.error === "NOT_FOUND") {
+            return res.status(404).json({ success: false, message: "Order not found." });
+        }
+        if (result.error === "NO_SHIPMENT") {
+            return res.status(400).json({ success: false, message: "No shipment created for this order yet." });
+        }
+        return res.status(200).json({ success: true, data: result.tracking });
+    } catch (error) {
+        next(error);
+    }
+};

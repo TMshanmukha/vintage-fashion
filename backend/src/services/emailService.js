@@ -1,5 +1,8 @@
 import resend from "../config/resend.js";
 
+const formatINR = (value) =>
+    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(value || 0);
+
 export const sendAdminEmail = async ({ to, subject, body }) => {
     const html = `
     <!DOCTYPE html>
@@ -128,12 +131,7 @@ export const sendAdminEmail = async ({ to, subject, body }) => {
     console.log(data);
 };
 
-const formatINR = (value) =>
-    new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(value || 0);
-
 // Sent to the CUSTOMER right after a payment is verified successfully.
-// Call this from wherever your checkout's verifyPayment logic confirms
-// the Razorpay payment — pass the order + line items it just created.
 // items shape expected: [{ product_name, size, color, quantity, total_price }]
 export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber, items, totalAmount }) => {
 
@@ -231,6 +229,73 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
         from: "Vintage Fashion <onboarding@resend.dev>",
         to,
         subject: `Order Confirmed — #${orderNumber}`,
+        html
+    });
+
+    console.log(data);
+};
+
+// Sent to the CUSTOMER once a Shiprocket shipment + AWB is created.
+export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, awbNumber, courierName }) => {
+
+    const html = `
+    <!DOCTYPE html>
+    <html>
+    <head><meta charset="UTF-8" /></head>
+    <body style="margin:0;padding:40px 0;background:#f5f5f5;font-family:Arial, Helvetica, sans-serif;color:#333;">
+        <table align="center" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 6px 18px rgba(0,0,0,.08);">
+
+            <tr>
+                <td align="center" style="background:#111827;color:#ffffff;padding:30px;">
+                    <h1 style="margin:0;font-size:28px;">Vintage Fashion</h1>
+                    <p style="margin:8px 0 0;color:#d1d5db;">Timeless Style • Modern Elegance</p>
+                </td>
+            </tr>
+
+            <tr>
+                <td style="padding:40px;">
+                    <div style="text-align:center;margin-bottom:30px;">
+                        <div style="display:inline-block;width:56px;height:56px;border-radius:50%;background:#dbeafe;line-height:56px;font-size:28px;color:#2563eb;">📦</div>
+                        <h2 style="margin:16px 0 4px;color:#111827;">Hi ${customerName}, it's on its way!</h2>
+                        <p style="margin:0;color:#6b7280;">Order #${orderNumber} has been handed to the courier.</p>
+                    </div>
+
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+                        <tr>
+                            <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;color:#9ca3af;font-size:13px;">Courier</td>
+                            <td style="padding:10px 0;border-bottom:1px solid #f3f4f6;text-align:right;font-weight:bold;color:#111827;">${courierName}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:10px 0;color:#9ca3af;font-size:13px;">Tracking / AWB Number</td>
+                            <td style="padding:10px 0;text-align:right;font-weight:bold;color:#111827;">${awbNumber}</td>
+                        </tr>
+                    </table>
+
+                    <hr style="margin:35px 0;border:none;border-top:1px solid #e5e7eb;">
+
+                    <p style="margin:0;">
+                        You can track your order's progress anytime from your account's Orders page.
+                    </p>
+                </td>
+            </tr>
+
+            <tr>
+                <td align="center" style="background:#f9fafb;padding:25px;font-size:13px;color:#6b7280;">
+                    © ${new Date().getFullYear()} Vintage Fashion. All Rights Reserved.
+                    <br><br>
+                    <span style="color:#9ca3af;">Please do not reply to automated emails.</span>
+                </td>
+            </tr>
+
+        </table>
+    </body>
+    </html>
+    `;
+
+    const data = await resend.emails.send({
+        from: "Vintage Fashion <onboarding@resend.dev>",
+        to,
+        subject: `Your order #${orderNumber} has shipped`,
         html
     });
 

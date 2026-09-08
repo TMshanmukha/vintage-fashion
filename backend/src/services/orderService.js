@@ -4,6 +4,9 @@ import * as NotificationService from "./notificationService.js";
 import * as CourierService from "./courierService.js";
 import * as RefundService from "./refundService.js";
 import { getIO } from "../socket/index.js";
+import * as ShiprocketService from "./shiprocket.service.js";
+import { getOrderById, getOrderItems } from "../models/orderModel.js";
+
 
 export const listOrders = async ({ status, search, page, limit }) => {
     return OrderModel.getAllOrders({ status, search, page, limit });
@@ -26,15 +29,6 @@ export const changeOrderStatus = async (orderId, status) => {
     const order = await OrderModel.getOrderById(orderId);
     if (!order) return null;
 
-    // The moment an order is confirmed, the shipment is created on the
-    // courier's side. Everything from here on (packed/shipped/delivered)
-    // is just status bookkeeping — no further courier calls needed until
-    // you wire in real tracking refresh via trackShipment().
-    if (status === "confirmed" && order.order_status === "pending") {
-        const shipment = await CourierService.createShipment(order);
-        await OrderModel.updateShipmentInfo(orderId, shipment);
-    }
-
     await OrderModel.updateOrderStatus(orderId, status);
 
     await NotificationService.createNotification({
@@ -49,8 +43,6 @@ export const changeOrderStatus = async (orderId, status) => {
             orderId,
             order_status: status,
         });
-        // Broadcast to every connected admin too, so a second admin tab/
-        // device reflects the change without needing a manual refresh.
         getIO().to("admins").emit("admin:order-updated", {
             orderId,
             order_status: status,
@@ -96,8 +88,26 @@ export const changeReturnStatus = async (returnId, action) => {
             break;
         case "schedule_pickup": {
             nextStatus = "pickup_scheduled";
-            const pickup = await CourierService.scheduleReturnPickup(returnRequest);
-            pickupTrackingId = pickup.pickupTrackingId;
+
+            const order = await OrderModel.getOrderById(returnRequest.order_id);
+            const items = await OrderModel.getOrderItems(returnRequest.order_id);
+
+            // Real Shiprocket reverse pickup — replaces the mocked
+            // CourierService call. Pickup happens at the CUSTOMER's
+            // address (from the order), delivery destination is your
+            // registered shop pickup location.
+            const returnShipment = await ShiprocketService.createReturnShipment(
+                order,
+                returnRequest,
+                items,
+                process.env.SHIPROCKET_PICKUP_LOCATION_NAME
+            );
+
+            // Reusing the existing pickup_tracking_id column — it's
+            // semantically "the tracking ID for this pickup," which is
+            // exactly what Shiprocket's return AWB is. No schema change
+            // needed.
+            pickupTrackingId = returnShipment.awb_code || returnShipment.order_id;
             break;
         }
         case "picked_up":

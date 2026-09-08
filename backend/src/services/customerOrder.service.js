@@ -2,6 +2,8 @@ import * as OrderModel from "../models/orderModel.js";
 import * as ReturnModel from "../models/returnModel.js";
 import * as NotificationService from "./notificationService.js";
 import { getIO } from "../socket/index.js";
+import * as ShiprocketService from "./shiprocket.service.js";
+
 
 const CANCELLABLE_STATUSES = ["pending", "confirmed", "packed"];
 const RETURNABLE_STATUSES = ["delivered"];
@@ -83,4 +85,23 @@ export const getMyReturnStatus = async (orderId, userId) => {
     if (!returnRequest) return { error: "NO_RETURN" };
 
     return { success: true, returnRequest };
+};
+
+export const trackMyOrderService = async (orderId, userId) => {
+    const order = await OrderModel.getOrderOwnedByUser(orderId, userId);
+    if (!order) return { error: "NOT_FOUND" };
+    if (!order.awb_number) return { error: "NO_SHIPMENT" };
+
+    const data = await ShiprocketService.trackShipment(order.awb_number);
+
+    const currentStatus = data?.tracking_data?.shipment_track?.[0]?.current_status;
+    if (currentStatus) {
+        const isDelivered = /delivered/i.test(currentStatus);
+        await OrderModel.updateShippingStatus(orderId, {
+            shipping_status: currentStatus,
+            delivered_at: isDelivered ? new Date() : null,
+        });
+    }
+
+    return { success: true, tracking: data };
 };

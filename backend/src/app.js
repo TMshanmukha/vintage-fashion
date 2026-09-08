@@ -19,6 +19,7 @@ import settingsRoutes from "./routes/settings.routes.js";
 import addressRoutes from "./routes/address.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
+import shippingRoutes from "./routes/shiprocket.routes.js";
 
 const app = express();
 
@@ -32,7 +33,7 @@ app.use(
     origin: function (origin, callback) {
       console.log("Request Origin:", origin);
 
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)) {
         callback(null, true);
       } else {
         console.log("Blocked Origin:", origin);
@@ -52,8 +53,8 @@ app.use("/api/categories", categoryRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/brands", brandRoutes);
 app.use(
-    "/api/admin/marketing",
-    marketingRoutes
+  "/api/admin/marketing",
+  marketingRoutes
 );
 app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/notifications", notificationRoutes);
@@ -67,22 +68,31 @@ app.use("/api/cart", cartRoutes);
 app.use("/api/settings", settingsRoutes);
 app.use("/api/addresses", addressRoutes);
 app.use("/api/checkout", checkoutRoutes);
+app.use("/api/shipping", shippingRoutes);
 
 app.use("/api/contact", contactRoutes);
 app.use((err, req, res, next) => {
-    console.error(err);
+  console.error("Application Error:", err);
 
-    if (err instanceof ZodError) {
-        return res.status(400).json({
-            success: false,
-            message: err.issues?.[0]?.message || "Invalid request data.",
-            errors: err.issues || [],
-        });
-    }
-
-    res.status(err.status || 500).json({
-        success: false,
-        message: err.message,
+  if (err instanceof ZodError) {
+    return res.status(400).json({
+      success: false,
+      message: err.issues?.[0]?.message || "Invalid input data. Please check and try again.",
+      errors: err.issues || [],
     });
+  }
+
+  const statusCode = err.status || (err.name === "UnauthorizedError" ? 401 : 500);
+  
+  // Guard against leaking internal database or system crash messages to client
+  let clientMessage = err.message || "Something went wrong on our end. Please try again.";
+  if (statusCode === 500 && (err.code?.startsWith("ER_") || err.sqlMessage || err.code === "ECONNREFUSED")) {
+    clientMessage = "We are currently experiencing a technical issue. Please try again in a few moments.";
+  }
+
+  res.status(statusCode).json({
+    success: false,
+    message: clientMessage,
+  });
 });
 export default app;

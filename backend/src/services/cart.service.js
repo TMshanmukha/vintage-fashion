@@ -28,7 +28,7 @@ export const addCartItemService = async (userId, body) => {
 
   const basePrice = Number(variant.price); // your existing (product.price + variant.price_modifier) value
   const promotion = await resolvePromotionForProduct(variant.product_id);
-  const pricing = applyPromotion(basePrice, promotion);
+  const pricing = applyPromotion(basePrice, variant.original_price, promotion);
 
   const cartId = await getOrCreateCart(userId);
   await upsertCartItem(cartId, variant_id, quantity, pricing); // model needs the extra param

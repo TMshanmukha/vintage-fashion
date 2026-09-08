@@ -1,5 +1,34 @@
 import pool from "../config/db.js";
 
+const SYNONYMS = {
+  "shrt": "shirt",
+  "tshirt": "shirt",
+  "t-shirt": "shirt",
+  "tees": "shirt",
+  "tee": "shirt",
+  "jckt": "jacket",
+  "jacet": "jacket",
+  "jaket": "jacket",
+  "pnt": "pants",
+  "pant": "pants",
+  "trousers": "pants",
+  "trouser": "pants",
+  "denm": "denim",
+  "levs": "levis",
+  "ralf": "ralph",
+  "hilfiger": "tommy"
+};
+
+function getKeywords(searchString) {
+  if (!searchString) return [];
+  return searchString
+    .toLowerCase()
+    .trim()
+    .split(/\s+/)
+    .map(word => SYNONYMS[word] || word)
+    .filter(word => word.length >= 2);
+}
+
 export const softDeleteProduct = async (
     productId,
     connection = pool
@@ -93,19 +122,40 @@ export const countProducts = async (filters) => {
     let sql = `
         SELECT COUNT(*) AS total
         FROM products p
+        LEFT JOIN categories c ON p.category_id = c.category_id
+        LEFT JOIN brands b ON p.brand_id = b.brand_id
         WHERE p.is_active = TRUE
     `;
 
     const values = [];
 
     if (search) {
-        sql += `
-            AND (
-                p.name LIKE ?
-                OR p.description LIKE ?
-            )
-        `;
-        values.push(`%${search}%`, `%${search}%`);
+        const keywords = getKeywords(search);
+        if (keywords.length > 0) {
+            sql += " AND (";
+            const clauses = [];
+            keywords.forEach(word => {
+                clauses.push(`(
+                    p.name LIKE ?
+                    OR p.description LIKE ?
+                    OR c.name LIKE ?
+                    OR b.name LIKE ?
+                )`);
+                values.push(`%${word}%`, `%${word}%`, `%${word}%`, `%${word}%`);
+            });
+            sql += clauses.join(" OR ");
+            sql += ")";
+        } else {
+            sql += `
+                AND (
+                    p.name LIKE ?
+                    OR p.description LIKE ?
+                    OR c.name LIKE ?
+                    OR b.name LIKE ?
+                )
+            `;
+            values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        }
     }
 
     if (category) {
@@ -184,8 +234,30 @@ export const getProducts = async ({
     const values = [];
 
     if (search) {
-        sql += ` AND p.name LIKE ?`;
-        values.push(`%${search}%`);
+        const keywords = getKeywords(search);
+        if (keywords.length > 0) {
+            sql += " AND (";
+            const clauses = [];
+            keywords.forEach(word => {
+                clauses.push(`(
+                    p.name LIKE ?
+                    OR p.description LIKE ?
+                    OR c.name LIKE ?
+                    OR b.name LIKE ?
+                )`);
+                values.push(`%${word}%`, `%${word}%`, `%${word}%`, `%${word}%`);
+            });
+            sql += clauses.join(" OR ");
+            sql += ")";
+        } else {
+            sql += ` AND (
+                p.name LIKE ?
+                OR p.description LIKE ?
+                OR c.name LIKE ?
+                OR b.name LIKE ?
+            )`;
+            values.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+        }
     }
 
     if (category) {

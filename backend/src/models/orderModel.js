@@ -24,9 +24,11 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
     o.total_amount,
     o.order_status,
     o.payment_status,
-    o.tracking_id,
-    o.courier_partner,
-    o.shipment_status,
+    o.shipment_id,
+    o.awb_number,
+    o.courier_name,
+    o.shipping_status,
+    o.pickup_scheduled,
     o.ordered_at,
     u.user_id,
     u.name AS customer_name,
@@ -39,7 +41,7 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
 FROM orders o
 JOIN users u
     ON u.user_id = o.user_id
-WHERE 1=1
+${where}
 ORDER BY o.ordered_at DESC
 LIMIT ? OFFSET ?;
         `,
@@ -196,8 +198,10 @@ export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) =
 export const getOrderOwnedByUser = async (orderId, userId) => {
     const [rows] = await pool.query(
         `SELECT
-            o.order_id, o.order_status, o.user_id, o.tracking_id, o.courier_partner,
-            o.shipment_status, o.tracking_events,
+            o.order_id, o.order_status, o.user_id,
+            o.awb_number, o.courier_name, o.shipping_status,
+            o.shipping_label_url, o.invoice_url, o.tracking_url,
+            o.estimated_delivery, o.pickup_scheduled, o.delivered_at,
             a.address_line1, a.address_line2, a.city, a.state, a.pincode, a.country
          FROM orders o
          JOIN user_addresses a ON a.address_id = o.shipping_address_id
@@ -222,4 +226,44 @@ export const setOrderStatusForUser = async (orderId, userId, status) => {
         [status, orderId, userId]
     );
     return result.affectedRows > 0;
+};
+
+// Persists Shiprocket shipment data onto the order after successful creation.
+export const updateShiprocketInfo = async (orderId, {
+  shiprocket_order_id,
+  shipment_id,
+  awb_number,
+  courier_name,
+  shipping_label_url,
+  invoice_url,
+  pickup_scheduled,
+}) => {
+  await pool.query(
+    `
+    UPDATE orders
+    SET shiprocket_order_id = ?,
+        shipment_id = ?,
+        awb_number = ?,
+        courier_name = ?,
+        shipping_label_url = ?,
+        invoice_url = ?,
+        pickup_scheduled = ?,
+        shipment_created_at = NOW()
+    WHERE order_id = ?
+    `,
+    [shiprocket_order_id, shipment_id, awb_number, courier_name, shipping_label_url, invoice_url, pickup_scheduled, orderId]
+  );
+};
+
+// Updates just the live tracking status — called from the tracking sync,
+// separate from the one-time shipment creation above.
+export const updateShippingStatus = async (orderId, { shipping_status, delivered_at }) => {
+  await pool.query(
+    `
+    UPDATE orders
+    SET shipping_status = ?, delivered_at = COALESCE(?, delivered_at)
+    WHERE order_id = ?
+    `,
+    [shipping_status, delivered_at || null, orderId]
+  );
 };
