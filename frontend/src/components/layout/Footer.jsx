@@ -122,12 +122,6 @@ export default function Footer() {
             </div>
           </div>
         </div>
-
-        <div className="border-t border-gray-100 pt-6 text-center">
-          <p className="text-xs text-gray-400">
-            Crafted with care for timeless style.
-          </p>
-        </div>
       </div>
     </footer>
   );

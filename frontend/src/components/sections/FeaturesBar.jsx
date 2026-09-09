@@ -6,7 +6,7 @@ const features = [
       </svg>
     ),
     title: "Free Shipping",
-    desc: "Free shipping on all orders over ₹1000. No hidden costs, no surprises at checkout.",
+    desc: "Free shipping available on qualifying orders. No hidden costs, no surprises at checkout.",
   },
   {
     icon: (

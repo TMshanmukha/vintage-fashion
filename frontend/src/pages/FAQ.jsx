@@ -10,7 +10,7 @@ const faqs = [
   {
     category: "Orders & Shipping",
     q: "Do you offer free shipping?",
-    a: "Yes! We offer free shipping on all orders over ₹1000. For orders below ₹1000, a minimal standard delivery fee of ₹49 is applied at checkout.",
+    a: "Yes! We offer free shipping on eligible orders meeting the store's promotional threshold displayed on the announcement banner. Any applicable standard delivery fee is transparently calculated and displayed at checkout before you place your order.",
   },
   {
     category: "Orders & Shipping",
