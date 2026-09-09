@@ -80,7 +80,11 @@ export const addReview = async (req, res, next) => {
       },
     });
   } catch (err) {
-    next(err);
+    console.error("Review creation error:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Unable to submit your review right now. Please try again in a moment.",
+    });
   }
 };
 

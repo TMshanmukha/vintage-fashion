@@ -35,12 +35,12 @@ const faqs = [
   {
     category: "Returns & Refunds",
     q: "How long does it take to receive my refund?",
-    a: "For prepaid orders (UPI, Card, NetBanking), refunds are credited back to your original source within 3–5 working days. For COD orders, refund is transferred to your bank account via NEFT/IMPS.",
+    a: "All approved refunds are directly credited back to your original payment source (UPI account, Debit/Credit Card, or NetBanking) within 3 to 5 business days via our secure payment gateway.",
   },
   {
     category: "Payments & Offers",
     q: "What payment methods do you accept?",
-    a: "We accept all major payment methods including UPI (Google Pay, PhonePe, Paytm), Credit/Debit Cards (Visa, MasterCard, RuPay), NetBanking via Razorpay, and Cash on Delivery (COD).",
+    a: "We accept 100% safe and secure online payments processed through Razorpay, including UPI (Google Pay, PhonePe, Paytm, BHIM), Credit/Debit Cards (Visa, MasterCard, RuPay), and NetBanking from all major banks.",
   },
   {
     category: "Payments & Offers",

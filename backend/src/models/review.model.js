@@ -33,12 +33,12 @@ export const createReview = async ({ productId, userId, userName, rating, title,
     [productId, userId, userName, Number(rating), title || "", comment]
   );
 
-  // Sync review_count & rating on products table if available
+  // Sync review_count & average_rating on products table if available
   try {
     const summary = await getReviewsSummary(productId);
     await pool.query(
       `UPDATE products 
-       SET review_count = ?, rating = ?
+       SET review_count = ?, average_rating = ?
        WHERE product_id = ?`,
       [summary.total_reviews, summary.average_rating, productId]
     );
@@ -67,7 +67,7 @@ export const deleteReviewById = async (reviewId) => {
       const summary = await getReviewsSummary(productId);
       await pool.query(
         `UPDATE products 
-         SET review_count = ?, rating = ?
+         SET review_count = ?, average_rating = ?
          WHERE product_id = ?`,
         [summary.total_reviews, summary.average_rating, productId]
       );

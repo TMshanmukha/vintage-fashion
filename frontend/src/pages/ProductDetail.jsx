@@ -146,7 +146,14 @@ export default function ProductDetail() {
       toast.success("Thank you! Your review has been submitted.");
     } catch (err) {
       console.error("Review submit error:", err);
-      toast.error(err.response?.data?.message || "Failed to submit review.");
+      const rawMsg = err.response?.data?.message || "";
+      let friendlyMsg = "Unable to submit review. Please try again.";
+      if (err.response?.status === 401 || rawMsg.toLowerCase().includes("token") || rawMsg.toLowerCase().includes("log in")) {
+        friendlyMsg = "Please sign in to submit your review.";
+      } else if (rawMsg && !rawMsg.includes("ER_") && !rawMsg.includes("sql") && !rawMsg.includes("column") && !rawMsg.includes("database")) {
+        friendlyMsg = rawMsg;
+      }
+      toast.error(friendlyMsg);
     } finally {
       setSubmittingReview(false);
     }

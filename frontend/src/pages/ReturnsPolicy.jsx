@@ -82,10 +82,10 @@ export default function ReturnsPolicy() {
         <div>
           <h3 className="text-base font-bold text-gray-900 mb-2">Refund Processing & Timelines</h3>
           <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-2">
-            - <strong>Prepaid Orders (UPI / Card / NetBanking / Razorpay):</strong> Refund credited directly back to the original payment source within 3–5 banking working days.
+            - <strong>Direct Source Refund:</strong> Once the returned item passes our warehouse quality inspection, the full refund is automatically credited back to your original payment source (UPI account / Card / NetBanking) via Razorpay within 3–5 business days.
           </p>
           <p className="text-xs sm:text-sm text-gray-600 leading-relaxed">
-            - <strong>Cash on Delivery (COD):</strong> Refund provided via bank account transfer (NEFT/IMPS) upon providing account details or instant store wallet credit.
+            - <strong>Instant Status Updates:</strong> You will receive real-time email notifications with your refund reference ID once the payout is processed.
           </p>
         </div>
 
