@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { useCart } from "../hooks/useCart";
 import useAuth from "../hooks/useAuth";
 import { getProductBySlug, getProducts } from "../api/productApi";
+import { getProductReviews, submitProductReview } from "../api/reviewApi";
 import { setPendingAction, getPendingAction, clearPendingAction } from "../utils/pendingCartAction";
 import ProductCard from "../components/ui/ProductCard";
 import SectionTitle from "../components/ui/SectionTitle";
@@ -23,6 +24,16 @@ export default function ProductDetail() {
   const [selectedColor, setSelectedColor] = useState(null);
   const [activeTab, setActiveTab] = useState("description");
   const [activeImage, setActiveImage] = useState(0);
+
+  // Reviews state
+  const [reviews, setReviews] = useState([]);
+  const [reviewSummary, setReviewSummary] = useState({ total_reviews: 0, average_rating: 0 });
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewRating, setReviewRating] = useState(5);
+  const [reviewHoverRating, setReviewHoverRating] = useState(0);
+  const [reviewTitle, setReviewTitle] = useState("");
+  const [reviewComment, setReviewComment] = useState("");
+  const [submittingReview, setSubmittingReview] = useState(false);
 
   // Guards against replaying a pending cart/wishlist action twice
   const pendingHandled = useRef(false);
@@ -67,6 +78,10 @@ export default function ProductDetail() {
               .slice(0, 5)
           );
         }
+
+        if (product.product_id) {
+          loadReviews(product.product_id);
+        }
       } catch (err) {
         console.error("Failed to load product:", err);
         setProduct(null);
@@ -75,6 +90,67 @@ export default function ProductDetail() {
       setLoading(false);
     })();
   }, [slug]);
+
+  const loadReviews = async (productId) => {
+    setReviewLoading(true);
+    try {
+      const res = await getProductReviews(productId);
+      if (res?.data) {
+        setReviews(res.data.reviews || []);
+        setReviewSummary(res.data.summary || { total_reviews: 0, average_rating: 0 });
+      }
+    } catch (err) {
+      console.error("Failed to load reviews:", err);
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    if (!user) {
+      navigate(`/auth?redirect=/product/${slug}`);
+      return;
+    }
+    if (!reviewComment.trim()) {
+      toast.error("Please enter your review comment.");
+      return;
+    }
+
+    setSubmittingReview(true);
+    try {
+      const res = await submitProductReview(product.product_id, {
+        rating: reviewRating,
+        title: reviewTitle.trim(),
+        comment: reviewComment.trim(),
+      });
+
+      if (res?.data) {
+        setReviews((prev) => [res.data, ...prev]);
+        if (res.data.summary) {
+          setReviewSummary(res.data.summary);
+        }
+        setProduct((prev) =>
+          prev
+            ? {
+                ...prev,
+                review_count: (prev.review_count || 0) + 1,
+                average_rating: res.data.summary?.average_rating || reviewRating,
+              }
+            : prev
+        );
+      }
+      setReviewTitle("");
+      setReviewComment("");
+      setReviewRating(5);
+      toast.success("Thank you! Your review has been submitted.");
+    } catch (err) {
+      console.error("Review submit error:", err);
+      toast.error(err.response?.data?.message || "Failed to submit review.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   // Full list of every color / size that exists on this product — always
   // rendered in full, never hidden.
@@ -502,11 +578,11 @@ export default function ProductDetail() {
           ))}
         </div>
 
-        <div className="text-sm text-gray-500 leading-relaxed max-w-2xl">
-          {activeTab === "description" && <p>{product.description}</p>}
+        <div className="text-sm text-gray-500 leading-relaxed max-w-4xl">
+          {activeTab === "description" && <p className="max-w-2xl">{product.description}</p>}
 
           {activeTab === "additional" && (
-            <table className="w-full text-left">
+            <table className="w-full max-w-2xl text-left">
               <tbody className="divide-y divide-gray-100">
                 <tr>
                   <td className="py-2 font-medium text-gray-700 w-40">SKU</td>
@@ -529,7 +605,196 @@ export default function ProductDetail() {
           )}
 
           {activeTab === "reviews" && (
-            <p className="text-gray-400">No reviews yet.</p>
+            <div className="space-y-10">
+              {/* Summary Header */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 bg-gray-50 border border-gray-100 rounded-lg">
+                <div className="flex items-center gap-4">
+                  <div className="text-4xl font-extrabold text-gray-900">
+                    {Number(reviewSummary?.average_rating || product?.average_rating || 0).toFixed(1)}
+                  </div>
+                  <div>
+                    <div className="flex items-center text-amber-400">
+                      {[1, 2, 3, 4, 5].map((s) => (
+                        <svg
+                          key={s}
+                          className={`w-5 h-5 ${
+                            s <= Math.round(Number(reviewSummary?.average_rating || product?.average_rating || 0))
+                              ? "fill-current"
+                              : "text-gray-200 fill-current"
+                          }`}
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                        </svg>
+                      ))}
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Based on {reviewSummary?.total_reviews || reviews.length || 0} reviews
+                    </p>
+                  </div>
+                </div>
+                <a
+                  href="#write-review"
+                  className="inline-flex items-center justify-center px-4 py-2 text-xs font-semibold uppercase tracking-wider text-gray-900 bg-white border border-gray-300 rounded shadow-sm hover:bg-gray-100 transition-colors w-fit"
+                >
+                  Write a Review
+                </a>
+              </div>
+
+              {/* Reviews List */}
+              <div className="space-y-6">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-gray-900">
+                  Customer Reviews ({reviews.length})
+                </h4>
+
+                {reviewLoading ? (
+                  <div className="text-center py-8 text-gray-400">Loading reviews...</div>
+                ) : reviews.length === 0 ? (
+                  <div className="p-8 text-center bg-gray-50 border border-gray-100 rounded-lg text-gray-400">
+                    <p className="font-medium text-gray-600">No reviews yet</p>
+                    <p className="text-xs mt-1">Be the first to share your thoughts about this product!</p>
+                  </div>
+                ) : (
+                  <div className="divide-y divide-gray-100">
+                    {reviews.map((rev) => (
+                      <div key={rev.review_id} className="py-5 first:pt-0">
+                        <div className="flex items-center justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <div className="w-8 h-8 rounded-full bg-gray-900 text-white text-xs font-bold flex items-center justify-center">
+                              {(rev.user_name || "Customer").charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <span className="font-semibold text-gray-900 text-xs">
+                                {rev.user_name || "Customer"}
+                              </span>
+                              <span className="ml-2 text-[10px] bg-green-50 text-green-700 px-2 py-0.5 rounded-full font-medium">
+                                Verified Buyer
+                              </span>
+                            </div>
+                          </div>
+                          <span className="text-xs text-gray-400">
+                            {rev.created_at ? new Date(rev.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }) : ""}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center text-amber-400 mb-2">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <svg
+                              key={s}
+                              className={`w-4 h-4 ${
+                                s <= rev.rating ? "fill-current" : "text-gray-200 fill-current"
+                              }`}
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          ))}
+                        </div>
+
+                        {rev.title && (
+                          <h5 className="text-xs font-bold text-gray-900 mb-1">{rev.title}</h5>
+                        )}
+                        <p className="text-xs text-gray-600 leading-relaxed">{rev.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Review Submission Form */}
+              <div id="write-review" className="p-6 bg-gray-50 border border-gray-200 rounded-lg">
+                <h4 className="text-sm font-bold uppercase tracking-wider text-gray-900 mb-1">
+                  Write a Customer Review
+                </h4>
+                <p className="text-xs text-gray-500 mb-6">
+                  Share your experience with other shoppers
+                </p>
+
+                {user ? (
+                  <form onSubmit={handleReviewSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Overall Rating *
+                      </label>
+                      <div className="flex items-center gap-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            type="button"
+                            key={star}
+                            onClick={() => setReviewRating(star)}
+                            onMouseEnter={() => setReviewHoverRating(star)}
+                            onMouseLeave={() => setReviewHoverRating(0)}
+                            className="p-1 focus:outline-none transition-transform hover:scale-110"
+                          >
+                            <svg
+                              className={`w-6 h-6 ${
+                                (reviewHoverRating || reviewRating) >= star
+                                  ? "text-amber-400 fill-current"
+                                  : "text-gray-300 fill-current"
+                              }`}
+                              viewBox="0 0 20 20"
+                            >
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                          </button>
+                        ))}
+                        <span className="text-xs font-medium text-gray-600 ml-2">
+                          {reviewRating} of 5 stars
+                        </span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Review Headline (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={reviewTitle}
+                        onChange={(e) => setReviewTitle(e.target.value)}
+                        placeholder="e.g. Beautiful fabric and perfect fit!"
+                        className="w-full text-xs px-3 py-2.5 border border-gray-300 rounded focus:border-gray-900 focus:outline-none bg-white"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-gray-700 mb-1">
+                        Review Details *
+                      </label>
+                      <textarea
+                        rows={4}
+                        required
+                        value={reviewComment}
+                        onChange={(e) => setReviewComment(e.target.value)}
+                        placeholder="What did you like or dislike? What was the fit, material quality, and finish like?"
+                        className="w-full text-xs px-3 py-2.5 border border-gray-300 rounded focus:border-gray-900 focus:outline-none bg-white"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={submittingReview}
+                      className="bg-gray-900 text-white text-xs font-bold uppercase tracking-widest px-6 py-3 rounded hover:bg-pink-500 transition-colors disabled:opacity-50"
+                    >
+                      {submittingReview ? "Submitting..." : "Submit Review"}
+                    </button>
+                  </form>
+                ) : (
+                  <div className="bg-white p-5 border border-dashed border-gray-300 rounded text-center">
+                    <p className="text-xs text-gray-600 mb-3">
+                      Please log in to submit your rating and review for this product.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => navigate(`/auth?redirect=/product/${slug}`)}
+                      className="inline-block bg-gray-900 text-white text-xs font-bold uppercase tracking-widest px-5 py-2.5 rounded hover:bg-pink-500 transition-colors"
+                    >
+                      Sign In to Review
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>

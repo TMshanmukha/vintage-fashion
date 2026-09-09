@@ -1,4 +1,3 @@
-import AnnouncementBar from "../components/sections/AnnouncementBar";
 import Hero from "../components/sections/Hero";
 import FeaturesBar from "../components/sections/FeaturesBar";
 import PromotionalCards from "../components/sections/PromotionalCards";
@@ -13,7 +12,6 @@ export default function Home() {
 
   return (
     <>
-      <AnnouncementBar />
       {isEnabled(SECTION_NAMES.HERO_BANNER) && <Hero />}
       <FeaturesBar />
       {isEnabled(SECTION_NAMES.PROMOTIONAL_CARDS) && <PromotionalCards />}

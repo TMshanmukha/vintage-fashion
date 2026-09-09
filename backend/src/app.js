@@ -20,6 +20,7 @@ import addressRoutes from "./routes/address.routes.js";
 import checkoutRoutes from "./routes/checkout.routes.js";
 import contactRoutes from "./routes/contact.routes.js";
 import shippingRoutes from "./routes/shiprocket.routes.js";
+import reviewRoutes from "./routes/review.routes.js";
 
 const app = express();
 
@@ -79,6 +80,7 @@ app.use("/api/checkout", checkoutRoutes);
 app.use("/api/shipping", shippingRoutes);
 
 app.use("/api/contact", contactRoutes);
+app.use("/api/reviews", reviewRoutes);
 app.use((err, req, res, next) => {
   console.error("Application Error:", err);
 
