@@ -2,8 +2,8 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 
 const sizeData = {
-  mens_tops: {
-    title: "Men's Shirts, T-Shirts & Jackets",
+  shirts: {
+    title: "Shirts & T-Shirts",
     inches: [
       { size: "XS", chest: "34 - 36", waist: "28 - 30", shoulder: "16.5", length: "27" },
       { size: "S", chest: "36 - 38", waist: "30 - 32", shoulder: "17.2", length: "28" },
@@ -21,27 +21,27 @@ const sizeData = {
       { size: "XXL", chest: "111 - 116", waist: "96 - 101", shoulder: "51", length: "81" },
     ],
   },
-  womens_tops: {
-    title: "Women's Tops, Blouses & Dresses",
+  jackets: {
+    title: "Jackets & Blazers",
     inches: [
-      { size: "XS", bust: "31 - 33", waist: "24 - 26", hip: "34 - 36", length: "34" },
-      { size: "S", bust: "33 - 35", waist: "26 - 28", hip: "36 - 38", length: "35" },
-      { size: "M", bust: "35 - 37", waist: "28 - 30", hip: "38 - 40", length: "36" },
-      { size: "L", bust: "37 - 40", waist: "30 - 33", hip: "40 - 43", length: "37" },
-      { size: "XL", bust: "40 - 43", waist: "33 - 36", hip: "43 - 46", length: "38" },
-      { size: "XXL", bust: "43 - 46", waist: "36 - 39", hip: "46 - 49", length: "39" },
+      { size: "XS", chest: "36 - 38", shoulder: "17.0", sleeve: "24.5", length: "26.5" },
+      { size: "S", chest: "38 - 40", shoulder: "17.8", sleeve: "25.0", length: "27.5" },
+      { size: "M", chest: "40 - 42", shoulder: "18.5", sleeve: "25.5", length: "28.5" },
+      { size: "L", chest: "42 - 44", shoulder: "19.2", sleeve: "26.0", length: "29.5" },
+      { size: "XL", chest: "44 - 46", shoulder: "20.0", sleeve: "26.5", length: "30.5" },
+      { size: "XXL", chest: "46 - 48", shoulder: "20.8", sleeve: "27.0", length: "31.5" },
     ],
     cm: [
-      { size: "XS", bust: "79 - 84", waist: "61 - 66", hip: "86 - 91", length: "86" },
-      { size: "S", bust: "84 - 89", waist: "66 - 71", hip: "91 - 96", length: "89" },
-      { size: "M", bust: "89 - 94", waist: "71 - 76", hip: "96 - 101", length: "91" },
-      { size: "L", bust: "94 - 101", waist: "76 - 84", hip: "101 - 109", length: "94" },
-      { size: "XL", bust: "101 - 109", waist: "84 - 91", hip: "109 - 117", length: "96" },
-      { size: "XXL", bust: "109 - 117", waist: "91 - 99", hip: "117 - 124", length: "99" },
+      { size: "XS", chest: "91 - 96", shoulder: "43", sleeve: "62", length: "67" },
+      { size: "S", chest: "96 - 101", shoulder: "45", sleeve: "63", length: "70" },
+      { size: "M", chest: "101 - 106", shoulder: "47", sleeve: "65", length: "72" },
+      { size: "L", chest: "106 - 112", shoulder: "49", sleeve: "66", length: "75" },
+      { size: "XL", chest: "112 - 117", shoulder: "51", sleeve: "67", length: "77" },
+      { size: "XXL", chest: "117 - 122", shoulder: "53", sleeve: "68", length: "80" },
     ],
   },
   bottoms: {
-    title: "Trousers, Jeans & Pants",
+    title: "Jeans, Trousers & Pants",
     inches: [
       { size: "28", waist: "28 - 29", hip: "35 - 36", thigh: "21", length: "30" },
       { size: "30", waist: "30 - 31", hip: "37 - 38", thigh: "22", length: "30" },
@@ -62,7 +62,7 @@ const sizeData = {
 };
 
 export default function SizeGuide() {
-  const [activeTab, setActiveTab] = useState("mens_tops");
+  const [activeTab, setActiveTab] = useState("shirts");
   const [unit, setUnit] = useState("inches"); // 'inches' | 'cm'
 
   const currentCategory = sizeData[activeTab];
@@ -82,10 +82,10 @@ export default function SizeGuide() {
           Perfect Fit Guaranteed
         </span>
         <h1 className="text-3xl sm:text-4xl font-extrabold text-gray-900 tracking-tight">
-          Comprehensive Size Guide
+          Garment Size Guide
         </h1>
         <p className="text-sm text-gray-500 mt-3 leading-relaxed">
-          Find your ideal size across all Vintage Fashion garments. All measurements are tailored for standard and vintage tailored fits.
+          Find your ideal size across all Vintage Fashion garments. All measurements are tailored for standard and comfortable vintage fits.
         </p>
       </div>
 
@@ -93,24 +93,24 @@ export default function SizeGuide() {
       <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-xl">
           <button
-            onClick={() => setActiveTab("mens_tops")}
+            onClick={() => setActiveTab("shirts")}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              activeTab === "mens_tops"
+              activeTab === "shirts"
                 ? "bg-white text-gray-900 shadow-xs"
                 : "text-gray-500 hover:text-gray-900"
             }`}
           >
-            Men's Tops
+            Shirts & Tees
           </button>
           <button
-            onClick={() => setActiveTab("womens_tops")}
+            onClick={() => setActiveTab("jackets")}
             className={`px-4 py-2 text-xs font-bold rounded-lg transition-all ${
-              activeTab === "womens_tops"
+              activeTab === "jackets"
                 ? "bg-white text-gray-900 shadow-xs"
                 : "text-gray-500 hover:text-gray-900"
             }`}
           >
-            Women's Apparel
+            Jackets & Blazers
           </button>
           <button
             onClick={() => setActiveTab("bottoms")}
@@ -120,7 +120,7 @@ export default function SizeGuide() {
                 : "text-gray-500 hover:text-gray-900"
             }`}
           >
-            Bottoms & Jeans
+            Jeans & Trousers
           </button>
         </div>
 
@@ -161,26 +161,26 @@ export default function SizeGuide() {
             <thead className="bg-gray-50/50 text-gray-600 uppercase font-semibold border-b border-gray-200">
               <tr>
                 <th className="py-3 px-4">Size</th>
-                {activeTab === "womens_tops" ? (
-                  <>
-                    <th className="py-3 px-4">Bust</th>
-                    <th className="py-3 px-4">Waist</th>
-                    <th className="py-3 px-4">Hips</th>
-                    <th className="py-3 px-4">Length</th>
-                  </>
-                ) : activeTab === "bottoms" ? (
-                  <>
-                    <th className="py-3 px-4">Waist</th>
-                    <th className="py-3 px-4">Hip</th>
-                    <th className="py-3 px-4">Thigh</th>
-                    <th className="py-3 px-4">Inseam Length</th>
-                  </>
-                ) : (
+                {activeTab === "shirts" ? (
                   <>
                     <th className="py-3 px-4">Chest</th>
                     <th className="py-3 px-4">Waist</th>
                     <th className="py-3 px-4">Shoulder</th>
                     <th className="py-3 px-4">Length</th>
+                  </>
+                ) : activeTab === "jackets" ? (
+                  <>
+                    <th className="py-3 px-4">Chest</th>
+                    <th className="py-3 px-4">Shoulder</th>
+                    <th className="py-3 px-4">Sleeve</th>
+                    <th className="py-3 px-4">Length</th>
+                  </>
+                ) : (
+                  <>
+                    <th className="py-3 px-4">Waist</th>
+                    <th className="py-3 px-4">Hip</th>
+                    <th className="py-3 px-4">Thigh</th>
+                    <th className="py-3 px-4">Inseam Length</th>
                   </>
                 )}
               </tr>
@@ -189,25 +189,25 @@ export default function SizeGuide() {
               {rows.map((r) => (
                 <tr key={r.size} className="hover:bg-gray-50/50 transition-colors">
                   <td className="py-3.5 px-4 font-bold text-gray-900">{r.size}</td>
-                  {activeTab === "womens_tops" ? (
-                    <>
-                      <td className="py-3.5 px-4 text-gray-600">{r.bust} {unit === "inches" ? '"' : "cm"}</td>
-                      <td className="py-3.5 px-4 text-gray-600">{r.waist} {unit === "inches" ? '"' : "cm"}</td>
-                      <td className="py-3.5 px-4 text-gray-600">{r.hip} {unit === "inches" ? '"' : "cm"}</td>
-                      <td className="py-3.5 px-4 text-gray-600">{r.length} {unit === "inches" ? '"' : "cm"}</td>
-                    </>
-                  ) : activeTab === "bottoms" ? (
-                    <>
-                      <td className="py-3.5 px-4 text-gray-600">{r.waist} {unit === "inches" ? '"' : "cm"}</td>
-                      <td className="py-3.5 px-4 text-gray-600">{r.hip} {unit === "inches" ? '"' : "cm"}</td>
-                      <td className="py-3.5 px-4 text-gray-600">{r.thigh} {unit === "inches" ? '"' : "cm"}</td>
-                      <td className="py-3.5 px-4 text-gray-600">{r.length} {unit === "inches" ? '"' : "cm"}</td>
-                    </>
-                  ) : (
+                  {activeTab === "shirts" ? (
                     <>
                       <td className="py-3.5 px-4 text-gray-600">{r.chest} {unit === "inches" ? '"' : "cm"}</td>
                       <td className="py-3.5 px-4 text-gray-600">{r.waist} {unit === "inches" ? '"' : "cm"}</td>
                       <td className="py-3.5 px-4 text-gray-600">{r.shoulder} {unit === "inches" ? '"' : "cm"}</td>
+                      <td className="py-3.5 px-4 text-gray-600">{r.length} {unit === "inches" ? '"' : "cm"}</td>
+                    </>
+                  ) : activeTab === "jackets" ? (
+                    <>
+                      <td className="py-3.5 px-4 text-gray-600">{r.chest} {unit === "inches" ? '"' : "cm"}</td>
+                      <td className="py-3.5 px-4 text-gray-600">{r.shoulder} {unit === "inches" ? '"' : "cm"}</td>
+                      <td className="py-3.5 px-4 text-gray-600">{r.sleeve} {unit === "inches" ? '"' : "cm"}</td>
+                      <td className="py-3.5 px-4 text-gray-600">{r.length} {unit === "inches" ? '"' : "cm"}</td>
+                    </>
+                  ) : (
+                    <>
+                      <td className="py-3.5 px-4 text-gray-600">{r.waist} {unit === "inches" ? '"' : "cm"}</td>
+                      <td className="py-3.5 px-4 text-gray-600">{r.hip} {unit === "inches" ? '"' : "cm"}</td>
+                      <td className="py-3.5 px-4 text-gray-600">{r.thigh} {unit === "inches" ? '"' : "cm"}</td>
                       <td className="py-3.5 px-4 text-gray-600">{r.length} {unit === "inches" ? '"' : "cm"}</td>
                     </>
                   )}
@@ -223,20 +223,20 @@ export default function SizeGuide() {
         <h3 className="text-base font-bold text-gray-900 mb-4">How to Measure for the Best Fit</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-xs sm:text-sm text-gray-600">
           <div>
-            <h4 className="font-bold text-gray-900 mb-1">1. Chest / Bust</h4>
-            <p className="leading-relaxed">Measure around the fullest part of your chest or bust, keeping the tape horizontal under the arms.</p>
+            <h4 className="font-bold text-gray-900 mb-1">1. Chest</h4>
+            <p className="leading-relaxed">Measure around the fullest part of your chest, keeping the tape comfortably horizontal under the arms.</p>
           </div>
           <div>
             <h4 className="font-bold text-gray-900 mb-1">2. Natural Waist</h4>
-            <p className="leading-relaxed">Measure around your natural waistline, located just above your belly button where your body bends.</p>
+            <p className="leading-relaxed">Measure around your natural waistline, located where your trousers normally rest.</p>
           </div>
           <div>
-            <h4 className="font-bold text-gray-900 mb-1">3. Hips</h4>
-            <p className="leading-relaxed">Stand with feet together and measure around the fullest part of your hips and rear.</p>
+            <h4 className="font-bold text-gray-900 mb-1">3. Shoulder Width</h4>
+            <p className="leading-relaxed">Measure from the tip of one shoulder across the back to the tip of the other shoulder.</p>
           </div>
           <div>
             <h4 className="font-bold text-gray-900 mb-1">4. Inseam / Length</h4>
-            <p className="leading-relaxed">Measure from the top of your inner leg at the crotch down to the bottom of the ankle.</p>
+            <p className="leading-relaxed">Measure from the top of your inner leg at the crotch down to the ankle.</p>
           </div>
         </div>
 

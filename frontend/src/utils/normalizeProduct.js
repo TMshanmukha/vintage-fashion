@@ -10,8 +10,11 @@ export function normalizeProduct(raw, { badge } = {}) {
     "";
 
   const rawPrice = Number(raw.final_price ?? raw.price) || 0;
-  const rawOriginalPrice = raw.original_price != null ? Number(raw.original_price) : Number(raw.price || rawPrice);
-  const discountPercent = Number(raw.discount_percent || raw.discountPercent) || 0;
+  const rawOriginalPrice = raw.original_price != null ? Number(raw.original_price) : rawPrice;
+  const calculatedDiscount = (rawOriginalPrice > rawPrice && rawOriginalPrice > 0)
+    ? Math.round(((rawOriginalPrice - rawPrice) / rawOriginalPrice) * 100)
+    : 0;
+  const discountPercent = Number(raw.discount_percent || raw.discountPercent) || calculatedDiscount;
 
   return {
     id: raw.product_id ?? raw.id,
@@ -20,7 +23,7 @@ export function normalizeProduct(raw, { badge } = {}) {
     image,
     images: image ? [image] : [],
     price: rawPrice,
-    originalPrice: rawOriginalPrice > rawPrice ? rawOriginalPrice : (discountPercent > 0 ? rawOriginalPrice : undefined),
+    originalPrice: rawOriginalPrice > rawPrice ? rawOriginalPrice : undefined,
     discountPercent,
     badge: badge ?? raw.badge,
   };

@@ -421,19 +421,23 @@ export default function ProductDetail() {
           <h1 className="text-2xl font-bold text-gray-900 mb-2">{product.name}</h1>
           {(() => {
             const currentPrice = Number(product.final_price ?? product.price) || 0;
-            const originalPrice = product.original_price != null ? Number(product.original_price) : Number(product.price || currentPrice);
-            const discountPercent = Number(product.discount_percent) || (originalPrice > currentPrice ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100) : 0);
+            const rawOriginal = product.original_price != null ? Number(product.original_price) : Number(product.price || currentPrice);
+            const originalPrice = rawOriginal > currentPrice ? rawOriginal : currentPrice;
+            const calculatedDiscount = (originalPrice > currentPrice && originalPrice > 0)
+              ? Math.round(((originalPrice - currentPrice) / originalPrice) * 100)
+              : 0;
+            const discountPercent = calculatedDiscount || Number(product.discount_percent) || 0;
             const hasDiscount = discountPercent > 0 && originalPrice > currentPrice;
 
             return (
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="text-2xl font-extrabold text-gray-900">
-                  ₹ {currentPrice.toFixed(2)}
+                  ₹{currentPrice.toFixed(2)}
                 </span>
                 {hasDiscount && (
                   <>
                     <span className="text-base text-gray-400 line-through">
-                      ₹ {originalPrice.toFixed(2)}
+                      ₹{originalPrice.toFixed(2)}
                     </span>
                     <span className="text-xs font-bold text-pink-600 bg-pink-50 px-2.5 py-1 rounded-full">
                       {discountPercent}% OFF

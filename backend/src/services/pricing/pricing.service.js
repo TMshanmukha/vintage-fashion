@@ -81,11 +81,16 @@ export function applyPromotion(price, originalPrice, promotion) {
     const mrp = isNaN(numMrp) || numMrp < sellingPrice ? sellingPrice : numMrp;
 
     if (!actualPromo) {
+        const discount_amount = mrp > sellingPrice ? +(mrp - sellingPrice).toFixed(2) : 0;
+        const discount_percent = (mrp > sellingPrice && mrp > 0)
+            ? Math.round(((mrp - sellingPrice) / mrp) * 100)
+            : 0;
+
         return {
             original_price: mrp,
             final_price: sellingPrice,
-            discount_percent: 0,
-            discount_amount: 0,
+            discount_percent,
+            discount_amount,
             promotion_id: null,
             promotion_type: null,
         };
@@ -95,23 +100,28 @@ export function applyPromotion(price, originalPrice, promotion) {
     const safeDiscountValue = isNaN(discountValue) ? 0 : discountValue;
 
     // Apply promotion on selling price
-    const discount_amount =
+    const promoDiscountAmount =
         actualPromo.discount_type === "PERCENTAGE"
             ? +(sellingPrice * safeDiscountValue / 100).toFixed(2)
             : Math.min(safeDiscountValue, sellingPrice);
 
-    const safeDiscountAmount = isNaN(discount_amount) ? 0 : Math.max(0, discount_amount);
-    const final_price = +(sellingPrice - safeDiscountAmount).toFixed(2);
+    const safePromoDiscount = isNaN(promoDiscountAmount) ? 0 : Math.max(0, promoDiscountAmount);
+    const final_price = +(sellingPrice - safePromoDiscount).toFixed(2);
     const safeFinalPrice = isNaN(final_price) ? sellingPrice : Math.max(0, final_price);
 
-    const discount_percent = sellingPrice > 0
-        ? +(((sellingPrice - safeFinalPrice) / sellingPrice) * 100).toFixed(2)
+    // If mrp is higher than selling price, strike-through is mrp; otherwise sellingPrice
+    const effectiveOriginalPrice = mrp > sellingPrice ? mrp : (safePromoDiscount > 0 ? sellingPrice : mrp);
+    const totalDiscountAmount = effectiveOriginalPrice > safeFinalPrice
+        ? +(effectiveOriginalPrice - safeFinalPrice).toFixed(2)
+        : 0;
+    const discount_percent = (effectiveOriginalPrice > safeFinalPrice && effectiveOriginalPrice > 0)
+        ? Math.round(((effectiveOriginalPrice - safeFinalPrice) / effectiveOriginalPrice) * 100)
         : 0;
 
     return {
-        original_price: mrp,
+        original_price: effectiveOriginalPrice,
         final_price: safeFinalPrice,
-        discount_amount: safeDiscountAmount,
+        discount_amount: totalDiscountAmount,
         discount_percent: isNaN(discount_percent) ? 0 : discount_percent,
         promotion_id: actualPromo.promotion_id || null,
         promotion_type: actualPromo.promotion_type || null,

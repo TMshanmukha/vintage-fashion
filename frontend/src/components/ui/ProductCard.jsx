@@ -19,7 +19,10 @@ export default function ProductCard({ product }) {
   const rawOriginal = Number(product.originalPrice ?? product.original_price ?? price);
   const originalPrice = isNaN(rawOriginal) || rawOriginal < price ? price : rawOriginal;
 
-  const discountPercent = Number(product.discountPercent || product.discount_percent) || 0;
+  const calculatedDiscount = (originalPrice > price && originalPrice > 0)
+    ? Math.round(((originalPrice - price) / originalPrice) * 100)
+    : 0;
+  const discountPercent = Number(product.discountPercent || product.discount_percent) || calculatedDiscount;
   const hasDiscount = discountPercent > 0 && originalPrice > price;
     
   const handleWishlist = (e) => {
