@@ -15,6 +15,9 @@ import Checkout from "./pages/Checkout";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Collection from "./pages/Collection";
+import ReturnsPolicy from "./pages/ReturnsPolicy";
+import SizeGuide from "./pages/SizeGuide";
+import FAQ from "./pages/FAQ";
 
 import AdminRoot from "./admin/pages/AdminRoot";
 import AdminDashboard from "./admin/pages/AdminDashboard";
@@ -54,6 +57,10 @@ function StoreFront() {
         <Route path="/about" element={<About />} />
         <Route path="/contact" element={<Contact />} />
         <Route path="/collection" element={<Collection />} />
+        <Route path="/returns" element={<ReturnsPolicy />} />
+        <Route path="/size-guide" element={<SizeGuide />} />
+        <Route path="/faq" element={<FAQ />} />
+        <Route path="/faqs" element={<FAQ />} />
       </Routes>
     </Layout>
   );

@@ -499,7 +499,20 @@ export default function ProductDetail() {
               Selecting a size does NOT affect which colors are clickable. */}
           {sizes.length > 0 && (
             <div className="mb-6">
-              <p className="text-xs font-bold uppercase tracking-widest text-gray-700 mb-2">Size</p>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold uppercase tracking-widest text-gray-700">Size</p>
+                <Link
+                  to="/size-guide"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-pink-600 hover:text-pink-700 font-medium inline-flex items-center gap-1 hover:underline"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" />
+                  </svg>
+                  Size Guide
+                </Link>
+              </div>
               <div className="flex flex-wrap gap-2">
                 {sizes.map((s) => {
                   const available = isSizeAvailable(s);
