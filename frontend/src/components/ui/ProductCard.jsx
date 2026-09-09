@@ -144,16 +144,16 @@ export default function ProductCard({ product }) {
       </h3>
       <div className="flex items-center gap-2 flex-wrap">
         <span className="text-sm font-bold text-gray-900">
-            ₹{price.toFixed(2)}
+          ₹{Math.round(price).toLocaleString("en-IN")}
         </span>
 
         {hasDiscount && (
           <>
             <span className="text-xs text-gray-400 line-through">
-                ₹{originalPrice.toFixed(2)}
+              ₹{Math.round(originalPrice).toLocaleString("en-IN")}
             </span>
             <span className="text-xs font-semibold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded">
-                {discountPercent}% OFF
+              {Math.round(discountPercent)}% OFF
             </span>
           </>
         )}

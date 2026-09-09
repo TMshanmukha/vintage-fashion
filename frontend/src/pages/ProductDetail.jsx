@@ -432,15 +432,15 @@ export default function ProductDetail() {
             return (
               <div className="flex items-center gap-3 mb-4 flex-wrap">
                 <span className="text-2xl font-extrabold text-gray-900">
-                  ₹{currentPrice.toFixed(2)}
+                  ₹{Math.round(currentPrice).toLocaleString("en-IN")}
                 </span>
                 {hasDiscount && (
                   <>
                     <span className="text-base text-gray-400 line-through">
-                      ₹{originalPrice.toFixed(2)}
+                      ₹{Math.round(originalPrice).toLocaleString("en-IN")}
                     </span>
                     <span className="text-xs font-bold text-pink-600 bg-pink-50 px-2.5 py-1 rounded-full">
-                      {discountPercent}% OFF
+                      {Math.round(discountPercent)}% OFF
                     </span>
                   </>
                 )}

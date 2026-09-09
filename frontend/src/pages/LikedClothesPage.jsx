@@ -13,7 +13,7 @@ function getItemPrice(item) {
   const p = item.price ?? item.newPrice ?? item.salePrice;
   if (p !== undefined && p !== null && p !== "") {
     const num = Number(p);
-    return isNaN(num) ? String(p) : `₹${num.toFixed(2)}`;
+    return isNaN(num) ? String(p) : `₹${Math.round(num).toLocaleString("en-IN")}`;
   }
   return "";
 }
