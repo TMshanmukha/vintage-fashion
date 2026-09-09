@@ -1277,7 +1277,7 @@ export default function AdminMarketing() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-[100] px-5 py-3 rounded-xl shadow-lg text-white font-medium text-sm ${
+          className={`fixed bottom-6 right-6 z-[100] px-5 py-2.5 rounded-xl shadow-lg text-white font-medium text-xs max-w-lg whitespace-nowrap ${
             toast.type === "error" ? "bg-red-500" : "bg-emerald-500"
           }`}
         >

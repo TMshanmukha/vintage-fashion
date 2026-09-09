@@ -45,14 +45,11 @@ export default function AuthPage() {
     if (lower.includes("email already") || lower.includes("already registered")) {
       return "An account with this email already exists. Please sign in instead.";
     }
-    if (lower.includes("invalid email or password") || lower.includes("incorrect") || lower.includes("invalid password")) {
-      return "Incorrect email or password. Please check and try again.";
+    if (lower.includes("invalid email or password") || lower.includes("incorrect") || lower.includes("invalid password") || lower.includes("admin cannot login here") || lower.includes("not allowed")) {
+      return "Incorrect email or password.";
     }
     if (lower.includes("blocked")) {
       return "Your account has been suspended. Please reach out to customer support.";
-    }
-    if (lower.includes("admin cannot login here")) {
-      return "This portal is for customers. Admin accounts cannot log in here.";
     }
     if (lower.includes("network") || !navigator.onLine) {
       return "Unable to connect. Please check your internet connection and try again.";

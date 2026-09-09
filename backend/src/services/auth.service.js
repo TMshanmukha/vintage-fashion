@@ -337,7 +337,7 @@ export const loginService = async ({
     }
 
     if (user.role !== "customer") {
-        throw new Error("Admin cannot login here");
+        throw new Error("Invalid email or password");
     }
 
     if (user.account_status === "BLOCKED") {
