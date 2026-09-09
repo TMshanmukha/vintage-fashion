@@ -211,26 +211,124 @@ export default function MyAccountPage() {
     }
   };
 
-  const handleCancelOrder = async (order) => {
-    const confirmed = window.confirm(
-      `Do you want to cancel order #${order.order_number || order.order_id}?`
-    );
-    if (!confirmed) return;
+  const handleCancelOrder = (order) => {
+    toast.custom(
+      (t) => (
+        <div
+          className={`${
+            t.visible ? "animate-enter" : "animate-leave"
+          } max-w-md w-full bg-white shadow-2xl rounded-2xl pointer-events-auto border border-gray-100 overflow-hidden ring-1 ring-black ring-opacity-5`}
+        >
+          <div className="p-4 sm:p-5">
+            <div className="flex items-start gap-3.5">
+              <div className="w-10 h-10 rounded-full bg-red-50 flex items-center justify-center flex-shrink-0 text-red-500 border border-red-100">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                  />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-gray-900">
+                  Cancel Order Confirmation
+                </h4>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Are you sure you want to cancel order{" "}
+                  <span className="font-semibold text-gray-800">
+                    #{order.order_number || order.order_id}
+                  </span>
+                  ?
+                </p>
 
-    try {
-      await cancelMyOrder(order.order_id);
-      setOrders((current) =>
-        current.map((o) =>
-          o.order_id === order.order_id ? { ...o, order_status: "cancelled" } : o
-        )
-      );
-      setSelectedOrder(null);
-      setOrderDetail(null);
-      setMessage(`Order #${order.order_number || order.order_id} has been cancelled.`);
-    } catch (err) {
-      console.error(err);
-      toast.error(err.response?.data?.message || "Couldn't cancel this order.");
-    }
+                {/* Order Details Preview */}
+                <div className="mt-3 bg-gray-50 rounded-xl p-3 border border-gray-100 space-y-1.5 text-xs">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-500">Total Amount:</span>
+                    <span className="font-bold text-gray-900">{formatINR(order.total_amount)}</span>
+                  </div>
+                  {order.ordered_at && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Order Date:</span>
+                      <span className="text-gray-700 font-medium">
+                        {new Date(order.ordered_at).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                    </div>
+                  )}
+                  {order.payment_method && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-500">Payment:</span>
+                      <span className="text-gray-700 font-medium uppercase">
+                        {order.payment_method}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="mt-4 flex items-center justify-end gap-2.5 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => toast.dismiss(t.id)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-gray-600 hover:bg-gray-100 transition"
+              >
+                No, Keep Order
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  toast.dismiss(t.id);
+                  try {
+                    await cancelMyOrder(order.order_id);
+                    setOrders((current) =>
+                      current.map((o) =>
+                        o.order_id === order.order_id
+                          ? { ...o, order_status: "cancelled" }
+                          : o
+                      )
+                    );
+                    setSelectedOrder((prev) =>
+                      prev && prev.order_id === order.order_id
+                        ? { ...prev, order_status: "cancelled" }
+                        : prev
+                    );
+                    setOrderDetail((prev) =>
+                      prev && prev.order?.order_id === order.order_id
+                        ? {
+                            ...prev,
+                            order: { ...prev.order, order_status: "cancelled" },
+                          }
+                        : prev
+                    );
+                    toast.success(
+                      `Order #${order.order_number || order.order_id} has been cancelled successfully.`
+                    );
+                  } catch (err) {
+                    console.error("Cancellation error:", err);
+                    toast.error(err.response?.data?.message || "Couldn't cancel this order.");
+                  }
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-red-500 hover:bg-red-600 transition shadow-sm hover:shadow"
+              >
+                Yes, Cancel Order
+              </button>
+            </div>
+          </div>
+        </div>
+      ),
+      {
+        duration: 10000,
+        position: "top-center",
+      }
+    );
   };
 
   const handleSubmitReturn = async (e) => {
