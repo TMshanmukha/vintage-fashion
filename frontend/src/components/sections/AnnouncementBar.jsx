@@ -17,7 +17,7 @@ export default function AnnouncementBar() {
   if (!settings?.announcement_enabled || !settings?.announcement_text) return null;
 
   return (
-    <div className="bg-gray-900 text-white text-xs md:text-sm text-center py-2 px-4 tracking-wide">
+    <div className="hidden md:block bg-gray-900 text-white text-xs md:text-sm text-center py-2 px-4 tracking-wide">
       {settings.announcement_text}
     </div>
   );

@@ -33,16 +33,16 @@ export default function Header() {
 
   return (
     <header className="bg-white border-b border-gray-100 sticky top-0 z-50">
-      <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between gap-3">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-2 sm:gap-3 flex-shrink min-w-0">
           <img
             src="/Title_vf2.png"
             alt="Vintage Fashion"
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0 shadow-sm"
           />
 
-          <span className="text-2xl font-extrabold tracking-tight text-gray-900">
+          <span className="text-base sm:text-xl md:text-2xl font-extrabold tracking-tight text-gray-900 truncate">
             Vintage Fashion
           </span>
         </Link>
@@ -124,26 +124,35 @@ export default function Header() {
 
       {/* Search Overlay */}
       {searchOpen && (
-        <div className="bg-gray-50 border-t border-gray-100 py-3.5 px-6">
-          <form onSubmit={handleSearchSubmit} className="max-w-3xl mx-auto flex items-center gap-3">
-            <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white border-t border-b border-gray-100 py-3 px-4 sm:px-6 shadow-sm">
+          <form onSubmit={handleSearchSubmit} className="max-w-3xl mx-auto flex items-center gap-3 bg-gray-50 border border-gray-200 rounded-xl px-3.5 py-2">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
               type="text"
               value={searchVal}
               onChange={(e) => setSearchVal(e.target.value)}
-              placeholder="Search for products, brands, or categories..."
-              className="flex-1 bg-transparent text-sm text-gray-800 placeholder-gray-400 outline-none"
+              placeholder="Search products, brands, or categories..."
+              className="flex-1 bg-transparent text-xs sm:text-sm text-gray-800 placeholder-gray-400 outline-none"
               autoFocus
             />
+            {searchVal && (
+              <button
+                type="button"
+                onClick={() => setSearchVal("")}
+                className="text-gray-400 hover:text-gray-600 text-xs px-1"
+              >
+                ✕
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
                 setSearchOpen(false);
                 setSearchVal("");
               }}
-              className="text-gray-400 hover:text-gray-600 text-sm font-medium"
+              className="text-gray-500 hover:text-pink-600 text-xs sm:text-sm font-semibold pl-2 border-l border-gray-200"
             >
               Close
             </button>
