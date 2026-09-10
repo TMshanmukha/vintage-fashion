@@ -52,7 +52,7 @@ const emptyToUndefined = (val) => (val === "" ? undefined : val);
 export const getProductsSchema = z.object({
 
     page: z.coerce.number().int().min(1).default(1),
-    limit: z.coerce.number().int().min(1).max(100).default(12),
+    limit: z.coerce.number().int().min(1).max(1000).default(12),
 
     search: z.preprocess(emptyToUndefined, z.string().trim().optional()),
 

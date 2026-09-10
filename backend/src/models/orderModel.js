@@ -158,8 +158,12 @@ export const getOrderStats = async () => {
         SELECT
             COUNT(*) AS total_orders,
             SUM(CASE WHEN order_status = 'pending' THEN 1 ELSE 0 END) AS pending_orders,
+            SUM(CASE WHEN order_status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_orders,
+            SUM(CASE WHEN order_status = 'processing' THEN 1 ELSE 0 END) AS processing_orders,
+            SUM(CASE WHEN order_status = 'shipped' THEN 1 ELSE 0 END) AS shipped_orders,
             SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END) AS delivered_orders,
-            COALESCE(SUM(CASE WHEN payment_status != 'refunded' THEN total_amount ELSE 0 END), 0) AS total_revenue,
+            SUM(CASE WHEN order_status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_orders,
+            COALESCE(SUM(CASE WHEN payment_status != 'refunded' AND order_status != 'cancelled' THEN total_amount ELSE 0 END), 0) AS total_revenue,
             COALESCE(SUM(CASE WHEN payment_status = 'refunded' THEN total_amount ELSE 0 END), 0) AS total_refunded
         FROM orders
         `
