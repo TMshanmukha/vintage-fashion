@@ -69,6 +69,7 @@ app.use("/api/admin/users", adminUserRoutes);
 app.use("/api/admin/notifications", notificationRoutes);
 app.use("/api/admin/emails", emailRoutes);
 app.use("/api/admin/orders", orderRoutes);
+app.use("/api/admin/reviews", reviewRoutes);
 app.use("/api/orders", myOrderRoutes);
 
 app.use("/api/wishlist", wishlistRoutes);

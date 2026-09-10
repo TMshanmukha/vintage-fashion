@@ -14,11 +14,27 @@ export const submitProductReview = async (productId, reviewData) => {
 
 // Admin Reviews API
 export const getAdminReviews = async (params = {}) => {
-  const { data } = await AdminApi.get("/reviews/admin/all", { params });
-  return data;
+  try {
+    const { data } = await AdminApi.get("/admin/reviews", { params });
+    return data;
+  } catch (err) {
+    if (err.response?.status === 404) {
+      const { data } = await AdminApi.get("/reviews/admin/all", { params });
+      return data;
+    }
+    throw err;
+  }
 };
 
 export const deleteAdminReview = async (reviewId) => {
-  const { data } = await AdminApi.delete(`/reviews/admin/${reviewId}`);
-  return data;
+  try {
+    const { data } = await AdminApi.delete(`/admin/reviews/${reviewId}`);
+    return data;
+  } catch (err) {
+    if (err.response?.status === 404) {
+      const { data } = await AdminApi.delete(`/reviews/admin/${reviewId}`);
+      return data;
+    }
+    throw err;
+  }
 };

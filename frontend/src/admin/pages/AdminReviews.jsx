@@ -13,21 +13,28 @@ export default function AdminReviews() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
+  const [fetchError, setFetchError] = useState(false);
+
   useEffect(() => {
     fetchReviews();
   }, []);
 
-  const fetchReviews = async () => {
+  const fetchReviews = async (isManual = false) => {
     try {
       setLoading(true);
+      setFetchError(false);
       const res = await getAdminReviews();
-      const rawList = res?.data?.reviews ?? res?.data ?? res?.reviews ?? [];
+      const rawList = res?.data?.reviews ?? res?.data ?? res?.reviews ?? (Array.isArray(res) ? res : []);
       const reviewList = Array.isArray(rawList) ? rawList : [];
       setReviews(reviewList);
+      if (isManual) {
+        toast.success("Reviews refreshed.");
+      }
     } catch (err) {
       console.error("Failed to load reviews:", err);
       setReviews([]);
-      if (err.response?.status !== 401) {
+      setFetchError(true);
+      if (isManual || (err.response && err.response.status !== 401)) {
         toast.error(err.response?.data?.message || "Failed to fetch customer reviews.");
       }
     } finally {
@@ -133,20 +140,44 @@ export default function AdminReviews() {
               />
             </div>
 
-            <div className="flex items-center gap-2 w-full md:w-auto">
-              <span className="text-xs text-gray-500 whitespace-nowrap">Filter Rating:</span>
-              <select
-                value={ratingFilter}
-                onChange={(e) => setRatingFilter(e.target.value)}
-                className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-gray-900"
+            <div className="flex items-center gap-3 w-full md:w-auto">
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-500 whitespace-nowrap">Filter Rating:</span>
+                <select
+                  value={ratingFilter}
+                  onChange={(e) => setRatingFilter(e.target.value)}
+                  className="text-xs border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:border-gray-900"
+                >
+                  <option value="all">All Ratings</option>
+                  <option value="5">5 Stars (★★★★★)</option>
+                  <option value="4">4 Stars (★★★★)</option>
+                  <option value="3">3 Stars (★★★)</option>
+                  <option value="2">2 Stars (★★)</option>
+                  <option value="1">1 Star (★)</option>
+                </select>
+              </div>
+
+              <button
+                onClick={() => fetchReviews(true)}
+                disabled={loading}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                title="Refresh Reviews"
               >
-                <option value="all">All Ratings</option>
-                <option value="5">5 Stars (★★★★★)</option>
-                <option value="4">4 Stars (★★★★)</option>
-                <option value="3">3 Stars (★★★)</option>
-                <option value="2">2 Stars (★★)</option>
-                <option value="1">1 Star (★)</option>
-              </select>
+                <svg
+                  className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                  />
+                </svg>
+                Refresh
+              </button>
             </div>
           </div>
 
@@ -154,6 +185,17 @@ export default function AdminReviews() {
           <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden">
             {loading ? (
               <div className="p-12 text-center text-xs text-gray-400">Loading reviews...</div>
+            ) : fetchError ? (
+              <div className="p-12 text-center text-gray-500 space-y-3">
+                <p className="text-sm font-semibold text-gray-800">Unable to load reviews right now</p>
+                <p className="text-xs text-gray-500">Please check your connection and try again.</p>
+                <button
+                  onClick={() => fetchReviews(true)}
+                  className="inline-flex items-center gap-1.5 px-4 py-2 text-xs font-semibold text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors shadow-sm"
+                >
+                  Retry Loading
+                </button>
+              </div>
             ) : filteredReviews.length === 0 ? (
               <div className="p-12 text-center text-gray-400">
                 <p className="text-sm font-medium text-gray-600">No reviews found</p>
