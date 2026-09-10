@@ -92,6 +92,10 @@ export default function BrandFormModal({
                   <img
                     src={logoPreview}
                     alt=""
+                    onError={(e) => {
+                      e.target.onerror = null;
+                      e.target.src = "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=80";
+                    }}
                     className="h-full w-full object-cover"
                   />
                 ) : (

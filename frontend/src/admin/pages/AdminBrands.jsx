@@ -190,12 +190,25 @@ export default function AdminBrands() {
                   >
                     <td className="px-6 py-5">
                       <div className="flex items-center gap-4">
-                        <img
-                          src={brand.logo_url || "/no-image.png"}
-                          alt={brand.name}
-                          className="h-14 w-14 rounded-xl border object-cover"
-                        />
-                        <h3 className="font-semibold text-gray-800">{brand.name}</h3>
+                        {brand.logo_url ? (
+                          <img
+                            src={brand.logo_url}
+                            alt={brand.name}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=80";
+                            }}
+                            className="h-14 w-14 rounded-xl border border-gray-100 object-cover shadow-sm bg-gray-50 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="h-14 w-14 rounded-xl border border-gray-100 bg-gradient-to-br from-pink-500 to-rose-600 text-white font-bold flex items-center justify-center text-lg shadow-sm flex-shrink-0">
+                            {(brand.name || "B").charAt(0).toUpperCase()}
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="font-semibold text-gray-800">{brand.name}</h3>
+                          <p className="text-xs text-gray-400">/{brand.slug}</p>
+                        </div>
                       </div>
                     </td>
 
