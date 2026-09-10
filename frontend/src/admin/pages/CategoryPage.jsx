@@ -1,563 +1,402 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import CategoryFormModal from "../components/CategoryFormModel";
 import ConfirmDialog from "../components/ConfirmDialog";
 import toast from "react-hot-toast";
-import api, {
-    restoreCategory
-} from "../../api/categoryApi";
+import api, { restoreCategory } from "../../api/categoryApi";
 import { invalidateCache, cachedAxiosGet } from "../../utils/apiCache";
 import { getThumbnail } from "../../utils/cloudinary";
 
 export default function AdminCategories() {
-
-    const [categories, setCategories] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [loadedImages, setLoadedImages] = useState({});
-    const [search, setSearch] = useState("");
-
-    const [modalOpen, setModalOpen] = useState(false);
-    const [editingCategory, setEditingCategory] = useState(null);
-
-    const [deleteTarget, setDeleteTarget] = useState(null);
-
-    const [saving, setSaving] = useState(false);
-
-    const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
-
-    const LIMIT = 10;
-
-    const handleRestore = async (categoryId) => {
-
-        try {
-
-            await restoreCategory(categoryId);
-
-            toast.success(
-                "Category restored successfully."
-            );
-
-            fetchCategories();
-
-        } catch (error) {
-
-            toast.error(
-                error.response?.data?.message ||
-                "Failed to restore category."
-            );
-
-        }
-
-    };
-
-    const fetchCategories = async () => {
-
-        try {
-
-            setLoading(true);
-
-            const res = await cachedAxiosGet(api, "/categories", {
-                page: currentPage,
-                limit: LIMIT,
-            });
-
-            console.log(res.data);
-
-            setCategories(res.data.data || []);
-
-            setTotalItems(
-                res.data.pagination?.totalItems ?? 0
-            );
-
-            setTotalPages(
-                res.data.pagination?.totalPages ?? 1
-            );
-
-        } catch (error) {
-
-            console.error(error);
-
-            toast.error(
-                error.response?.data?.message ||
-                "Failed to load categories."
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
-
-    };
-
-    useEffect(() => {
-
-        fetchCategories();
-
-    }, [currentPage]);
-
-    const filteredCategories = categories.filter((category) =>
-        category.name
-            .toLowerCase()
-            .includes(search.toLowerCase())
-    );
-
-    const openAddModal = () => {
-
-        setEditingCategory(null);
-
-        setModalOpen(true);
-
-    };
-
-    const openEditModal = (category) => {
-
-        setEditingCategory(category);
-
-        setModalOpen(true);
-
-    };
-
-    const handleSave = async (formData) => {
-
-        try {
-
-            setSaving(true);
-
-            if (editingCategory) {
-
-                await api.put(
-                    `/categories/${editingCategory.category_id}`,
-                    formData,
-                    {
-                        headers: {
-                            "Content-Type": "multipart/form-data"
-                        }
-                    }
-                );
-
-                toast.success("Category updated successfully.");
-
-            } else {
-
-                await api.post(
-                    "/categories",
-                    formData,
-                    {
-                        headers: {
-                            "Content-Type": "multipart/form-data"
-                        }
-                    }
-                );
-
-                toast.success("Category created successfully.");
-
-            }
-
-            invalidateCache("categories");
-            setModalOpen(false);
-
-            setEditingCategory(null);
-
-            fetchCategories();
-
-        } catch (error) {
-
-            console.error(error);
-
-            toast.error(
-                error.response?.data?.message ||
-                "Operation failed."
-            );
-
-        } finally {
-
-            setSaving(false);
-
-        }
-
-    };
-
-    const confirmDelete = async () => {
-
-        try {
-
-            await api.delete(
-                `/categories/${deleteTarget.category_id}`
-            );
-
-            invalidateCache("categories");
-            toast.success("Category deleted successfully.");
-
-            setDeleteTarget(null);
-
-            fetchCategories();
-
-        } catch (error) {
-
-            console.error(error);
-
-            toast.error(
-                error.response?.data?.message ||
-                "Failed to delete category."
-            );
-
-        }
-
-    };
-    
-    return (
-        <AdminLayout>
-
-            <AdminTopbar
-                title="Categories"
-                subtitle="Create and manage your product categories."
-            />
-
-            <div className="p-4 sm:p-6 lg:p-8">
-
-                {/* Toolbar */}
-
-                <div className="flex flex-col sm:flex-row gap-4 sm:items-center justify-between mb-6">
-
-                    <div className="relative w-full sm:w-72">
-
-                        <svg
-                            className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                            />
-                        </svg>
-
-                        <input
-                            type="text"
-                            placeholder="Search category..."
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                            className="w-full border border-gray-200 rounded-lg pl-9 pr-4 py-2.5 text-sm outline-none focus:border-pink-500"
-                        />
-
-                    </div>
-
-                    <button
-                        onClick={openAddModal}
-                        className="bg-gray-900 hover:bg-pink-500 transition text-white px-5 py-3 rounded-lg text-xs font-bold uppercase tracking-widest flex w-full sm:w-auto items-center justify-center gap-2 shadow-sm"
-                    >
-
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 4v16m8-8H4"
-                            />
-                        </svg>
-
-                        Add Category
-
-                    </button>
-
-                </div>
-
-                {/* Table */}
-
-                <div className="min-h-[400px] bg-white rounded-xl border border-gray-100 overflow-x-auto shadow-sm">
-
-                    <table className="w-full min-w-[650px]">
-
-                        <thead>
-
-                            <tr className="bg-gray-50 text-xs font-bold uppercase tracking-widest text-gray-500">
-
-                                <th className="text-left px-6 py-4">
-                                    Category
-                                </th>
-
-                                <th className="text-left px-6 py-4">
-                                    Slug
-                                </th>
-
-                                <th className="text-left px-6 py-4">
-                                    Status
-                                </th>
-
-                                <th className="text-right px-6 py-4">
-                                    Actions
-                                </th>
-
-                            </tr>
-
-                        </thead>
-
-                        <tbody className="divide-y divide-gray-100">
-
-                            {loading &&
-                                Array.from({ length: 8 }).map((_, index) => (
-
-                                    <tr key={index} className="animate-pulse">
-
-                                        <td className="px-6 py-4">
-
-                                            <div className="flex items-center gap-3">
-
-                                                <div className="h-12 w-12 rounded-lg bg-gray-200"></div>
-
-                                                <div>
-
-                                                    <div className="mb-2 h-4 w-32 rounded bg-gray-200"></div>
-
-                                                    <div className="h-3 w-20 rounded bg-gray-100"></div>
-
-                                                </div>
-
-                                            </div>
-
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            <div className="h-4 w-24 rounded bg-gray-200"></div>
-                                        </td>
-
-                                        <td className="px-6 py-4">
-                                            <div className="h-6 w-20 rounded-full bg-gray-200"></div>
-                                        </td>
-
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="ml-auto h-8 w-16 rounded bg-gray-200"></div>
-                                        </td>
-
-                                    </tr>
-
-                                ))}
-
-                            {!loading &&
-                                filteredCategories.map((category) => (
-
-                                    <tr
-                                        key={category.category_id}
-                                        className={`transition hover:bg-gray-50 ${
-                                            !category.is_active
-                                                ? "bg-gray-50 opacity-70"
-                                                : ""
-                                        }`}
-                                    >
-
-                                        <td className="px-6 py-4">
-
-                                            <div className="flex items-center gap-3">
-
-                                                <div className="relative h-12 w-12">
-
-                                                    {!loadedImages[category.category_id] && (
-                                                        <div className="absolute inset-0 animate-pulse rounded-lg bg-gray-200" />
-                                                    )}
-
-                                                    <img
-                                                        src={getThumbnail(category.image_url)}
-                                                        alt={category.name}
-                                                        onLoad={() =>
-                                                            setLoadedImages((prev) => ({
-                                                                ...prev,
-                                                                [category.category_id]: true
-                                                            }))
-                                                        }
-                                                        className={`h-12 w-12 rounded-lg object-cover transition-opacity duration-300 ${
-                                                            loadedImages[category.category_id]
-                                                                ? "opacity-100"
-                                                                : "opacity-0"
-                                                        }`}
-                                                    />
-
-                                                </div>
-
-                                                <div>
-
-                                                    <p className="font-medium text-gray-800">
-                                                        {category.name}
-                                                    </p>
-
-                                                    <p className="text-xs text-gray-400">
-                                                        #{category.category_id}
-                                                    </p>
-
-                                                </div>
-
-                                            </div>
-
-                                        </td>
-
-                                        <td className="px-6 py-4 text-sm">
-                                            {category.slug}
-                                        </td>
-
-                                        <td className="px-6 py-4">
-
-                                            <span
-                                                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-                                                    category.is_active
-                                                        ? "bg-green-100 text-green-700"
-                                                        : "bg-red-100 text-red-700"
-                                                }`}
-                                            >
-                                                {category.is_active
-                                                    ? "Active"
-                                                    : "Inactive"}
-                                            </span>
-
-                                        </td>
-
-                                        <td className="px-6 py-4">
-
-                                            <div className="flex justify-end gap-2">
-
-                                                {category.is_active ? (
-
-                                                    <>
-
-                                                        <button
-                                                            onClick={() => openEditModal(category)}
-                                                            className="rounded-lg p-2 hover:bg-gray-100"
-                                                        >
-                                                            ✏️
-                                                        </button>
-
-                                                        <button
-                                                            onClick={() => setDeleteTarget(category)}
-                                                            className="rounded-lg p-2 hover:bg-red-50"
-                                                        >
-                                                            🗑️
-                                                        </button>
-
-                                                    </>
-
-                                                ) : (
-
-                                                    <button
-                                                        onClick={() =>
-                                                            handleRestore(category.category_id)
-                                                        }
-                                                        className="rounded-lg p-2 hover:bg-green-50"
-                                                        title="Restore Category"
-                                                    >
-                                                        ♻️
-                                                    </button>
-
-                                                )}
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
-
-                                ))}
-
-                            {!loading &&
-                                filteredCategories.length === 0 && (
-
-                                    <tr>
-
-                                        <td
-                                            colSpan={4}
-                                            className="px-6 py-12 text-center text-gray-400"
-                                        >
-                                            No Categories Found
-                                        </td>
-
-                                    </tr>
-
-                                )}
-
-                        </tbody>
-
-                    </table>
-
-                </div>
-
-                <div className="mt-6 flex flex-col sm:flex-row gap-4 items-center justify-between">
-
-                    <p className="text-sm text-gray-500 text-center sm:text-left">
-                        Page {currentPage} of {totalPages}
-                    </p>
-
-                    <div className="flex items-center gap-2 flex-wrap justify-center">
-
-                        <button
-                            disabled={currentPage === 1}
-                            onClick={() => setCurrentPage((p) => p - 1)}
-                            className={`rounded-lg border px-4 py-2 text-sm ${currentPage === 1
-                                    ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                    : "hover:bg-pink-50"
-                                }`}
-                        >
-                            Previous
-                        </button>
-
-                        {Array.from({ length: totalPages }, (_, i) => (
-
-                            <button
-                                key={i + 1}
-                                onClick={() => setCurrentPage(i + 1)}
-                                className={`h-10 w-10 rounded-lg ${currentPage === i + 1
-                                        ? "bg-pink-500 text-white"
-                                        : "border hover:bg-pink-50"
-                                    }`}
-                            >
-                                {i + 1}
-                            </button>
-
-                        ))}
-
-                        <button
-                            disabled={currentPage === totalPages}
-                            onClick={() => setCurrentPage((p) => p + 1)}
-                            className={`rounded-lg border px-4 py-2 text-sm ${currentPage === totalPages
-                                    ? "cursor-not-allowed bg-gray-100 text-gray-400"
-                                    : "hover:bg-pink-50"
-                                }`}
-                        >
-                            Next
-                        </button>
-
-                    </div>
-
-                </div>
-
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [saving, setSaving] = useState(false);
+
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  const LIMIT = 12;
+
+  const fetchCategories = async () => {
+    try {
+      setLoading(true);
+
+      const res = await cachedAxiosGet(api, "/categories", {
+        page: currentPage,
+        limit: LIMIT,
+      });
+
+      const list = res.data.data || [];
+      setCategories(list);
+      setTotalItems(res.data.pagination?.totalItems ?? list.length ?? 0);
+      setTotalPages(res.data.pagination?.totalPages ?? 1);
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to load categories.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchCategories();
+  }, [currentPage]);
+
+  const handleRestore = async (categoryId) => {
+    try {
+      await restoreCategory(categoryId);
+      toast.success("Category restored successfully.");
+      invalidateCache("categories");
+      fetchCategories();
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to restore category.");
+    }
+  };
+
+  const openAddModal = () => {
+    setEditingCategory(null);
+    setModalOpen(true);
+  };
+
+  const openEditModal = (category) => {
+    setEditingCategory(category);
+    setModalOpen(true);
+  };
+
+  const handleSave = async (formData) => {
+    try {
+      setSaving(true);
+      if (editingCategory) {
+        await api.put(`/categories/${editingCategory.category_id}`, formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Category updated successfully.");
+      } else {
+        await api.post("/categories", formData, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
+        toast.success("Category created successfully.");
+      }
+
+      invalidateCache("categories");
+      setModalOpen(false);
+      setEditingCategory(null);
+      fetchCategories();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Operation failed.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    try {
+      setDeleting(true);
+      await api.delete(`/categories/${deleteTarget.category_id}`);
+      invalidateCache("categories");
+      toast.success("Category deleted successfully.");
+      setDeleteTarget(null);
+      fetchCategories();
+    } catch (error) {
+      console.error(error);
+      toast.error(error.response?.data?.message || "Failed to delete category.");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const stats = useMemo(() => {
+    const totalCount = categories.length;
+    const activeCount = categories.filter((c) => Number(c.is_active) === 1 || c.is_active === true).length;
+    const inactiveCount = categories.filter((c) => Number(c.is_active) === 0 || c.is_active === false).length;
+    return { totalCount, activeCount, inactiveCount };
+  }, [categories]);
+
+  const filteredCategories = useMemo(() => {
+    return categories.filter((category) => {
+      const q = search.trim().toLowerCase();
+      const matchesSearch =
+        !q ||
+        category.name?.toLowerCase().includes(q) ||
+        category.slug?.toLowerCase().includes(q);
+
+      const isActive = Number(category.is_active) === 1 || category.is_active === true;
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "active" && isActive) ||
+        (statusFilter === "inactive" && !isActive);
+
+      return matchesSearch && matchesStatus;
+    });
+  }, [categories, search, statusFilter]);
+
+  return (
+    <AdminLayout>
+      <div className="flex-1 flex flex-col min-w-0 bg-gray-50/50">
+        <AdminTopbar
+          title="Product Categories"
+          description="Organize catalog taxonomy, configure hero thumbnails, and manage category listings"
+        />
+
+        <div className="p-4 sm:p-6 lg:p-8 space-y-6">
+          {/* Stats KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-sm">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Categories</span>
+              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{totalItems || stats.totalCount}</p>
+              <p className="text-xs text-gray-400 mt-1">Catalog divisions</p>
             </div>
 
-            <CategoryFormModal
-                open={modalOpen}
-                onClose={() => setModalOpen(false)}
-                onSave={handleSave}
-                initialData={editingCategory}
-                saving={saving}
-            />
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200/80 shadow-sm bg-gradient-to-br from-white to-emerald-50/30">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Active Categories</span>
+              <p className="text-2xl sm:text-3xl font-bold text-emerald-700 mt-2">{stats.activeCount}</p>
+              <p className="text-xs text-emerald-600 font-medium mt-1">Visible on store navigation</p>
+            </div>
 
-            {/* Delete API later */}
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-sm bg-gradient-to-br from-white to-amber-50/30">
+              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Inactive Categories</span>
+              <p className="text-2xl sm:text-3xl font-bold text-amber-700 mt-2">{stats.inactiveCount}</p>
+              <p className="text-xs text-amber-600 font-medium mt-1">Archived or hidden</p>
+            </div>
+          </div>
 
-            <ConfirmDialog
-                open={!!deleteTarget}
-                title="Delete Category?"
-                message={`"${deleteTarget?.name}" will be permanently deleted.`}
-                onConfirm={confirmDelete}
-                onCancel={() => setDeleteTarget(null)}
-            />
+          {/* Action Toolbar */}
+          <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-sm flex flex-col sm:flex-row gap-3 items-center justify-between">
+            <div className="relative w-full sm:w-96">
+              <svg
+                className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-4.3-4.3m0 0A7.5 7.5 0 105.4 5.4a7.5 7.5 0 0011.3 11.3z"
+                />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search categories by name, slug..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 bg-gray-50/50"
+              />
+            </div>
 
-        </AdminLayout>
-    );
+            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+              <div className="flex items-center gap-1.5 bg-gray-100 p-1 rounded-xl">
+                {["all", "active", "inactive"].map((tab) => (
+                  <button
+                    key={tab}
+                    onClick={() => setStatusFilter(tab)}
+                    className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize ${
+                      statusFilter === tab
+                        ? "bg-white text-gray-900 shadow-xs"
+                        : "text-gray-500 hover:text-gray-900"
+                    }`}
+                  >
+                    {tab}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={openAddModal}
+                className="flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-xs font-bold text-white transition hover:bg-gray-800 shadow-xs whitespace-nowrap"
+              >
+                <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Add Category
+              </button>
+            </div>
+          </div>
+
+          {/* Categories Table */}
+          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white shadow-sm">
+            <table className="w-full min-w-[650px] text-left text-xs">
+              <thead className="bg-gray-50/80 text-[11px] font-bold uppercase tracking-wider text-gray-600 border-b border-gray-200">
+                <tr>
+                  <th className="px-5 py-4">Category Details</th>
+                  <th className="px-5 py-4">URL Slug</th>
+                  <th className="px-5 py-4">Status</th>
+                  <th className="px-5 py-4 text-right">Actions</th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-gray-100">
+                {loading && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center gap-3">
+                        <div className="h-8 w-8 rounded-full border-3 border-gray-300 border-t-gray-900 animate-spin" />
+                        <p className="text-xs text-gray-500 font-medium">Loading categories...</p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+
+                {!loading && filteredCategories.map((category) => {
+                  const isActive = Number(category.is_active) === 1 || category.is_active === true;
+
+                  return (
+                    <tr
+                      key={category.category_id}
+                      className="transition hover:bg-gray-50/60 cursor-pointer"
+                      onClick={() => openEditModal(category)}
+                    >
+                      {/* Category Details */}
+                      <td className="px-5 py-4">
+                        <div className="flex items-center gap-3.5">
+                          <img
+                            src={getThumbnail(category.image_url) || "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=80"}
+                            alt={category.name}
+                            onError={(e) => {
+                              e.target.onerror = null;
+                              e.target.src = "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=80";
+                            }}
+                            className="h-12 w-12 rounded-xl border border-gray-200 object-cover shadow-xs bg-gray-50 flex-shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <h3 className="font-bold text-gray-900 text-xs">{category.name}</h3>
+                            <span className="text-[10px] text-gray-400 font-mono">ID: #{category.category_id}</span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* URL Slug */}
+                      <td className="px-5 py-4">
+                        <span className="inline-block rounded-lg bg-gray-100 px-2.5 py-1 text-[11px] font-mono font-semibold text-gray-700 border border-gray-200/80">
+                          /{category.slug}
+                        </span>
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-5 py-4">
+                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                          isActive
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-gray-100 text-gray-600 border-gray-300"
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
+                          {isActive ? "Active" : "Inactive"}
+                        </span>
+                      </td>
+
+                      {/* Actions */}
+                      <td className="px-5 py-4 text-right">
+                        <div className="flex justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+                          {isActive ? (
+                            <>
+                              <button
+                                onClick={() => openEditModal(category)}
+                                className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors border border-transparent hover:border-gray-200"
+                                title="Edit Category"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                </svg>
+                              </button>
+                              <button
+                                onClick={() => setDeleteTarget(category)}
+                                className="p-2 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors border border-transparent hover:border-red-200"
+                                title="Delete Category"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                </svg>
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleRestore(category.category_id)}
+                              className="p-2 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors border border-emerald-200"
+                              title="Restore Category"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                              </svg>
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+
+                {!loading && filteredCategories.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-6 py-16 text-center">
+                      <div className="flex flex-col items-center">
+                        <div className="text-4xl mb-2">📁</div>
+                        <h3 className="text-sm font-semibold text-gray-800">No Categories Found</h3>
+                        <p className="mt-1 text-xs text-gray-500">
+                          Try changing your search or create a new product category.
+                        </p>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-2">
+              <p className="text-xs text-gray-500 font-medium">
+                Page <span className="font-bold text-gray-900">{currentPage}</span> of {totalPages}
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  disabled={currentPage === 1}
+                  onClick={() => setCurrentPage((p) => p - 1)}
+                  className="text-xs font-bold px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 disabled:opacity-40 hover:bg-gray-50 transition-colors shadow-xs"
+                >
+                  ← Previous
+                </button>
+                <button
+                  disabled={currentPage === totalPages}
+                  onClick={() => setCurrentPage((p) => p + 1)}
+                  className="text-xs font-bold px-3.5 py-2 rounded-xl border border-gray-200 bg-white text-gray-700 disabled:opacity-40 hover:bg-gray-50 transition-colors shadow-xs"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <CategoryFormModal
+        open={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSave={handleSave}
+        initialData={editingCategory}
+        saving={saving}
+      />
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Category?"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"?`}
+        loading={deleting}
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
+    </AdminLayout>
+  );
 }
