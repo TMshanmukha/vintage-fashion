@@ -80,13 +80,17 @@ export const deleteReviewById = async (reviewId) => {
 };
 
 export const getAllReviewsForAdmin = async ({ search = "", page = 1, limit = 50 }) => {
-  const offset = (Number(page) - 1) * Number(limit);
+  const pageNum = Math.max(1, parseInt(page, 10) || 1);
+  const limitNum = Math.max(1, Math.min(100, parseInt(limit, 10) || 50));
+  const offset = (pageNum - 1) * limitNum;
+
   let query = `
     SELECT 
       r.review_id,
       r.product_id,
       r.user_id,
       r.user_name,
+      u.email as user_email,
       r.rating,
       r.title,
       r.comment,
@@ -96,17 +100,18 @@ export const getAllReviewsForAdmin = async ({ search = "", page = 1, limit = 50 
       (SELECT image_url FROM product_images pi WHERE pi.product_id = p.product_id ORDER BY is_primary DESC, image_id ASC LIMIT 1) as product_image
     FROM reviews r
     LEFT JOIN products p ON r.product_id = p.product_id
+    LEFT JOIN users u ON r.user_id = u.user_id
   `;
 
   const params = [];
   if (search && search.trim()) {
-    query += ` WHERE (r.user_name LIKE ? OR r.comment LIKE ? OR r.title LIKE ? OR p.name LIKE ?)`;
+    query += ` WHERE (r.user_name LIKE ? OR r.comment LIKE ? OR r.title LIKE ? OR p.name LIKE ? OR u.email LIKE ?)`;
     const s = `%${search.trim()}%`;
-    params.push(s, s, s, s);
+    params.push(s, s, s, s, s);
   }
 
   query += ` ORDER BY r.created_at DESC LIMIT ? OFFSET ?`;
-  params.push(Number(limit), Number(offset));
+  params.push(limitNum, offset);
 
   const [rows] = await pool.query(query, params);
 
@@ -115,21 +120,22 @@ export const getAllReviewsForAdmin = async ({ search = "", page = 1, limit = 50 
     SELECT COUNT(*) as total
     FROM reviews r
     LEFT JOIN products p ON r.product_id = p.product_id
+    LEFT JOIN users u ON r.user_id = u.user_id
   `;
   const countParams = [];
   if (search && search.trim()) {
-    countQuery += ` WHERE (r.user_name LIKE ? OR r.comment LIKE ? OR r.title LIKE ? OR p.name LIKE ?)`;
+    countQuery += ` WHERE (r.user_name LIKE ? OR r.comment LIKE ? OR r.title LIKE ? OR p.name LIKE ? OR u.email LIKE ?)`;
     const s = `%${search.trim()}%`;
-    countParams.push(s, s, s, s);
+    countParams.push(s, s, s, s, s);
   }
 
   const [countRows] = await pool.query(countQuery, countParams);
   const total = Number(countRows[0]?.total || 0);
 
   return {
-    reviews: rows,
+    reviews: rows || [],
     total,
-    page: Number(page),
-    totalPages: Math.ceil(total / Number(limit)) || 1,
+    page: pageNum,
+    totalPages: Math.ceil(total / limitNum) || 1,
   };
 };

@@ -16,6 +16,7 @@ router.post("/product/:productId", authenticate, addReview);
 
 // Admin review moderation routes
 router.get("/admin/all", authenticate, authorizeAdmin, adminListReviews);
+router.get("/admin", authenticate, authorizeAdmin, adminListReviews);
 router.delete("/admin/:reviewId", authenticate, authorizeAdmin, adminDeleteReview);
 
 export default router;

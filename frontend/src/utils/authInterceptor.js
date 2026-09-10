@@ -1,4 +1,5 @@
 import axios from "axios";
+import { API_BASE_URL } from "../api/apiBaseUrl";
 
 let isRefreshing = false;
 let pendingQueue = [];
@@ -27,8 +28,8 @@ export const attachAuthInterceptors = (api) => {
       const originalRequest = error.config;
 
       const isAuthError = error.response?.status === 401;
-      const isRefreshCall = originalRequest?.url?.includes("/auth/refresh");
-      const isLoginCall = originalRequest?.url?.includes("/auth/login");
+      const isRefreshCall = originalRequest?.url?.includes("/auth/refresh") || originalRequest?.url?.includes("/auth/admin/refresh");
+      const isLoginCall = originalRequest?.url?.includes("/auth/login") || originalRequest?.url?.includes("/auth/admin/login");
 
       if (!isAuthError || isRefreshCall || isLoginCall || originalRequest._retry) {
         return Promise.reject(error);
@@ -49,7 +50,7 @@ export const attachAuthInterceptors = (api) => {
 
       try {
         const res = await axios.post(
-          "http://localhost:5000/api/auth/refresh",
+          `${API_BASE_URL}/auth/admin/refresh`,
           {},
           { withCredentials: true }
         );

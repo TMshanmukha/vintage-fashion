@@ -21,10 +21,15 @@ export default function AdminReviews() {
     try {
       setLoading(true);
       const res = await getAdminReviews();
-      setReviews(res.data?.reviews || res.data || []);
+      const rawList = res?.data?.reviews ?? res?.data ?? res?.reviews ?? [];
+      const reviewList = Array.isArray(rawList) ? rawList : [];
+      setReviews(reviewList);
     } catch (err) {
       console.error("Failed to load reviews:", err);
-      toast.error("Failed to fetch customer reviews.");
+      setReviews([]);
+      if (err.response?.status !== 401) {
+        toast.error(err.response?.data?.message || "Failed to fetch customer reviews.");
+      }
     } finally {
       setLoading(false);
     }
@@ -35,7 +40,7 @@ export default function AdminReviews() {
     try {
       setDeleting(true);
       await deleteAdminReview(deleteTarget.review_id);
-      setReviews((prev) => prev.filter((r) => r.review_id !== deleteTarget.review_id));
+      setReviews((prev) => (Array.isArray(prev) ? prev.filter((r) => r.review_id !== deleteTarget.review_id) : []));
       toast.success("Review deleted successfully.");
       setDeleteTarget(null);
     } catch (err) {
@@ -46,13 +51,17 @@ export default function AdminReviews() {
     }
   };
 
-  const filteredReviews = reviews.filter((r) => {
+  const safeReviews = Array.isArray(reviews) ? reviews : [];
+
+  const filteredReviews = safeReviews.filter((r) => {
+    const q = search.trim().toLowerCase();
     const matchesSearch =
-      !search.trim() ||
-      r.product_name?.toLowerCase().includes(search.toLowerCase()) ||
-      r.user_name?.toLowerCase().includes(search.toLowerCase()) ||
-      r.title?.toLowerCase().includes(search.toLowerCase()) ||
-      r.comment?.toLowerCase().includes(search.toLowerCase());
+      !q ||
+      r.product_name?.toLowerCase().includes(q) ||
+      r.user_name?.toLowerCase().includes(q) ||
+      r.user_email?.toLowerCase().includes(q) ||
+      r.title?.toLowerCase().includes(q) ||
+      r.comment?.toLowerCase().includes(q);
 
     const matchesRating =
       ratingFilter === "all" || Number(r.rating) === Number(ratingFilter);
@@ -60,12 +69,12 @@ export default function AdminReviews() {
     return matchesSearch && matchesRating;
   });
 
-  const totalReviews = reviews.length;
+  const totalReviews = safeReviews.length;
   const avgRating = totalReviews
-    ? (reviews.reduce((acc, r) => acc + Number(r.rating || 0), 0) / totalReviews).toFixed(1)
+    ? (safeReviews.reduce((acc, r) => acc + Number(r.rating || 0), 0) / totalReviews).toFixed(1)
     : "0.0";
-  const fiveStars = reviews.filter((r) => Number(r.rating) === 5).length;
-  const lowRatings = reviews.filter((r) => Number(r.rating) <= 2).length;
+  const fiveStars = safeReviews.filter((r) => Number(r.rating) === 5).length;
+  const lowRatings = safeReviews.filter((r) => Number(r.rating) <= 2).length;
 
   return (
     <AdminLayout>

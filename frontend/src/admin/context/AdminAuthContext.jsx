@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from "react";
 import axios from "axios";
+import { API_BASE_URL } from "../../api/apiBaseUrl";
 
 
 const AdminAuthContext = createContext();
@@ -68,7 +69,7 @@ export function AdminAuthProvider({ children }) {
     const logout = async () => {
         try {
             await axios.post(
-                "http://localhost:5000/api/auth/admin/logout",
+                `${API_BASE_URL}/auth/admin/logout`,
                 {},
                 {
                     withCredentials: true
