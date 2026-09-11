@@ -168,38 +168,29 @@ export const getProductBySlug = async (req, res) => {
 };
 
 export const getProducts = async (req, res) => {
-
     try {
-
-        const result =
-        await getProductsService(req.query);
+        const result = await getProductsService(req.query);
 
         return res.status(200).json({
-
             success: true,
-
             message: "Products fetched successfully.",
-
             data: result.products,
-
             pagination: result.pagination
-
         });
+    } catch (error) {
+        console.error("getProducts error:", error);
 
-    }
-
-    catch (error) {
-
-        console.error(error);
+        if (error.name === "ZodError") {
+            return res.status(400).json({
+                success: false,
+                message: "Validation Error",
+                errors: error.errors
+            });
+        }
 
         return res.status(500).json({
-
             success: false,
-
-            message: "Internal Server Error"
-
+            message: error.message || "Internal Server Error"
         });
-
     }
-
 };

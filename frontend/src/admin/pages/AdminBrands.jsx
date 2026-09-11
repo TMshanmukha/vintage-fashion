@@ -33,7 +33,7 @@ export default function AdminBrands() {
       if (!isSilent) setLoading(true);
       else setRefreshing(true);
 
-      const res = await cachedAxiosGet(api, "/brands", { limit: 200 });
+      const res = await cachedAxiosGet(api, "/brands", { limit: 100 });
       const raw = res.data?.data ?? res.data;
       const list = Array.isArray(raw) ? raw : [];
       setBrands(list);

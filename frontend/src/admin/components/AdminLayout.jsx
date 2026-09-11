@@ -1,14 +1,20 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Outlet } from "react-router-dom";
 import { createContext, useContext, useState, useEffect, useCallback } from "react";
 import toast from "react-hot-toast";
 import AdminSidebar from "./AdminSidebar";
 import useAdminSocket from "../../hooks/Useadminsocket";
 import { getNotifications } from "../../api/notificationApi";
 
-const AdminLayoutContext = createContext();
+const AdminLayoutContext = createContext(null);
 export const useAdminLayout = () => useContext(AdminLayoutContext);
 
 export default function AdminLayout({ children }) {
+  const existingContext = useContext(AdminLayoutContext);
+  if (existingContext) {
+    // If already inside the persistent AdminLayout shell, just render content without remounting sidebar
+    return <>{children || <Outlet />}</>;
+  }
+
   const navigate = useNavigate();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -29,8 +35,6 @@ export default function AdminLayout({ children }) {
     refreshNotifications();
   }, [refreshNotifications]);
 
-  // Mounted on every admin page (AdminLayout wraps them all), so both of
-  // these fire no matter which page the admin is currently on.
   useAdminSocket({
     "admin:new-notification": (notification) => {
       setUnreadCount((c) => c + 1);
@@ -58,7 +62,7 @@ export default function AdminLayout({ children }) {
     >
       <div className="min-h-screen bg-gray-50 flex">
         <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-        <div className="flex-1 lg:ml-64 min-w-0 flex flex-col">{children}</div>
+        <div className="flex-1 lg:ml-64 min-w-0 flex flex-col">{children || <Outlet />}</div>
       </div>
     </AdminLayoutContext.Provider>
   );

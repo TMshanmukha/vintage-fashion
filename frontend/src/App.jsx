@@ -4,6 +4,7 @@ import { CartProvider } from "./hooks/useCart";
 import { SiteDataProvider } from "./hooks/useSiteData";
 import { AdminAuthProvider } from "./admin/context/AdminAuthContext";
 import ProtectedRoute from "./admin/components/ProtectedRoute";
+import AdminLayout from "./admin/components/AdminLayout";
 
 import Layout from "./components/layout/Layout";
 import Home from "./pages/Home";
@@ -86,33 +87,29 @@ export default function App() {
       <AdminAuthProvider>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            {/* Admin routes */}
+            {/* Admin entry */}
             <Route path="/admin" element={<AdminRoot />} />
-            <Route path="/admin/dashboard" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+
+            {/* Persistent Admin Layout Route (Sidebar NEVER unmounts on navigation) */}
             <Route
-              path="/admin/categories"
               element={
                 <ProtectedRoute>
-                  <AdminCategories />
+                  <AdminLayout />
                 </ProtectedRoute>
               }
-            />
-            <Route
-              path="/admin/brands"
-              element={
-                <ProtectedRoute>
-                  <AdminBrands />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/admin/products" element={<ProtectedRoute><AdminProducts /></ProtectedRoute>} />
-            <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
-            <Route path="/admin/returns" element={<ProtectedRoute><AdminReturns /></ProtectedRoute>} />
-            <Route path="/admin/offers" element={<ProtectedRoute><AdminMarketing /></ProtectedRoute>} />
-            <Route path="/admin/users" element={<ProtectedRoute><AdminUsers /></ProtectedRoute>} />
-            <Route path="/admin/reviews" element={<ProtectedRoute><AdminReviews /></ProtectedRoute>} />
-            <Route path="/admin/notifications" element={<ProtectedRoute><AdminNotifications /></ProtectedRoute>} />
-            <Route path="/admin/emails" element={<ProtectedRoute><AdminEmails /></ProtectedRoute>} />
+            >
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/categories" element={<AdminCategories />} />
+              <Route path="/admin/brands" element={<AdminBrands />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/returns" element={<AdminReturns />} />
+              <Route path="/admin/offers" element={<AdminMarketing />} />
+              <Route path="/admin/users" element={<AdminUsers />} />
+              <Route path="/admin/reviews" element={<AdminReviews />} />
+              <Route path="/admin/notifications" element={<AdminNotifications />} />
+              <Route path="/admin/emails" element={<AdminEmails />} />
+            </Route>
 
             {/* Storefront — all other routes */}
             <Route

@@ -30,7 +30,7 @@ export default function AdminCategories() {
       if (!isSilent) setLoading(true);
       else setRefreshing(true);
 
-      const res = await cachedAxiosGet(api, "/categories", { limit: 200 });
+      const res = await cachedAxiosGet(api, "/categories", { limit: 100 });
       const raw = res.data?.data ?? res.data;
       const list = Array.isArray(raw) ? raw : [];
       setCategories(list);

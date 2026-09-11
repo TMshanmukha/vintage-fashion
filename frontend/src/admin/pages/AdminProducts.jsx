@@ -37,7 +37,7 @@ export default function AdminProducts() {
       if (!isBackground) setLoading(true);
       else setRefreshing(true);
 
-      const res = await cachedAxiosGet(api, "/products", { limit: 1000 });
+      const res = await cachedAxiosGet(api, "/products", { limit: 100 });
       const raw = res.data?.data ?? res.data?.products ?? res.data;
       const list = Array.isArray(raw) ? raw : Array.isArray(raw?.products) ? raw.products : [];
       setProducts(list);
