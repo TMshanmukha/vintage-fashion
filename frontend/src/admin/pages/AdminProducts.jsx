@@ -22,12 +22,24 @@ export default function AdminProducts() {
 
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedBrand, setSelectedBrand] = useState("all");
   const [stockFilter, setStockFilter] = useState("all"); // "all" | "in_stock" | "low_stock" | "out_of_stock"
   const [currentPage, setCurrentPage] = useState(1);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
+
+  // Helper to safely get product stock number
+  const getProductStock = (product) => {
+    if (product.stock_quantity !== undefined && product.stock_quantity !== null && product.stock_quantity !== "") {
+      return Number(product.stock_quantity) || 0;
+    }
+    if (Array.isArray(product.variants) && product.variants.length > 0) {
+      return product.variants.reduce((sum, v) => sum + (Number(v.stock_quantity) || 0), 0);
+    }
+    return 0;
+  };
 
   // ===========================
   // Fetch Data (Full Catalog for 0ms Instant Filtering)
@@ -84,6 +96,11 @@ export default function AdminProducts() {
     setCurrentPage(1);
   };
 
+  const handleBrandChange = (brandId) => {
+    setSelectedBrand(brandId);
+    setCurrentPage(1);
+  };
+
   const handleSearchChange = (val) => {
     setSearch(val);
     setCurrentPage(1);
@@ -94,17 +111,40 @@ export default function AdminProducts() {
     setCurrentPage(1);
   };
 
+  const handleResetFilters = () => {
+    setSelectedCategory("all");
+    setSelectedBrand("all");
+    setStockFilter("all");
+    setSearch("");
+    setCurrentPage(1);
+  };
+
   // ===========================
   // Category Counts (Instant)
   // ===========================
   const categoryCounts = useMemo(() => {
     const counts = { all: products.length };
     categories.forEach((c) => {
-      counts[c.category_id] = products.filter(
-        (p) =>
-          Number(p.category_id) === Number(c.category_id) ||
-          p.category_name?.toLowerCase() === c.name?.toLowerCase()
-      ).length;
+      const catId = c.category_id ?? c.id;
+      const catName = c.name?.toLowerCase()?.trim();
+      const catSlug = c.slug?.toLowerCase()?.trim();
+
+      const matched = products.filter((p) => {
+        const pCatId = p.category_id ?? p.category;
+        const pCatName = (
+          p.category_name ||
+          (typeof p.category === "string" ? p.category : "")
+        )?.toLowerCase()?.trim();
+
+        return (
+          (catId != null && Number(pCatId) === Number(catId)) ||
+          (catName && pCatName === catName) ||
+          (catSlug && pCatName === catSlug)
+        );
+      });
+
+      if (catId != null) counts[catId] = matched.length;
+      if (c.name) counts[c.name] = matched.length;
     });
     return counts;
   }, [categories, products]);
@@ -113,10 +153,13 @@ export default function AdminProducts() {
   // Inventory Stats (Instant)
   // ===========================
   const inventoryStats = useMemo(() => {
-    const totalStock = products.reduce((sum, p) => sum + (Number(p.stock_quantity) || 0), 0);
-    const lowStock = products.filter((p) => Number(p.stock_quantity) > 0 && Number(p.stock_quantity) <= 5).length;
-    const outOfStock = products.filter((p) => Number(p.stock_quantity) === 0).length;
-    const inStock = products.filter((p) => Number(p.stock_quantity) > 5).length;
+    const totalStock = products.reduce((sum, p) => sum + getProductStock(p), 0);
+    const lowStock = products.filter((p) => {
+      const q = getProductStock(p);
+      return q > 0 && q <= 5;
+    }).length;
+    const outOfStock = products.filter((p) => getProductStock(p) === 0).length;
+    const inStock = products.filter((p) => getProductStock(p) > 0).length;
     return { totalStock, lowStock, outOfStock, inStock };
   }, [products]);
 
@@ -136,21 +179,71 @@ export default function AdminProducts() {
         (product.sku && String(product.sku).toLowerCase().includes(q));
 
       // 2. Category filter
-      const matchesCategory =
-        selectedCategory === "all" ||
-        Number(product.category_id) === Number(selectedCategory) ||
-        product.category_name?.toLowerCase() === String(selectedCategory).toLowerCase();
+      let matchesCategory = true;
+      if (selectedCategory !== "all") {
+        const selCat = categories.find(
+          (c) =>
+            String(c.category_id ?? c.id) === String(selectedCategory) ||
+            c.name?.toLowerCase()?.trim() === String(selectedCategory).toLowerCase().trim() ||
+            c.slug?.toLowerCase()?.trim() === String(selectedCategory).toLowerCase().trim()
+        );
 
-      // 3. Stock filter
-      const qty = Number(product.stock_quantity) || 0;
+        const pCatId = product.category_id ?? product.category;
+        const pCatName = (
+          product.category_name ||
+          (typeof product.category === "string" ? product.category : "")
+        )?.toLowerCase()?.trim();
+
+        matchesCategory =
+          (pCatId != null && Number(pCatId) === Number(selectedCategory)) ||
+          pCatName === String(selectedCategory).toLowerCase().trim() ||
+          Boolean(
+            selCat &&
+              ((selCat.category_id != null && Number(pCatId) === Number(selCat.category_id)) ||
+                (selCat.id != null && Number(pCatId) === Number(selCat.id)) ||
+                (selCat.name && pCatName === selCat.name.toLowerCase().trim()) ||
+                (selCat.slug && pCatName === selCat.slug.toLowerCase().trim()))
+          );
+      }
+
+      // 3. Brand filter
+      let matchesBrand = true;
+      if (selectedBrand !== "all") {
+        const selBrand = brands.find(
+          (b) =>
+            String(b.brand_id ?? b.id) === String(selectedBrand) ||
+            b.name?.toLowerCase()?.trim() === String(selectedBrand).toLowerCase().trim() ||
+            b.slug?.toLowerCase()?.trim() === String(selectedBrand).toLowerCase().trim()
+        );
+
+        const pBrandId = product.brand_id ?? product.brand;
+        const pBrandName = (
+          product.brand_name ||
+          (typeof product.brand === "string" ? product.brand : "")
+        )?.toLowerCase()?.trim();
+
+        matchesBrand =
+          (pBrandId != null && Number(pBrandId) === Number(selectedBrand)) ||
+          pBrandName === String(selectedBrand).toLowerCase().trim() ||
+          Boolean(
+            selBrand &&
+              ((selBrand.brand_id != null && Number(pBrandId) === Number(selBrand.brand_id)) ||
+                (selBrand.id != null && Number(pBrandId) === Number(selBrand.id)) ||
+                (selBrand.name && pBrandName === selBrand.name.toLowerCase().trim()) ||
+                (selBrand.slug && pBrandName === selBrand.slug.toLowerCase().trim()))
+          );
+      }
+
+      // 4. Stock filter
+      const qty = getProductStock(product);
       let matchesStock = true;
       if (stockFilter === "low_stock") matchesStock = qty > 0 && qty <= 5;
       else if (stockFilter === "out_of_stock") matchesStock = qty === 0;
-      else if (stockFilter === "in_stock") matchesStock = qty > 5;
+      else if (stockFilter === "in_stock") matchesStock = qty > 0;
 
-      return matchesSearch && matchesCategory && matchesStock;
+      return matchesSearch && matchesCategory && matchesBrand && matchesStock;
     });
-  }, [products, search, selectedCategory, stockFilter]);
+  }, [products, search, selectedCategory, selectedBrand, stockFilter, categories, brands]);
 
   // Client-side pagination
   const totalItems = filteredProducts.length;
@@ -331,17 +424,17 @@ export default function AdminProducts() {
             </button>
           </div>
 
-          {/* Category Filter Pills (Instantaneous 0ms switching) */}
+          {/* Category Filter Pills & Brand Dropdown (Instantaneous 0ms switching) */}
           <div className="bg-white p-4 rounded-2xl border border-gray-200/80 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-extrabold text-gray-800 uppercase tracking-wider">Filter by Category</span>
-                {selectedCategory !== "all" && (
+                {(selectedCategory !== "all" || selectedBrand !== "all" || stockFilter !== "all" || search) && (
                   <button
-                    onClick={() => handleCategoryChange("all")}
+                    onClick={handleResetFilters}
                     className="text-[11px] font-bold text-pink-600 hover:text-pink-700 underline"
                   >
-                    Clear Filter
+                    Reset All Filters
                   </button>
                 )}
               </div>
@@ -371,15 +464,17 @@ export default function AdminProducts() {
               </button>
 
               {categories.map((c) => {
+                const catKey = c.category_id ?? c.id ?? c.name;
                 const isSelected =
-                  Number(selectedCategory) === Number(c.category_id) ||
+                  String(selectedCategory) === String(c.category_id) ||
+                  String(selectedCategory) === String(c.id) ||
                   selectedCategory === c.name;
-                const count = categoryCounts[c.category_id] ?? 0;
+                const count = categoryCounts[c.category_id] ?? categoryCounts[c.id] ?? categoryCounts[c.name] ?? 0;
                 return (
                   <button
-                    key={c.category_id}
+                    key={catKey}
                     type="button"
-                    onClick={() => handleCategoryChange(c.category_id)}
+                    onClick={() => handleCategoryChange(c.category_id ?? c.id ?? c.name)}
                     className={`px-3.5 py-2 text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-2 ${
                       isSelected
                         ? "bg-gray-900 text-white shadow-sm"
@@ -399,36 +494,53 @@ export default function AdminProducts() {
               })}
             </div>
 
-            {/* Search & Add Product Action Bar */}
+            {/* Search, Brand & Add Product Action Bar */}
             <div className="flex flex-col sm:flex-row gap-3 items-center justify-between pt-2 border-t border-gray-100">
-              <div className="relative w-full sm:max-w-md">
-                <svg
-                  className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-4.3-4.3m0 0A7.5 7.5 0 105.4 5.4a7.5 7.5 0 0011.3 11.3z"
-                  />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search products by title, brand, SKU or ID..."
-                  value={search}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                  className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-4 text-xs outline-none transition focus:border-gray-900 focus:bg-white"
-                />
-                {search && (
-                  <button
-                    onClick={() => handleSearchChange("")}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700"
+              <div className="flex flex-1 items-center gap-2 w-full sm:max-w-xl">
+                <div className="relative flex-1">
+                  <svg
+                    className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    ✕
-                  </button>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-4.3-4.3m0 0A7.5 7.5 0 105.4 5.4a7.5 7.5 0 0011.3 11.3z"
+                    />
+                  </svg>
+                  <input
+                    type="text"
+                    placeholder="Search products by title, brand, SKU or ID..."
+                    value={search}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                    className="w-full rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 pl-10 pr-8 text-xs outline-none transition focus:border-gray-900 focus:bg-white"
+                  />
+                  {search && (
+                    <button
+                      onClick={() => handleSearchChange("")}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700"
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
+
+                {brands.length > 0 && (
+                  <select
+                    value={selectedBrand}
+                    onChange={(e) => handleBrandChange(e.target.value)}
+                    className="rounded-xl border border-gray-200 bg-gray-50/50 py-2.5 px-3 text-xs font-semibold text-gray-700 outline-none transition focus:border-gray-900 focus:bg-white"
+                  >
+                    <option value="all">All Brands</option>
+                    {brands.map((b) => (
+                      <option key={b.brand_id ?? b.id ?? b.name} value={b.brand_id ?? b.id ?? b.name}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
                 )}
               </div>
 
@@ -578,15 +690,15 @@ export default function AdminProducts() {
 
                       {/* Stock */}
                       <td className="px-5 py-4">
-                        {Number(product.stock_quantity) > 5 ? (
+                        {getProductStock(product) > 5 ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-700 border border-emerald-200">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                            {product.stock_quantity} In Stock
+                            {getProductStock(product)} In Stock
                           </span>
-                        ) : Number(product.stock_quantity) > 0 ? (
+                        ) : getProductStock(product) > 0 ? (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 border border-amber-200">
                             <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                            {product.stock_quantity} Low Stock
+                            {getProductStock(product)} Low Stock
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1.5 rounded-full bg-red-50 px-2.5 py-1 text-[11px] font-bold text-red-700 border border-red-200">
@@ -645,15 +757,11 @@ export default function AdminProducts() {
                         <p className="text-xs text-gray-500 max-w-sm">
                           {search
                             ? `No products match your search "${search}".`
-                            : "No products match your active category or stock filter."}
+                            : "No products match your active category, brand, or stock filter."}
                         </p>
                         <div className="flex gap-2 pt-2">
                           <button
-                            onClick={() => {
-                              setSelectedCategory("all");
-                              setStockFilter("all");
-                              setSearch("");
-                            }}
+                            onClick={handleResetFilters}
                             className="rounded-xl border border-gray-300 px-4 py-2 text-xs font-bold text-gray-700 hover:bg-gray-100 transition-colors"
                           >
                             Reset All Filters
