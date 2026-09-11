@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Routes, Route } from "react-router-dom";
 import { CartProvider } from "./hooks/useCart";
 import { SiteDataProvider } from "./hooks/useSiteData";
@@ -6,71 +7,81 @@ import ProtectedRoute from "./admin/components/ProtectedRoute";
 
 import Layout from "./components/layout/Layout";
 import Home from "./pages/Home";
-import Shop from "./pages/Shop";
-import ProductDetail from "./pages/ProductDetail";
-import Cart from "./pages/Cart";
-import Checkout from "./pages/Checkout";
-//import Blog from "./pages/Blog";
-//import BlogPost from "./pages/BlogPost";
-import About from "./pages/About";
-import Contact from "./pages/Contact";
-import Collection from "./pages/Collection";
-import ReturnsPolicy from "./pages/ReturnsPolicy";
-import SizeGuide from "./pages/SizeGuide";
-import FAQ from "./pages/FAQ";
 
-import AdminRoot from "./admin/pages/AdminRoot";
-import AdminDashboard from "./admin/pages/AdminDashboard";
-import AdminProducts from "./admin/pages/AdminProducts";
-import AdminMarketing from "./admin/pages/AdminMarketing";
-import AdminUsers from "./admin/pages/AdminUsers";
-import AdminNotifications from "./admin/pages/AdminNotifications";
-import AdminEmails from "./admin/pages/AdminEmails";
-import AdminOrders from "./admin/pages/AdminOrders";
-import AdminReviews from "./admin/pages/AdminReviews";
-import AuthPage from "./pages/AuthPage";
-import LikedClothesPage from "./pages/LikedClothesPage";
-import MyAccountPage from "./pages/MyAccountPage";
-import ForgotPasswordPage from "./pages/ForgotPasswordPage";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
+// Code-split storefront routes
+const Shop = lazy(() => import("./pages/Shop"));
+const ProductDetail = lazy(() => import("./pages/ProductDetail"));
+const Cart = lazy(() => import("./pages/Cart"));
+const Checkout = lazy(() => import("./pages/Checkout"));
+const About = lazy(() => import("./pages/About"));
+const Contact = lazy(() => import("./pages/Contact"));
+const Collection = lazy(() => import("./pages/Collection"));
+const ReturnsPolicy = lazy(() => import("./pages/ReturnsPolicy"));
+const SizeGuide = lazy(() => import("./pages/SizeGuide"));
+const FAQ = lazy(() => import("./pages/FAQ"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const LikedClothesPage = lazy(() => import("./pages/LikedClothesPage"));
+const MyAccountPage = lazy(() => import("./pages/MyAccountPage"));
+const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
+const OfferPage = lazy(() => import("./pages/OfferPage"));
 
-import AdminCategories from "./admin/pages/CategoryPage";
-import AdminBrands from "./admin/pages/AdminBrands";
-import AdminReturns from "./admin/pages/AdminReturns";
-import OfferPage from "./pages/OfferPage";
+// Code-split admin routes
+const AdminRoot = lazy(() => import("./admin/pages/AdminRoot"));
+const AdminDashboard = lazy(() => import("./admin/pages/AdminDashboard"));
+const AdminProducts = lazy(() => import("./admin/pages/AdminProducts"));
+const AdminMarketing = lazy(() => import("./admin/pages/AdminMarketing"));
+const AdminUsers = lazy(() => import("./admin/pages/AdminUsers"));
+const AdminNotifications = lazy(() => import("./admin/pages/AdminNotifications"));
+const AdminEmails = lazy(() => import("./admin/pages/AdminEmails"));
+const AdminOrders = lazy(() => import("./admin/pages/AdminOrders"));
+const AdminReviews = lazy(() => import("./admin/pages/AdminReviews"));
+const AdminCategories = lazy(() => import("./admin/pages/CategoryPage"));
+const AdminBrands = lazy(() => import("./admin/pages/AdminBrands"));
+const AdminReturns = lazy(() => import("./admin/pages/AdminReturns"));
+
+function PageLoader() {
+  return (
+    <div className="min-h-[50vh] flex items-center justify-center py-16">
+      <div className="w-8 h-8 rounded-full border-2 border-pink-200 border-t-pink-500 animate-spin" />
+    </div>
+  );
+}
 
 function StoreFront() {
   return (
     <Layout>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/auth" element={<AuthPage />} />
-        <Route path="/account" element={<MyAccountPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        <Route path="/wishlist" element={<LikedClothesPage />} />
-        <Route path="/shop" element={<Shop />} />
-        <Route path="/product/:slug" element={<ProductDetail />} />
-        <Route path="/offer/:type/:id" element={<OfferPage />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/checkout" element={<Checkout />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/collection" element={<Collection />} />
-        <Route path="/returns" element={<ReturnsPolicy />} />
-        <Route path="/size-guide" element={<SizeGuide />} />
-        <Route path="/faq" element={<FAQ />} />
-        <Route path="/faqs" element={<FAQ />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<AuthPage />} />
+          <Route path="/account" element={<MyAccountPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/wishlist" element={<LikedClothesPage />} />
+          <Route path="/shop" element={<Shop />} />
+          <Route path="/product/:slug" element={<ProductDetail />} />
+          <Route path="/offer/:type/:id" element={<OfferPage />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/collection" element={<Collection />} />
+          <Route path="/returns" element={<ReturnsPolicy />} />
+          <Route path="/size-guide" element={<SizeGuide />} />
+          <Route path="/faq" element={<FAQ />} />
+          <Route path="/faqs" element={<FAQ />} />
+        </Routes>
+      </Suspense>
     </Layout>
   );
 }
 
 export default function App() {
   return (
-    <>
-      <SiteDataProvider>
-        <AdminAuthProvider>
+    <SiteDataProvider>
+      <AdminAuthProvider>
+        <Suspense fallback={<PageLoader />}>
           <Routes>
             {/* Admin routes */}
             <Route path="/admin" element={<AdminRoot />} />
@@ -110,9 +121,8 @@ export default function App() {
               }
             />
           </Routes>
-        </AdminAuthProvider>
-      </SiteDataProvider>
-    </>
-
+        </Suspense>
+      </AdminAuthProvider>
+    </SiteDataProvider>
   );
 }

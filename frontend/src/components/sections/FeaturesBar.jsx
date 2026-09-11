@@ -41,10 +41,10 @@ export default function FeaturesBar() {
               <span className="text-gray-400 [&>svg]:w-5 [&>svg]:h-5 md:[&>svg]:w-8 md:[&>svg]:h-8">
                 {f.icon}
               </span>
-              <h3 className="text-[11px] leading-tight md:text-sm font-bold text-gray-900">
+              <h2 className="text-[11px] leading-tight md:text-sm font-bold text-gray-900">
                 {f.title}
-              </h3>
-              <p className="hidden md:block text-xs text-gray-400 leading-relaxed max-w-xs">
+              </h2>
+              <p className="hidden md:block text-xs text-gray-600 leading-relaxed max-w-xs">
                 {f.desc}
               </p>
             </div>

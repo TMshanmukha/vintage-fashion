@@ -53,8 +53,11 @@ export default function Header() {
         {/* Brand Logo & Full Name - compact and always fully visible */}
         <Link to="/" className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
           <img
-            src="/Title_vf2.png"
-            alt="Vintage Fashion"
+            src="/Title_vf2.webp"
+            alt=""
+            aria-hidden="true"
+            width="32"
+            height="32"
             className="w-7 h-7 sm:w-8 sm:h-8 rounded-full object-cover flex-shrink-0 shadow-sm border border-gray-100"
           />
           <span className="text-sm sm:text-base md:text-lg font-bold tracking-tight text-gray-900 whitespace-nowrap">
@@ -196,13 +199,16 @@ export default function Header() {
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
                 <div className="flex items-center gap-2">
                   <img
-                    src="/Title_vf2.png"
-                    alt="Vintage Fashion"
+                    src="/Title_vf2.webp"
+                    alt=""
+                    aria-hidden="true"
+                    width="28"
+                    height="28"
                     className="w-7 h-7 rounded-full object-cover border border-gray-200"
                   />
                   <div>
                     <h3 className="text-xs font-bold text-gray-900">Vintage Fashion</h3>
-                    <p className="text-[10px] text-gray-400">Timeless Elegance</p>
+                    <p className="text-[10px] text-gray-500">Timeless Elegance</p>
                   </div>
                 </div>
                 <button

@@ -1,13 +1,14 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getBanners } from "../../api/marketingApi";
+import { getOptimizedImageUrl } from "../../utils/imageOptimizer";
 
 // Fixed curated backdrop — always rotates regardless of admin banner count.
 const HERO_IMAGES = [
-  "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8?w=1600&h=800&fit=crop", // menswear rack
-  "https://images.unsplash.com/photo-1445205170230-053b83016050?w=1600&h=800&fit=crop", // clothing store interior
-  "https://images.unsplash.com/photo-1562263689-1001cf97d149?q=80&w=1770&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", // fashion model street style
-  "https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=1600&h=800&fit=crop", // vintage jacket flatlay
+  "https://images.unsplash.com/photo-1552374196-1ab2a1c593e8", // menswear rack
+  "https://images.unsplash.com/photo-1445205170230-053b83016050", // clothing store interior
+  "https://images.unsplash.com/photo-1562263689-1001cf97d149", // fashion model street style
+  "https://images.unsplash.com/photo-1523381210434-271e8be1f52b", // vintage jacket flatlay
 ];
 
 const DEFAULT_TEXT = {
@@ -69,26 +70,33 @@ export default function Hero() {
       : text.button_link;
 
   return (
-    <section className="relative bg-gray-100 overflow-hidden min-h-[560px] flex items-center">
-      {HERO_IMAGES.map((src, i) => (
-        <div
-          key={src}
-          className={`absolute inset-0 transition-opacity duration-[1500ms] ease-in-out ${
-            i === imageIndex ? "opacity-100" : "opacity-0"
-          }`}
-        >
-          <img
-            src={src}
-            alt="Vintage fashion collection"
-            className={`w-full h-full object-cover object-center transition-transform duration-[6000ms] ease-out ${
-              i === imageIndex ? "scale-110" : "scale-100"
+    <section className="relative bg-gray-900 overflow-hidden min-h-[520px] md:min-h-[580px] flex items-center">
+      {HERO_IMAGES.map((src, i) => {
+        const optimizedSrc = getOptimizedImageUrl(src, 1200);
+        return (
+          <div
+            key={src}
+            className={`absolute inset-0 transition-opacity duration-[1200ms] ease-in-out ${
+              i === imageIndex ? "opacity-100 z-10" : "opacity-0 z-0 pointer-events-none"
             }`}
-          />
-          <div className="absolute inset-0 bg-gray-900/25" />
-        </div>
-      ))}
+          >
+            <img
+              src={optimizedSrc}
+              alt="Vintage fashion collection"
+              width="1200"
+              height="600"
+              loading={i === 0 ? "eager" : "lazy"}
+              fetchPriority={i === 0 ? "high" : "auto"}
+              className={`w-full h-full object-cover object-center transition-transform duration-[6000ms] ease-out ${
+                i === imageIndex ? "scale-105" : "scale-100"
+              }`}
+            />
+            <div className="absolute inset-0 bg-gray-900/35" />
+          </div>
+        );
+      })}
 
-      <div className="relative z-10 max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28 flex items-center w-full justify-center lg:justify-end">
+      <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28 flex items-center w-full justify-center lg:justify-end">
         <div className="max-w-md lg:max-w-lg text-center lg:text-right lg:ml-auto">
           {text.subtitle && (
             <p className="text-sm font-medium text-white/90 tracking-[0.3em] uppercase mb-3 flex items-center justify-center lg:justify-end gap-3">
@@ -114,17 +122,21 @@ export default function Hero() {
             </Link>
           </div>
 
-          <div className="flex justify-center lg:justify-end gap-2 mt-8">
+          <div className="flex justify-center lg:justify-end gap-1 mt-8">
             {HERO_IMAGES.map((_, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setImageIndex(i)}
                 aria-label={`Go to background ${i + 1}`}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  i === imageIndex ? "w-8 bg-white" : "w-2 bg-white/50 hover:bg-white/75"
-                }`}
-              />
+                className="p-2.5 flex items-center justify-center cursor-pointer"
+              >
+                <span
+                  className={`h-2 rounded-full transition-all duration-300 block ${
+                    i === imageIndex ? "w-8 bg-white shadow-sm" : "w-2.5 bg-white/50 hover:bg-white/80"
+                  }`}
+                />
+              </button>
             ))}
           </div>
         </div>

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { getCards } from "../../api/marketingApi";
 import SectionTitle from "../ui/SectionTitle";
 import SectionWrapper from "../ui/SectionWrapper";
+import { getOptimizedImageUrl } from "../../utils/imageOptimizer";
 
 const EYEBROWS = ["New In", "Trending Now", "Editor's Pick", "Limited Edition"];
 
@@ -66,8 +67,11 @@ export default function PromotionalCards() {
         }`}
       >
         <img
-          src={c.image_url}
+          src={getOptimizedImageUrl(c.image_url, 600)}
           alt={c.title}
+          width="400"
+          height="400"
+          loading="lazy"
           className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-110"
         />
         {/* Stronger, richer gradient so text has real contrast, not a flat dim overlay */}

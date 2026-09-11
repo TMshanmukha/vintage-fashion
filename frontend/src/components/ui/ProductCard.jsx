@@ -5,6 +5,7 @@ import { useCart } from "../../hooks/useCart";
 import useAuth from "../../hooks/useAuth";
 import { getProductBySlug } from "../../api/productApi";
 import { setPendingAction } from "../../utils/pendingCartAction";
+import { getOptimizedImageUrl } from "../../utils/imageOptimizer";
 
 export default function ProductCard({ product }) {
   const { addToCart, toggleWishlist, isWishlisted } = useCart();
@@ -89,6 +90,8 @@ export default function ProductCard({ product }) {
     setAddingToCart(false);
   };
 
+  const optimizedImg = getOptimizedImageUrl(product.image || product.images?.[0], 400);
+
   return (
     <Link to={`/product/${product.slug}`} className="group block">
       <div className="relative aspect-[4/5] overflow-hidden bg-gray-50 mb-3">
@@ -101,7 +104,7 @@ export default function ProductCard({ product }) {
             </span>
           )}
           {hasDiscount && (
-            <span className="bg-pink-500 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1">
+            <span className="bg-pink-600 text-white text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 shadow-sm">
               {discountPercent}% OFF
             </span>
           )}
@@ -122,8 +125,10 @@ export default function ProductCard({ product }) {
         </button>
 
         <img
-          src={product.image || product.images?.[0]}
+          src={optimizedImg}
           alt={product.name}
+          width="300"
+          height="375"
           className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           loading="lazy"
         />
@@ -139,7 +144,7 @@ export default function ProductCard({ product }) {
         </div>
       </div>
 
-      <h3 className="text-sm font-medium text-gray-800 group-hover:text-pink-500 transition-colors line-clamp-2 mb-1">
+      <h3 className="text-sm font-medium text-gray-800 group-hover:text-pink-600 transition-colors line-clamp-2 mb-1">
         {product.name}
       </h3>
       <div className="flex items-center gap-2 flex-wrap">
@@ -149,10 +154,10 @@ export default function ProductCard({ product }) {
 
         {hasDiscount && (
           <>
-            <span className="text-xs text-gray-400 line-through">
+            <span className="text-xs text-gray-500 font-medium line-through">
               ₹{Math.round(originalPrice).toLocaleString("en-IN")}
             </span>
-            <span className="text-xs font-semibold text-pink-600 bg-pink-50 px-1.5 py-0.5 rounded">
+            <span className="text-xs font-semibold text-pink-700 bg-pink-50 border border-pink-100 px-1.5 py-0.5 rounded">
               {Math.round(discountPercent)}% OFF
             </span>
           </>

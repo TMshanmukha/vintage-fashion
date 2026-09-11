@@ -27,8 +27,11 @@ export default function Footer() {
           <div>
             <Link to="/" className="flex items-center gap-3 mb-4">
               <img
-                src="/Title_vf2.png"
-                alt="Vintage Fashion"
+                src="/Title_vf2.webp"
+                alt=""
+                aria-hidden="true"
+                width="48"
+                height="48"
                 className="w-12 h-12 object-contain"
               />
 
@@ -37,7 +40,7 @@ export default function Footer() {
               </span>
             </Link>
 
-            <p className="text-xs text-gray-400 mt-4">
+            <p className="text-xs text-gray-600 mt-4 leading-relaxed">
               © 2026 Vintage Fashion.<br />
               All Rights Reserved.
             </p>
@@ -45,10 +48,10 @@ export default function Footer() {
 
           {/* About Us */}
           <div>
-            <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">About Us</h4>
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">About Us</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/about" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                <Link to="/about" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   About us
                 </Link>
               </li>
@@ -57,19 +60,19 @@ export default function Footer() {
                   href={STORE_MAP_URL}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-pink-500 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-sm text-gray-600 hover:text-pink-600 transition-colors"
                 >
                   <FaMapMarkerAlt className="w-3.5 h-3.5" />
                   Store location
                 </a>
               </li>
               <li>
-                <Link to="/contact" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                <Link to="/contact" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   Contact
                 </Link>
               </li>
               <li>
-                <Link to="/account" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                <Link to="/account" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   Order tracking
                 </Link>
               </li>
@@ -78,25 +81,25 @@ export default function Footer() {
 
           {/* Useful Links */}
           <div>
-            <h4 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">Useful Links</h4>
+            <h3 className="text-sm font-bold text-gray-900 uppercase tracking-widest mb-4">Useful Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/returns" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                <Link to="/returns" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   Returns & Exchanges
                 </Link>
               </li>
               <li>
-                <Link to="/size-guide" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                <Link to="/size-guide" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   Size Guide
                 </Link>
               </li>
               <li>
-                <Link to="/faq" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                <Link to="/faq" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   FAQs & Help
                 </Link>
               </li>
               <li>
-                <Link to="/contact" className="text-sm text-gray-500 hover:text-pink-500 transition-colors">
+                <Link to="/contact" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   Customer Support
                 </Link>
               </li>

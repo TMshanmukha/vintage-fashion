@@ -1,0 +1,13 @@
+# Vintage Fashion
+
+> Vintage Fashion is an authentic curated online store for premium vintage fashion, menswear, overshirts, jackets, denim, and streetwear.
+
+## Store Navigation & Key Pages
+- [Home](https://vintage-fashion-xi.vercel.app/): Main storefront with featured seasonal drops and curated collections.
+- [Shop All Products](https://vintage-fashion-xi.vercel.app/shop): Full product catalog with size, price, and category filters.
+- [Curated Collections](https://vintage-fashion-xi.vercel.app/collection): Hand-picked archive fashion edits.
+- [About Us](https://vintage-fashion-xi.vercel.app/about): Our heritage and sustainable fashion curation philosophy.
+- [Customer Contact](https://vintage-fashion-xi.vercel.app/contact): Support details and store location.
+- [Size Guide](https://vintage-fashion-xi.vercel.app/size-guide): Sizing charts and measuring instructions for vintage apparel.
+- [Returns Policy](https://vintage-fashion-xi.vercel.app/returns): 7-day doorstep return and refund policy.
+- [Frequently Asked Questions](https://vintage-fashion-xi.vercel.app/faq): Orders, shipping timelines, and payment FAQs.
