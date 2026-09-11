@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { useAdminAuth } from "../context/AdminAuthContext";
 import { useAdminLayout } from "./AdminLayout";
@@ -99,7 +100,7 @@ const navSections = [
   },
 ];
 
-export default function AdminSidebar({ isOpen, onClose }) {
+function AdminSidebar({ isOpen, onClose }) {
   const navigate = useNavigate();
   const { logout } = useAdminAuth();
   const { unreadCount, setUnreadCount } = useAdminLayout() || {};
@@ -235,3 +236,4 @@ export default function AdminSidebar({ isOpen, onClose }) {
     </>
   );
 }
+export default memo(AdminSidebar);
