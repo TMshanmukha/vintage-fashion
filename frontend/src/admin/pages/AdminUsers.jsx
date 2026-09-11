@@ -41,9 +41,9 @@ export default function AdminUsers() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
-  const loadUsers = async () => {
+  const loadUsers = async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
       const data = await getCustomers();
       const raw = Array.isArray(data) ? data : data?.data || [];
       setUsers(
@@ -104,7 +104,10 @@ export default function AdminUsers() {
     try {
       await updateUserStatus(user.id, newStatus);
       toast.success(`${user.name} is now ${newStatus.toLowerCase()}.`);
-      loadUsers();
+      setUsers((prev) =>
+        prev.map((u) => (u.id === user.id ? { ...u, status: newStatus === "BLOCKED" ? "Blocked" : "Active" } : u))
+      );
+      loadUsers(true);
     } catch (err) {
       toast.error("Failed to update status.");
       console.error(err);
@@ -118,7 +121,7 @@ export default function AdminUsers() {
       await deleteCustomer(deleteTarget.id);
       toast.success("User account removed.");
       setDeleteTarget(null);
-      loadUsers();
+      loadUsers(true);
     } catch (err) {
       toast.error("Failed to delete user.");
       console.error(err);
@@ -219,7 +222,7 @@ export default function AdminUsers() {
 
           {/* Customers Table */}
           <div className="bg-white border border-gray-200/80 rounded-2xl shadow-sm overflow-hidden">
-            {loading ? (
+            {loading && users.length === 0 ? (
               <div className="p-16 text-center space-y-3">
                 <div className="w-8 h-8 border-3 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto" />
                 <p className="text-xs text-gray-500 font-medium">Loading customer accounts...</p>

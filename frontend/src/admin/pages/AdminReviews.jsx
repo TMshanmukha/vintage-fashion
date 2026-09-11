@@ -183,7 +183,7 @@ export default function AdminReviews() {
 
           {/* Reviews Table / List */}
           <div className="bg-white rounded-xl border border-gray-200/80 shadow-sm overflow-hidden">
-            {loading ? (
+            {loading && reviews.length === 0 ? (
               <div className="p-12 text-center text-xs text-gray-400">Loading reviews...</div>
             ) : fetchError ? (
               <div className="p-12 text-center text-gray-500 space-y-3">

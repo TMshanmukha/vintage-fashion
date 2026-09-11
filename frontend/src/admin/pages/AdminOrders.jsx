@@ -70,22 +70,35 @@ const getInitials = (name) => {
 export default function AdminOrders() {
   const [orders, setOrders] = useState([]);
   const [stats, setStats] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
+
   const [status, setStatus] = useState("");
-  const [search, setSearch] = useState("");
+  const [searchInput, setSearchInput] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
+
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [cancelTargetOrder, setCancelTargetOrder] = useState(null);
   const [cancelShipmentTarget, setCancelShipmentTarget] = useState(null);
   const limit = 20;
 
-  const loadOrders = useCallback(async () => {
-    setLoading(true);
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchInput);
+      setPage(1);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
+
+  const loadOrders = useCallback(async (isSilent = false) => {
+    if (!isSilent) setFetching(true);
     try {
       const data = await getOrders({
         status: status || undefined,
-        search: search || undefined,
+        search: debouncedSearch || undefined,
         page,
         limit,
       });
@@ -94,11 +107,11 @@ export default function AdminOrders() {
     } catch (err) {
       toast.error("Failed to load orders.");
       console.error(err);
-      setOrders([]);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setFetching(false);
     }
-  }, [status, search, page]);
+  }, [status, debouncedSearch, page]);
 
   const loadStats = async () => {
     try {
@@ -126,12 +139,17 @@ export default function AdminOrders() {
     },
   });
 
+  const handleTabChange = (newStatus) => {
+    setStatus(newStatus);
+    setPage(1);
+  };
+
   const handleConfirm = async (order) => {
     setActionLoadingId(order.order_id);
     try {
       await confirmOrder(order.order_id);
       toast.success(`Order #${order.order_number} confirmed.`);
-      loadOrders();
+      loadOrders(true);
       loadStats();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to confirm order.");
@@ -149,7 +167,7 @@ export default function AdminOrders() {
       await cancelOrder(order.order_id);
       toast.success(`Order #${order.order_number} cancelled.`);
       setCancelTargetOrder(null);
-      loadOrders();
+      loadOrders(true);
       loadStats();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to cancel order.");
@@ -167,7 +185,7 @@ export default function AdminOrders() {
       await cancelShipment(order.order_id);
       toast.success(`Shipment for #${order.order_number} cancelled.`);
       setCancelShipmentTarget(null);
-      loadOrders();
+      loadOrders(true);
       loadStats();
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to cancel shipment.");
@@ -182,7 +200,7 @@ export default function AdminOrders() {
     try {
       const res = await createShipment(order.order_id);
       toast.success(res.message || "Shipment created with courier.");
-      loadOrders();
+      loadOrders(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to create shipment.");
       console.error(err);
@@ -196,7 +214,7 @@ export default function AdminOrders() {
     try {
       await trackShipment(order.order_id);
       toast.success("Tracking status refreshed.");
-      loadOrders();
+      loadOrders(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to refresh tracking.");
       console.error(err);
@@ -209,7 +227,9 @@ export default function AdminOrders() {
     try {
       await updatePaymentStatus(orderId, newStatus);
       toast.success("Payment status updated.");
-      loadOrders();
+      setOrders((prev) =>
+        prev.map((o) => (o.order_id === orderId ? { ...o, payment_status: newStatus } : o))
+      );
       loadStats();
     } catch (err) {
       toast.error("Failed to update payment status.");
@@ -232,39 +252,39 @@ export default function AdminOrders() {
           {stats && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5">
               <div className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-sm">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Orders</span>
-                <p className="text-2xl font-bold text-gray-900 mt-1">{stats.total_orders}</p>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-500">Total Orders</span>
+                <p className="text-2xl sm:text-3xl font-black text-gray-900 mt-1">{stats.total_orders}</p>
               </div>
 
-              <div className="bg-white border border-amber-200/80 rounded-2xl p-4 shadow-sm bg-gradient-to-br from-white to-amber-50/30">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Pending</span>
-                <p className="text-2xl font-bold text-amber-700 mt-1">{stats.pending_orders}</p>
+              <div className="bg-white border border-amber-200/80 rounded-2xl p-4 shadow-sm bg-gradient-to-br from-white to-amber-50/40">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">Pending</span>
+                <p className="text-2xl sm:text-3xl font-black text-amber-700 mt-1">{stats.pending_orders}</p>
               </div>
 
-              <div className="bg-white border border-purple-200/80 rounded-2xl p-4 shadow-sm bg-gradient-to-br from-white to-purple-50/30">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700">In Transit</span>
-                <p className="text-2xl font-bold text-purple-700 mt-1">{stats.shipped_orders || 0}</p>
+              <div className="bg-white border border-purple-200/80 rounded-2xl p-4 shadow-sm bg-gradient-to-br from-white to-purple-50/40">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-purple-800">In Transit</span>
+                <p className="text-2xl sm:text-3xl font-black text-purple-700 mt-1">{stats.shipped_orders || 0}</p>
               </div>
 
-              <div className="bg-white border border-emerald-200/80 rounded-2xl p-4 shadow-sm bg-gradient-to-br from-white to-emerald-50/30">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Delivered</span>
-                <p className="text-2xl font-bold text-emerald-700 mt-1">{stats.delivered_orders}</p>
+              <div className="bg-white border border-emerald-200/80 rounded-2xl p-4 shadow-sm bg-gradient-to-br from-white to-emerald-50/40">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">Delivered</span>
+                <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-1">{stats.delivered_orders}</p>
               </div>
 
               <div className="bg-white border border-gray-200/80 rounded-2xl p-4 shadow-sm">
-                <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Revenue</span>
-                <p className="text-xl sm:text-2xl font-bold text-gray-900 mt-1 truncate">{formatCurrency(stats.total_revenue)}</p>
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-500">Total Revenue</span>
+                <p className="text-xl sm:text-2xl font-black text-gray-900 mt-1 truncate">{formatCurrency(stats.total_revenue)}</p>
               </div>
 
               <Link
                 to="/admin/returns"
-                className="bg-white border border-pink-200/80 rounded-2xl p-4 hover:border-pink-400 transition-all shadow-sm bg-gradient-to-br from-white to-pink-50/30 group"
+                className="bg-white border border-pink-200/80 rounded-2xl p-4 hover:border-pink-400 transition-all shadow-sm bg-gradient-to-br from-white to-pink-50/40 group"
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-bold uppercase tracking-wider text-pink-700">Returns</span>
-                  <span className="text-xs group-hover:translate-x-0.5 transition-transform text-pink-500">→</span>
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-pink-800">Returns</span>
+                  <span className="text-xs group-hover:translate-x-0.5 transition-transform text-pink-600 font-bold">→</span>
                 </div>
-                <p className="text-2xl font-bold text-pink-700 mt-1">{stats.return_requested_orders ?? 0}</p>
+                <p className="text-2xl sm:text-3xl font-black text-pink-700 mt-1">{stats.return_requested_orders ?? 0}</p>
               </Link>
             </div>
           )}
@@ -278,11 +298,9 @@ export default function AdminOrders() {
                 return (
                   <button
                     key={tab.key}
-                    onClick={() => {
-                      setStatus(tab.key);
-                      setPage(1);
-                    }}
-                    className={`px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all flex items-center gap-2 ${
+                    type="button"
+                    onClick={() => handleTabChange(tab.key)}
+                    className={`px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-2 ${
                       isActive
                         ? "bg-gray-900 text-white shadow-sm"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -313,13 +331,18 @@ export default function AdminOrders() {
                 <input
                   type="text"
                   placeholder="Search by order #, customer name, email..."
-                  value={search}
-                  onChange={(e) => {
-                    setSearch(e.target.value);
-                    setPage(1);
-                  }}
+                  value={searchInput}
+                  onChange={(e) => setSearchInput(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 bg-gray-50/50"
                 />
+                {searchInput && (
+                  <button
+                    onClick={() => setSearchInput("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
               <div className="flex items-center gap-3">
@@ -327,16 +350,17 @@ export default function AdminOrders() {
                   Showing <span className="text-gray-900 font-bold">{orders.length}</span> of {total} orders
                 </p>
                 <button
+                  type="button"
                   onClick={() => {
                     loadOrders();
                     loadStats();
                   }}
-                  disabled={loading}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                  disabled={fetching}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors shadow-xs"
                   title="Refresh Orders"
                 >
                   <svg
-                    className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
+                    className={`w-3.5 h-3.5 ${fetching ? "animate-spin" : ""}`}
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -354,9 +378,13 @@ export default function AdminOrders() {
             </div>
           </div>
 
-          {/* Orders Table */}
-          <div className="bg-white border border-gray-200/80 rounded-2xl shadow-sm overflow-hidden">
-            {loading ? (
+          {/* Orders Table (Smooth UI without unmounting) */}
+          <div className="bg-white border border-gray-200/80 rounded-2xl shadow-sm overflow-hidden relative">
+            {fetching && (
+              <div className="absolute top-0 left-0 right-0 h-1 bg-sky-500 animate-pulse z-10" />
+            )}
+
+            {initialLoading && orders.length === 0 ? (
               <div className="p-16 text-center space-y-3">
                 <div className="w-8 h-8 border-3 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto" />
                 <p className="text-xs text-gray-500 font-medium">Fetching orders...</p>
@@ -366,12 +394,23 @@ export default function AdminOrders() {
                 <div className="text-4xl">🛍️</div>
                 <h3 className="text-sm font-semibold text-gray-800">No Orders Found</h3>
                 <p className="text-xs text-gray-500 max-w-sm mx-auto">
-                  {search
-                    ? `No orders match your search "${search}". Try clearing search filters.`
+                  {debouncedSearch
+                    ? `No orders match your search "${debouncedSearch}". Try clearing search filters.`
                     : status
                     ? `There are currently no orders with status "${formatStatusLabel(status)}".`
                     : "No orders have been placed in the store yet."}
                 </p>
+                {(status || debouncedSearch) && (
+                  <button
+                    onClick={() => {
+                      setStatus("");
+                      setSearchInput("");
+                    }}
+                    className="mt-3 px-4 py-2 bg-gray-900 text-white rounded-xl text-xs font-bold hover:bg-gray-800 transition-colors"
+                  >
+                    View All Orders
+                  </button>
+                )}
               </div>
             ) : (
               <div className="overflow-x-auto">
@@ -568,7 +607,7 @@ export default function AdminOrders() {
           {totalPages > 1 && (
             <div className="flex items-center justify-between pt-2">
               <p className="text-xs text-gray-500 font-medium">
-                Page <span className="font-bold text-gray-900">{page}</span> of {totalPages}
+                Page <span className="font-bold text-gray-900">{page}</span> of {totalPages} ({total} total orders)
               </p>
               <div className="flex items-center gap-2">
                 <button

@@ -73,18 +73,21 @@ const parsePhotos = (photos) => {
 
 export default function AdminReturns() {
   const [returns, setReturns] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [fetching, setFetching] = useState(false);
+
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
-  const [actionTarget, setActionTarget] = useState(null); // { returnItem, action }
+
+  const [actionTarget, setActionTarget] = useState(null);
   const [processing, setProcessing] = useState(false);
   const [previewImage, setPreviewImage] = useState(null);
   const limit = 20;
 
-  const loadReturns = useCallback(async () => {
-    setLoading(true);
+  const loadReturns = useCallback(async (isSilent = false) => {
+    if (!isSilent) setFetching(true);
     try {
       const data = await getReturns({
         status: activeTab === "all" ? undefined : activeTab,
@@ -96,9 +99,9 @@ export default function AdminReturns() {
     } catch (err) {
       toast.error("Failed to load returns.");
       console.error(err);
-      setReturns([]);
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setFetching(false);
     }
   }, [activeTab, page]);
 
@@ -114,6 +117,11 @@ export default function AdminReturns() {
     },
   });
 
+  const handleTabClick = (key) => {
+    setActiveTab(key);
+    setPage(1);
+  };
+
   const confirmAction = async () => {
     if (!actionTarget) return;
     const { returnItem, action } = actionTarget;
@@ -127,7 +135,7 @@ export default function AdminReturns() {
           : `Return status updated to ${formatStatusLabel(action)}.`
       );
       setActionTarget(null);
-      loadReturns();
+      loadReturns(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to update return status.");
       console.error(err);
@@ -176,38 +184,38 @@ export default function AdminReturns() {
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-sm">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Total Requests</span>
+                <span className="text-xs font-extrabold text-gray-500 uppercase tracking-wider">Total Requests</span>
                 <span className="p-2 rounded-xl bg-gray-100 text-gray-700">📦</span>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{total}</p>
+              <p className="text-2xl sm:text-3xl font-black text-gray-900 mt-2">{total}</p>
               <p className="text-xs text-gray-400 mt-1">Across all order timelines</p>
             </div>
 
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-sm bg-gradient-to-br from-white to-amber-50/30">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-sm bg-gradient-to-br from-white to-amber-50/40">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-amber-700 uppercase tracking-wider">Action Needed</span>
-                <span className="p-2 rounded-xl bg-amber-100 text-amber-700">⏳</span>
+                <span className="text-xs font-extrabold text-amber-800 uppercase tracking-wider">Action Needed</span>
+                <span className="p-2 rounded-xl bg-amber-100 text-amber-800">⏳</span>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-amber-700 mt-2">{stats.pendingCount}</p>
-              <p className="text-xs text-amber-600 font-medium mt-1">Pending approval</p>
+              <p className="text-2xl sm:text-3xl font-black text-amber-700 mt-2">{stats.pendingCount}</p>
+              <p className="text-xs text-amber-600 font-bold mt-1">Pending approval</p>
             </div>
 
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-indigo-200/80 shadow-sm bg-gradient-to-br from-white to-indigo-50/30">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-indigo-200/80 shadow-sm bg-gradient-to-br from-white to-indigo-50/40">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-indigo-700 uppercase tracking-wider">In Transit</span>
-                <span className="p-2 rounded-xl bg-indigo-100 text-indigo-700">🚚</span>
+                <span className="text-xs font-extrabold text-indigo-800 uppercase tracking-wider">In Transit</span>
+                <span className="p-2 rounded-xl bg-indigo-100 text-indigo-800">🚚</span>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-indigo-700 mt-2">{stats.inTransitCount}</p>
-              <p className="text-xs text-indigo-600 font-medium mt-1">Pickup or hub transit</p>
+              <p className="text-2xl sm:text-3xl font-black text-indigo-700 mt-2">{stats.inTransitCount}</p>
+              <p className="text-xs text-indigo-600 font-bold mt-1">Pickup or hub transit</p>
             </div>
 
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200/80 shadow-sm bg-gradient-to-br from-white to-emerald-50/30">
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200/80 shadow-sm bg-gradient-to-br from-white to-emerald-50/40">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-emerald-700 uppercase tracking-wider">Refunds Settled</span>
-                <span className="p-2 rounded-xl bg-emerald-100 text-emerald-700">💳</span>
+                <span className="text-xs font-extrabold text-emerald-800 uppercase tracking-wider">Refunds Settled</span>
+                <span className="p-2 rounded-xl bg-emerald-100 text-emerald-800">💳</span>
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-emerald-700 mt-2">{formatCurrency(stats.totalRefundValue)}</p>
-              <p className="text-xs text-emerald-600 font-medium mt-1">{stats.refundedCount} closed refunds</p>
+              <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2">{formatCurrency(stats.totalRefundValue)}</p>
+              <p className="text-xs text-emerald-600 font-bold mt-1">{stats.refundedCount} closed refunds</p>
             </div>
           </div>
 
@@ -220,11 +228,9 @@ export default function AdminReturns() {
                 return (
                   <button
                     key={tab.key}
-                    onClick={() => {
-                      setActiveTab(tab.key);
-                      setPage(1);
-                    }}
-                    className={`px-4 py-2.5 text-xs font-semibold rounded-xl whitespace-nowrap transition-all flex items-center gap-2 ${
+                    type="button"
+                    onClick={() => handleTabClick(tab.key)}
+                    className={`px-4 py-2.5 text-xs font-bold rounded-xl whitespace-nowrap transition-all duration-150 flex items-center gap-2 ${
                       isActive
                         ? "bg-gray-900 text-white shadow-sm"
                         : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
@@ -259,16 +265,25 @@ export default function AdminReturns() {
                   placeholder="Search by Order #, Customer, Email, Tracking ID..."
                   className="w-full pl-10 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 bg-gray-50/50"
                 />
+                {search && (
+                  <button
+                    onClick={() => setSearch("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
 
               <button
+                type="button"
                 onClick={() => loadReturns()}
-                disabled={loading}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors self-end sm:self-auto"
+                disabled={fetching}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors self-end sm:self-auto shadow-xs"
                 title="Refresh Returns"
               >
                 <svg
-                  className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`}
+                  className={`w-3.5 h-3.5 ${fetching ? "animate-spin" : ""}`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -286,8 +301,12 @@ export default function AdminReturns() {
           </div>
 
           {/* Returns Table */}
-          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden">
-            {loading ? (
+          <div className="bg-white rounded-2xl border border-gray-200/80 shadow-sm overflow-hidden relative">
+            {fetching && (
+              <div className="absolute top-0 left-0 right-0 h-1 bg-pink-500 animate-pulse z-10" />
+            )}
+
+            {initialLoading && returns.length === 0 ? (
               <div className="p-16 text-center space-y-3">
                 <div className="w-8 h-8 border-3 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto" />
                 <p className="text-xs text-gray-500 font-medium">Fetching returns...</p>
@@ -307,7 +326,7 @@ export default function AdminReturns() {
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
-                  <thead className="bg-gray-50/80 text-gray-600 border-b border-gray-200 uppercase tracking-wider font-semibold text-[11px]">
+                  <thead className="bg-gray-50/80 text-gray-600 border-b border-gray-200 uppercase tracking-wider font-bold text-[11px]">
                     <tr>
                       <th className="py-4 px-5">Order & Date</th>
                       <th className="py-4 px-5">Customer</th>
@@ -373,7 +392,7 @@ export default function AdminReturns() {
                                       key={idx}
                                       type="button"
                                       onClick={() => setPreviewImage(url)}
-                                      className="relative group rounded-lg overflow-hidden border border-gray-200 w-10 h-10 flex-shrink-0"
+                                      className="relative group rounded-lg overflow-hidden border border-gray-200 w-10 h-10 flex-shrink-0 cursor-pointer"
                                     >
                                       <img
                                         src={url}
@@ -442,16 +461,16 @@ export default function AdminReturns() {
                   <button
                     disabled={page <= 1}
                     onClick={() => setPage((p) => p - 1)}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-40 transition-colors"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-40 transition-colors shadow-xs"
                   >
-                    Previous
+                    ← Previous
                   </button>
                   <button
                     disabled={page >= totalPages}
                     onClick={() => setPage((p) => p + 1)}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-40 transition-colors"
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 disabled:opacity-40 transition-colors shadow-xs"
                   >
-                    Next
+                    Next →
                   </button>
                 </div>
               </div>

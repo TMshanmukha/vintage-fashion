@@ -51,7 +51,8 @@ const isActiveCustomer = (c) => {
 };
 
 export default function AdminDashboard() {
-  const [loading, setLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [stats, setStats] = useState(null);
   const [recentOrders, setRecentOrders] = useState([]);
   const [allProducts, setAllProducts] = useState([]);
@@ -75,9 +76,10 @@ export default function AdminDashboard() {
   const [chartTimeframe, setChartTimeframe] = useState("7d"); // "7d" | "30d"
   const [hoveredDataPoint, setHoveredDataPoint] = useState(null);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = async (isBackground = false) => {
     try {
-      setLoading(true);
+      if (!isBackground) setInitialLoading(true);
+      else setRefreshing(true);
 
       const [
         statsRes,
@@ -176,9 +178,12 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error("Dashboard Load Error:", err);
-      toast.error("Couldn't load dashboard data");
+      if (!isBackground) {
+        toast.error("Couldn't load dashboard data");
+      }
     } finally {
-      setLoading(false);
+      setInitialLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -251,7 +256,7 @@ export default function AdminDashboard() {
       toast.success("Product updated successfully!");
       setEditingProduct(null);
       setEditingInitialData(null);
-      await loadDashboardData();
+      await loadDashboardData(true);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Failed to update product.");
@@ -267,7 +272,7 @@ export default function AdminDashboard() {
       await deleteProduct(deletingProduct.product_id);
       toast.success(`"${deletingProduct.name}" deleted.`);
       setDeletingProduct(null);
-      await loadDashboardData();
+      await loadDashboardData(true);
     } catch (err) {
       console.error(err);
       toast.error(err.response?.data?.message || "Failed to delete product.");
@@ -388,7 +393,7 @@ export default function AdminDashboard() {
     ];
   }, [stats, recentOrders]);
 
-  if (loading) {
+  if (initialLoading && !stats) {
     return (
       <AdminLayout>
         <AdminTopbar title="Dashboard" subtitle="Loading store analytics and live catalog overview..." />
@@ -414,11 +419,12 @@ export default function AdminDashboard() {
 
         <div className="p-4 sm:p-6 lg:p-8 space-y-8">
           {/* Top KPI Metrics Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3.5 sm:gap-4">
             <StatCard
               label="Revenue"
               value={formatINR(stats?.total_revenue)}
               change="All-time gross"
+              color="emerald"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />}
             />
 
@@ -426,6 +432,7 @@ export default function AdminDashboard() {
               label="Total Orders"
               value={stats?.total_orders ?? recentOrders.length}
               change={`${stats?.pending_orders ?? 0} to dispatch`}
+              color="blue"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" />}
             />
 
@@ -434,6 +441,7 @@ export default function AdminDashboard() {
               value={`${totalStockAvailable.toLocaleString("en-IN")}`}
               change={`${allProducts.length} catalog items`}
               positive={totalStockAvailable > 0}
+              color="indigo"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 5.625c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125" />}
             />
 
@@ -441,6 +449,7 @@ export default function AdminDashboard() {
               label="Categories"
               value={categories.length}
               change="Active departments"
+              color="purple"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6zM3.75 15.75A2.25 2.25 0 016 13.5h2.25a2.25 2.25 0 012.25 2.25V18a2.25 2.25 0 01-2.25 2.25H6A2.25 2.25 0 013.75 18v-2.25zM13.5 6a2.25 2.25 0 012.25-2.25H18A2.25 2.25 0 0120.25 6v2.25A2.25 2.25 0 0118 10.5h-2.25a2.25 2.25 0 01-2.25-2.25V6zM13.5 15.75a2.25 2.25 0 012.25-2.25H18a2.25 2.25 0 012.25 2.25V18A2.25 2.25 0 0118 20.25h-2.25A2.25 2.25 0 0113.5 18v-2.25z" />}
             />
 
@@ -449,6 +458,7 @@ export default function AdminDashboard() {
               value={lowStockProducts.length}
               change="≤ 5 units left"
               positive={lowStockProducts.length === 0}
+              color="amber"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />}
             />
 
@@ -456,6 +466,7 @@ export default function AdminDashboard() {
               label="Customers"
               value={customers.length}
               change={`${activeCustomers} active`}
+              color="pink"
               icon={<path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M18 18.72a9.094 9.094 0 003.741-.479 3 3 0 00-4.682-2.72m.94 3.198l.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0112 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 016 18.719m12 0a5.971 5.971 0 00-.941-3.197m0 0A5.995 5.995 0 0012 12.75a5.995 5.995 0 00-5.058 2.772m0 0a3 3 0 00-4.681 2.72 8.986 8.986 0 003.74.477m.94-3.197a5.971 5.971 0 00-.94 3.197M15 6.75a3 3 0 11-6 0 3 3 0 016 0zm6 3a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0zm-13.5 0a2.25 2.25 0 11-4.5 0 2.25 2.25 0 014.5 0z" />}
             />
           </div>

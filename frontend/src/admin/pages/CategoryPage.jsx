@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import CategoryFormModal from "../components/CategoryFormModel";
@@ -8,9 +8,12 @@ import api, { restoreCategory } from "../../api/categoryApi";
 import { invalidateCache, cachedAxiosGet } from "../../utils/apiCache";
 import { getThumbnail } from "../../utils/cloudinary";
 
+const LIMIT = 15;
+
 export default function AdminCategories() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
 
@@ -21,42 +24,47 @@ export default function AdminCategories() {
   const [saving, setSaving] = useState(false);
 
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
 
-  const LIMIT = 12;
-
-  const fetchCategories = async () => {
+  const fetchCategories = useCallback(async (isSilent = false) => {
     try {
-      setLoading(true);
+      if (!isSilent) setLoading(true);
+      else setRefreshing(true);
 
-      const res = await cachedAxiosGet(api, "/categories", {
-        page: currentPage,
-        limit: LIMIT,
-      });
-
-      const list = res.data.data || [];
+      const res = await cachedAxiosGet(api, "/categories", { limit: 200 });
+      const raw = res.data?.data ?? res.data;
+      const list = Array.isArray(raw) ? raw : [];
       setCategories(list);
-      setTotalItems(res.data.pagination?.totalItems ?? list.length ?? 0);
-      setTotalPages(res.data.pagination?.totalPages ?? 1);
     } catch (error) {
       console.error(error);
-      toast.error(error.response?.data?.message || "Failed to load categories.");
+      if (!isSilent) {
+        toast.error(error.response?.data?.message || "Failed to load categories.");
+      }
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     fetchCategories();
-  }, [currentPage]);
+  }, [fetchCategories]);
+
+  const handleStatusFilterChange = (filter) => {
+    setStatusFilter(filter);
+    setCurrentPage(1);
+  };
+
+  const handleSearchChange = (val) => {
+    setSearch(val);
+    setCurrentPage(1);
+  };
 
   const handleRestore = async (categoryId) => {
     try {
       await restoreCategory(categoryId);
       toast.success("Category restored successfully.");
       invalidateCache("categories");
-      fetchCategories();
+      fetchCategories(true);
     } catch (error) {
       toast.error(error.response?.data?.message || "Failed to restore category.");
     }
@@ -90,7 +98,7 @@ export default function AdminCategories() {
       invalidateCache("categories");
       setModalOpen(false);
       setEditingCategory(null);
-      fetchCategories();
+      fetchCategories(true);
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || "Operation failed.");
@@ -107,7 +115,7 @@ export default function AdminCategories() {
       invalidateCache("categories");
       toast.success("Category deleted successfully.");
       setDeleteTarget(null);
-      fetchCategories();
+      fetchCategories(true);
     } catch (error) {
       console.error(error);
       toast.error(error.response?.data?.message || "Failed to delete category.");
@@ -141,6 +149,13 @@ export default function AdminCategories() {
     });
   }, [categories, search, statusFilter]);
 
+  const totalItems = filteredCategories.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / LIMIT));
+  const paginatedCategories = useMemo(() => {
+    const start = (currentPage - 1) * LIMIT;
+    return filteredCategories.slice(start, start + LIMIT);
+  }, [filteredCategories, currentPage]);
+
   return (
     <AdminLayout>
       <div className="flex-1 flex flex-col min-w-0 bg-gray-50/50">
@@ -153,21 +168,21 @@ export default function AdminCategories() {
           {/* Stats KPI Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200/80 shadow-sm">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-gray-400">Total Categories</span>
-              <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-2">{totalItems || stats.totalCount}</p>
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-gray-500">Total Categories</span>
+              <p className="text-2xl sm:text-3xl font-black text-gray-900 mt-2">{stats.totalCount}</p>
               <p className="text-xs text-gray-400 mt-1">Catalog divisions</p>
             </div>
 
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200/80 shadow-sm bg-gradient-to-br from-white to-emerald-50/30">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700">Active Categories</span>
-              <p className="text-2xl sm:text-3xl font-bold text-emerald-700 mt-2">{stats.activeCount}</p>
-              <p className="text-xs text-emerald-600 font-medium mt-1">Visible on store navigation</p>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200/80 shadow-sm bg-gradient-to-br from-white to-emerald-50/40">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-800">Active Categories</span>
+              <p className="text-2xl sm:text-3xl font-black text-emerald-700 mt-2">{stats.activeCount}</p>
+              <p className="text-xs text-emerald-600 font-bold mt-1">Visible on store navigation</p>
             </div>
 
-            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-sm bg-gradient-to-br from-white to-amber-50/30">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-amber-700">Inactive Categories</span>
-              <p className="text-2xl sm:text-3xl font-bold text-amber-700 mt-2">{stats.inactiveCount}</p>
-              <p className="text-xs text-amber-600 font-medium mt-1">Archived or hidden</p>
+            <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-sm bg-gradient-to-br from-white to-amber-50/40">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-800">Inactive Categories</span>
+              <p className="text-2xl sm:text-3xl font-black text-amber-700 mt-2">{stats.inactiveCount}</p>
+              <p className="text-xs text-amber-600 font-bold mt-1">Archived or hidden</p>
             </div>
           </div>
 
@@ -191,9 +206,17 @@ export default function AdminCategories() {
                 type="text"
                 placeholder="Search categories by name, slug..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearchChange(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 bg-gray-50/50"
               />
+              {search && (
+                <button
+                  onClick={() => handleSearchChange("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-700"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
             <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
@@ -201,7 +224,8 @@ export default function AdminCategories() {
                 {["all", "active", "inactive"].map((tab) => (
                   <button
                     key={tab}
-                    onClick={() => setStatusFilter(tab)}
+                    type="button"
+                    onClick={() => handleStatusFilterChange(tab)}
                     className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all capitalize ${
                       statusFilter === tab
                         ? "bg-white text-gray-900 shadow-xs"
@@ -226,7 +250,11 @@ export default function AdminCategories() {
           </div>
 
           {/* Categories Table */}
-          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white shadow-sm">
+          <div className="overflow-x-auto rounded-2xl border border-gray-200/80 bg-white shadow-sm relative">
+            {refreshing && (
+              <div className="absolute top-0 left-0 right-0 h-1 bg-pink-500 animate-pulse z-10" />
+            )}
+
             <table className="w-full min-w-[650px] text-left text-xs">
               <thead className="bg-gray-50/80 text-[11px] font-bold uppercase tracking-wider text-gray-600 border-b border-gray-200">
                 <tr>
@@ -238,7 +266,7 @@ export default function AdminCategories() {
               </thead>
 
               <tbody className="divide-y divide-gray-100">
-                {loading && (
+                {loading && categories.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-6 py-16 text-center">
                       <div className="flex flex-col items-center gap-3">
@@ -249,7 +277,7 @@ export default function AdminCategories() {
                   </tr>
                 )}
 
-                {!loading && filteredCategories.map((category) => {
+                {paginatedCategories.map((category) => {
                   const isActive = Number(category.is_active) === 1 || category.is_active === true;
 
                   return (
@@ -262,11 +290,15 @@ export default function AdminCategories() {
                       <td className="px-5 py-4">
                         <div className="flex items-center gap-3.5">
                           <img
-                            src={getThumbnail(category.image_url) || "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=80"}
+                            src={
+                              getThumbnail(category.image_url) ||
+                              "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=80"
+                            }
                             alt={category.name}
                             onError={(e) => {
                               e.target.onerror = null;
-                              e.target.src = "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=80";
+                              e.target.src =
+                                "https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=400&auto=format&fit=crop&q=80";
                             }}
                             className="h-12 w-12 rounded-xl border border-gray-200 object-cover shadow-xs bg-gray-50 flex-shrink-0"
                           />
@@ -286,11 +318,13 @@ export default function AdminCategories() {
 
                       {/* Status */}
                       <td className="px-5 py-4">
-                        <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
-                          isActive
-                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                            : "bg-gray-100 text-gray-600 border-gray-300"
-                        }`}>
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold border ${
+                            isActive
+                              ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                              : "bg-gray-100 text-gray-600 border-gray-300"
+                          }`}
+                        >
                           <span className={`w-1.5 h-1.5 rounded-full ${isActive ? "bg-emerald-500" : "bg-gray-400"}`} />
                           {isActive ? "Active" : "Inactive"}
                         </span>
@@ -307,7 +341,12 @@ export default function AdminCategories() {
                                 title="Edit Category"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10" />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0115.75 21H5.25A2.25 2.25 0 013 18.75V8.25A2.25 2.25 0 015.25 6H10"
+                                  />
                                 </svg>
                               </button>
                               <button
@@ -316,7 +355,12 @@ export default function AdminCategories() {
                                 title="Delete Category"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={1.5}
+                                    d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"
+                                  />
                                 </svg>
                               </button>
                             </>
@@ -327,7 +371,12 @@ export default function AdminCategories() {
                               title="Restore Category"
                             >
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99" />
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={1.5}
+                                  d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0l3.181 3.183a8.25 8.25 0 0013.803-3.7M4.031 9.865a8.25 8.25 0 0113.803-3.7l3.181 3.182m0-4.991v4.99"
+                                />
                               </svg>
                             </button>
                           )}
