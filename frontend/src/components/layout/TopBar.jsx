@@ -4,7 +4,7 @@ import { getSettings } from "../../api/settingsApi";
 const FALLBACKS = {
   language: "English",
   currency: "Rupee",
-  support_phone: "99999-99999",
+  support_phone: "+91 9398393619",
   announcement_text: "",
   announcement_enabled: false,
 };

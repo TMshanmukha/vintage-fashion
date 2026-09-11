@@ -53,7 +53,7 @@ export default function Header() {
         {/* Brand Logo & Full Name - compact and always fully visible */}
         <Link to="/" className="flex items-center gap-2 sm:gap-2.5 flex-shrink-0">
           <img
-            src="/Title_vf2.webp"
+            src="/Title_vf2_32.webp"
             alt=""
             aria-hidden="true"
             width="32"
@@ -199,7 +199,7 @@ export default function Header() {
               <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/70">
                 <div className="flex items-center gap-2">
                   <img
-                    src="/Title_vf2.webp"
+                    src="/Title_vf2_32.webp"
                     alt=""
                     aria-hidden="true"
                     width="28"

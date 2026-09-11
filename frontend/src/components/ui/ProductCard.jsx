@@ -90,7 +90,7 @@ export default function ProductCard({ product }) {
     setAddingToCart(false);
   };
 
-  const optimizedImg = getOptimizedImageUrl(product.image || product.images?.[0], 400);
+  const optimizedImg = getOptimizedImageUrl(product.image || product.images?.[0], 280, 70);
 
   return (
     <Link to={`/product/${product.slug}`} className="group block">
@@ -127,8 +127,8 @@ export default function ProductCard({ product }) {
         <img
           src={optimizedImg}
           alt={product.name}
-          width="300"
-          height="375"
+          width="280"
+          height="350"
           className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-105"
           loading="lazy"
         />

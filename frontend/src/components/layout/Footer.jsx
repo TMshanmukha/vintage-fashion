@@ -27,7 +27,7 @@ export default function Footer() {
           <div>
             <Link to="/" className="flex items-center gap-3 mb-4">
               <img
-                src="/Title_vf2.webp"
+                src="/Title_vf2_48.webp"
                 alt=""
                 aria-hidden="true"
                 width="48"

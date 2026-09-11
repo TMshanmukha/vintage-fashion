@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getBanners } from "../../api/marketingApi";
-import { getOptimizedImageUrl } from "../../utils/imageOptimizer";
+import { getOptimizedImageUrl, getResponsiveImageSrcSet } from "../../utils/imageOptimizer";
 
 // Fixed curated backdrop — always rotates regardless of admin banner count.
 const HERO_IMAGES = [
@@ -72,7 +72,8 @@ export default function Hero() {
   return (
     <section className="relative bg-gray-900 overflow-hidden min-h-[520px] md:min-h-[580px] flex items-center">
       {HERO_IMAGES.map((src, i) => {
-        const optimizedSrc = getOptimizedImageUrl(src, 1200);
+        const optimizedSrc = getOptimizedImageUrl(src, 800, 70);
+        const srcSet = getResponsiveImageSrcSet(src, [640, 960, 1200], 70);
         return (
           <div
             key={src}
@@ -82,6 +83,8 @@ export default function Hero() {
           >
             <img
               src={optimizedSrc}
+              srcSet={srcSet}
+              sizes="(max-width: 768px) 100vw, 1200px"
               alt="Vintage fashion collection"
               width="1200"
               height="600"
@@ -96,23 +99,25 @@ export default function Hero() {
         );
       })}
 
-      <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-12 py-20 lg:py-28 flex items-center w-full justify-center lg:justify-end">
-        <div className="max-w-md lg:max-w-lg text-center lg:text-right lg:ml-auto">
-          {text.subtitle && (
-            <p className="text-sm font-medium text-white/90 tracking-[0.3em] uppercase mb-3 flex items-center justify-center lg:justify-end gap-3">
-              <span className="block w-8 h-px bg-white/70" />
-              {text.subtitle}
-              <span className="block w-8 h-px bg-white/70 lg:hidden" />
-            </p>
-          )}
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-4 drop-shadow-md">
-            {text.title}
-          </h1>
-          {text.description && (
-            <p className="text-sm md:text-base text-white/90 mb-8 max-w-md lg:ml-auto leading-relaxed drop-shadow">
-              {text.description}
-            </p>
-          )}
+      <div className="relative z-20 max-w-7xl mx-auto px-6 lg:px-12 py-16 lg:py-24 flex items-center w-full justify-center lg:justify-end">
+        <div className="max-w-md lg:max-w-lg text-center lg:text-right lg:ml-auto w-full">
+          <div className="min-h-[200px] flex flex-col justify-center items-center lg:items-end">
+            {text.subtitle && (
+              <p className="text-sm font-medium text-white/90 tracking-[0.3em] uppercase mb-3 flex items-center justify-center lg:justify-end gap-3">
+                <span className="block w-8 h-px bg-white/70" />
+                {text.subtitle}
+                <span className="block w-8 h-px bg-white/70 lg:hidden" />
+              </p>
+            )}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-white leading-tight mb-4 drop-shadow-md">
+              {text.title}
+            </h1>
+            {text.description && (
+              <p className="text-sm md:text-base text-white/90 mb-6 max-w-md lg:ml-auto leading-relaxed drop-shadow">
+                {text.description}
+              </p>
+            )}
+          </div>
           <div className="flex justify-center lg:justify-end">
             <Link
               to={linkTarget}

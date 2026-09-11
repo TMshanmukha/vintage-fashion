@@ -35,11 +35,11 @@
       ]
     },
     {
-      "source": "/(Title_vf2.png|Title_vf2.webp|robots.txt|sitemap.xml|llms.txt)",
+      "source": "/(Title_vf2.*|robots.txt|sitemap.xml|llms.txt)",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=86400, stale-while-revalidate=604800"
+          "value": "public, max-age=604800, stale-while-revalidate=2592000"
         }
       ]
     }

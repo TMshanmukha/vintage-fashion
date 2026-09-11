@@ -7,8 +7,22 @@ import { getOptimizedImageUrl } from "../../utils/imageOptimizer";
 
 const EYEBROWS = ["New In", "Trending Now", "Editor's Pick", "Limited Edition"];
 
+function PromotionalCardsSkeleton() {
+  return (
+    <SectionWrapper compact>
+      <SectionTitle title="Shop by Edit" subtitle="Curated drops and seasonal picks, refreshed regularly." />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="h-72 sm:h-96 rounded-2xl bg-gray-100 animate-pulse" />
+        ))}
+      </div>
+    </SectionWrapper>
+  );
+}
+
 export default function PromotionalCards() {
   const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(true);
   const scrollerRef = useRef(null);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
@@ -17,7 +31,10 @@ export default function PromotionalCards() {
     let mounted = true;
     getCards()
       .then((res) => mounted && setCards((res.data?.data || []).filter((c) => c.is_active)))
-      .catch(() => {});
+      .catch(() => {})
+      .finally(() => {
+        if (mounted) setLoading(false);
+      });
     return () => {
       mounted = false;
     };
@@ -53,6 +70,7 @@ export default function PromotionalCards() {
     el.scrollBy({ left: dir * width, behavior: "smooth" });
   };
 
+  if (loading) return <PromotionalCardsSkeleton />;
   if (!cards.length) return null;
 
   const renderCard = (c, i) => {
