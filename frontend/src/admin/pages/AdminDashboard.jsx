@@ -200,11 +200,12 @@ export default function AdminDashboard() {
   // ===========================
   const categoryBreakdown = useMemo(() => {
     const totalCatalogCount = allProducts.length || 1;
-    return categories.map((cat) => {
+    return (categories || []).map((cat) => {
+      const catId = cat.category_id || cat.id;
       const catProducts = allProducts.filter(
         (p) =>
-          Number(p.category_id) === Number(cat.category_id) ||
-          p.category_name?.toLowerCase() === cat.name?.toLowerCase()
+          (catId && Number(p.category_id) === Number(catId)) ||
+          (p.category_name && cat.name && p.category_name.toLowerCase() === cat.name.toLowerCase())
       );
       const productCount = catProducts.length;
       const stockCount = catProducts.reduce(
@@ -215,6 +216,7 @@ export default function AdminDashboard() {
 
       return {
         ...cat,
+        category_id: catId,
         productCount,
         stockCount,
         percentage,
@@ -230,7 +232,8 @@ export default function AdminDashboard() {
       setEditingProduct(product);
       if (product.slug) {
         const res = await getProductBySlug(product.slug);
-        setEditingInitialData(res.data || product);
+        const prodData = res?.data?.data || res?.data || product;
+        setEditingInitialData(prodData);
       } else {
         setEditingInitialData(product);
       }

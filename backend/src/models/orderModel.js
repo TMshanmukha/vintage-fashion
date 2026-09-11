@@ -31,15 +31,15 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
     o.pickup_scheduled,
     o.ordered_at,
     u.user_id,
-    u.name AS customer_name,
-    u.email AS customer_email,
+    COALESCE(u.name, 'Customer') AS customer_name,
+    COALESCE(u.email, '—') AS customer_email,
     (
         SELECT COUNT(*)
         FROM order_items oi
         WHERE oi.order_id = o.order_id
     ) AS item_count
 FROM orders o
-JOIN users u
+LEFT JOIN users u
     ON u.user_id = o.user_id
 ${where}
 ORDER BY o.ordered_at DESC
@@ -52,7 +52,7 @@ LIMIT ? OFFSET ?;
         `
         SELECT COUNT(DISTINCT o.order_id) AS total
         FROM orders o
-        JOIN users u ON u.user_id = o.user_id
+        LEFT JOIN users u ON u.user_id = o.user_id
         ${where}
         `,
         params
@@ -67,9 +67,9 @@ export const getOrderById = async (orderId) => {
         `
         SELECT
             o.*,
-            u.name AS customer_name,
-            u.email AS customer_email,
-            u.phone AS customer_phone,
+            COALESCE(u.name, 'Customer') AS customer_name,
+            COALESCE(u.email, '—') AS customer_email,
+            COALESCE(u.phone, '—') AS customer_phone,
             a.address_line1,
             a.address_line2,
             a.city,
@@ -77,8 +77,8 @@ export const getOrderById = async (orderId) => {
             a.pincode,
             a.country
         FROM orders o
-        JOIN users u ON u.user_id = o.user_id
-        JOIN user_addresses a ON a.address_id = o.shipping_address_id
+        LEFT JOIN users u ON u.user_id = o.user_id
+        LEFT JOIN user_addresses a ON a.address_id = o.shipping_address_id
         WHERE o.order_id = ?
         LIMIT 1
         `,
@@ -157,12 +157,12 @@ export const getOrderStats = async () => {
         `
         SELECT
             COUNT(*) AS total_orders,
-            SUM(CASE WHEN order_status = 'pending' THEN 1 ELSE 0 END) AS pending_orders,
-            SUM(CASE WHEN order_status = 'confirmed' THEN 1 ELSE 0 END) AS confirmed_orders,
-            SUM(CASE WHEN order_status = 'processing' THEN 1 ELSE 0 END) AS processing_orders,
-            SUM(CASE WHEN order_status = 'shipped' THEN 1 ELSE 0 END) AS shipped_orders,
-            SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END) AS delivered_orders,
-            SUM(CASE WHEN order_status = 'cancelled' THEN 1 ELSE 0 END) AS cancelled_orders,
+            COALESCE(SUM(CASE WHEN order_status = 'pending' THEN 1 ELSE 0 END), 0) AS pending_orders,
+            COALESCE(SUM(CASE WHEN order_status = 'confirmed' THEN 1 ELSE 0 END), 0) AS confirmed_orders,
+            COALESCE(SUM(CASE WHEN order_status = 'processing' THEN 1 ELSE 0 END), 0) AS processing_orders,
+            COALESCE(SUM(CASE WHEN order_status = 'shipped' THEN 1 ELSE 0 END), 0) AS shipped_orders,
+            COALESCE(SUM(CASE WHEN order_status = 'delivered' THEN 1 ELSE 0 END), 0) AS delivered_orders,
+            COALESCE(SUM(CASE WHEN order_status = 'cancelled' THEN 1 ELSE 0 END), 0) AS cancelled_orders,
             COALESCE(SUM(CASE WHEN payment_status != 'refunded' AND order_status != 'cancelled' THEN total_amount ELSE 0 END), 0) AS total_revenue,
             COALESCE(SUM(CASE WHEN payment_status = 'refunded' THEN total_amount ELSE 0 END), 0) AS total_refunded
         FROM orders
@@ -173,7 +173,7 @@ export const getOrderStats = async () => {
         `SELECT COUNT(*) AS pending_returns FROM returns WHERE status = 'pending'`
     );
 
-    return { ...stats, return_requested_orders: pending_returns };
+    return { ...stats, return_requested_orders: pending_returns || 0 };
 };
 
 export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) => {

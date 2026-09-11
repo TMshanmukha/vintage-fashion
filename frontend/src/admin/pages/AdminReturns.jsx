@@ -58,6 +58,19 @@ const formatDate = (isoString) =>
     ? new Date(isoString).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })
     : "—";
 
+const parsePhotos = (photos) => {
+  if (Array.isArray(photos)) return photos;
+  if (typeof photos === "string") {
+    try {
+      const parsed = JSON.parse(photos);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return photos ? [photos] : [];
+    }
+  }
+  return [];
+};
+
 export default function AdminReturns() {
   const [returns, setReturns] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -351,25 +364,28 @@ export default function AdminReturns() {
                                 {r.description}
                               </p>
                             )}
-                            {Array.isArray(r.photos) && r.photos.length > 0 && (
-                              <div className="mt-2 flex gap-1.5 items-center">
-                                {r.photos.map((url, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    onClick={() => setPreviewImage(url)}
-                                    className="relative group rounded-lg overflow-hidden border border-gray-200 w-10 h-10 flex-shrink-0"
-                                  >
-                                    <img
-                                      src={url}
-                                      alt={`Proof ${idx + 1}`}
-                                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                    />
-                                  </button>
-                                ))}
-                                <span className="text-[10px] text-gray-400 font-medium">({r.photos.length} photo{r.photos.length > 1 ? "s" : ""})</span>
-                              </div>
-                            )}
+                            {(() => {
+                              const returnPhotos = parsePhotos(r.photos);
+                              return returnPhotos.length > 0 ? (
+                                <div className="mt-2 flex gap-1.5 items-center flex-wrap">
+                                  {returnPhotos.map((url, idx) => (
+                                    <button
+                                      key={idx}
+                                      type="button"
+                                      onClick={() => setPreviewImage(url)}
+                                      className="relative group rounded-lg overflow-hidden border border-gray-200 w-10 h-10 flex-shrink-0"
+                                    >
+                                      <img
+                                        src={url}
+                                        alt={`Proof ${idx + 1}`}
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                      />
+                                    </button>
+                                  ))}
+                                  <span className="text-[10px] text-gray-400 font-medium">({returnPhotos.length} photo{returnPhotos.length > 1 ? "s" : ""})</span>
+                                </div>
+                              ) : null;
+                            })()}
                           </td>
 
                           {/* Refund Amount */}

@@ -201,14 +201,19 @@ export const getProducts = async ({
         SELECT
 
             p.product_id,
+            p.category_id,
+            p.brand_id,
             p.name,
             p.slug,
             p.price,
             p.original_price,
             p.badge,
+            p.sku,
             p.average_rating,
             p.review_count,
             p.stock_quantity,
+            p.created_at,
+            p.updated_at,
 
             c.name AS category_name,
 

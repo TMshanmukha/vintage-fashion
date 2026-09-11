@@ -39,13 +39,13 @@ export const getAllReturns = async ({ status, page = 1, limit = 20 } = {}) => {
         `
         SELECT
             r.*,
-            o.order_number,
-            o.total_amount,
-            u.name AS customer_name,
-            u.email AS customer_email
+            COALESCE(o.order_number, r.order_id) AS order_number,
+            COALESCE(o.total_amount, 0) AS total_amount,
+            COALESCE(u.name, 'Customer') AS customer_name,
+            COALESCE(u.email, '—') AS customer_email
         FROM returns r
-        JOIN orders o ON o.order_id = r.order_id
-        JOIN users u ON u.user_id = r.user_id
+        LEFT JOIN orders o ON o.order_id = r.order_id
+        LEFT JOIN users u ON u.user_id = r.user_id
         ${where}
         ORDER BY r.created_at DESC
         LIMIT ? OFFSET ?
