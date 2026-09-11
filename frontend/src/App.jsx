@@ -25,6 +25,7 @@ const MyAccountPage = lazy(() => import("./pages/MyAccountPage"));
 const ForgotPasswordPage = lazy(() => import("./pages/ForgotPasswordPage"));
 const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const OfferPage = lazy(() => import("./pages/OfferPage"));
+const TermsPolicy = lazy(() => import("./pages/TermsPolicy"));
 
 // Code-split admin routes
 const AdminRoot = lazy(() => import("./admin/pages/AdminRoot"));
@@ -68,6 +69,8 @@ function StoreFront() {
           <Route path="/contact" element={<Contact />} />
           <Route path="/collection" element={<Collection />} />
           <Route path="/returns" element={<ReturnsPolicy />} />
+          <Route path="/terms" element={<TermsPolicy />} />
+          <Route path="/privacy-policy" element={<TermsPolicy />} />
           <Route path="/size-guide" element={<SizeGuide />} />
           <Route path="/faq" element={<FAQ />} />
           <Route path="/faqs" element={<FAQ />} />

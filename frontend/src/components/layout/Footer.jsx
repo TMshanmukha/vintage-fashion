@@ -89,6 +89,11 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
+                <Link to="/terms" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
+                  Terms & Privacy Policy
+                </Link>
+              </li>
+              <li>
                 <Link to="/size-guide" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   Size Guide
                 </Link>
@@ -96,11 +101,6 @@ export default function Footer() {
               <li>
                 <Link to="/faq" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
                   FAQs & Help
-                </Link>
-              </li>
-              <li>
-                <Link to="/contact" className="text-sm text-gray-600 hover:text-pink-600 transition-colors">
-                  Customer Support
                 </Link>
               </li>
             </ul>

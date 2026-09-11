@@ -535,8 +535,8 @@ export default function AuthPage() {
           {/* Legal and Terms Footer */}
           <div className="pt-6 mt-6 border-t border-gray-100 text-center text-[11px] text-gray-400">
             By continuing, you agree to Vintage Fashion's{" "}
-            <Link to="/returns" className="text-gray-600 hover:text-pink-600 underline">
-              Terms & Policy
+            <Link to="/terms" className="text-gray-600 hover:text-pink-600 underline">
+              Terms & Privacy Policy
             </Link>
             .
           </div>
