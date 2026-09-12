@@ -76,12 +76,12 @@ export const getOrderById = async (userId, orderId) => {
 
 };
 
-export const updateOrderAfterPayment = async (connection, orderId, status) => {
+export const updateOrderAfterPayment = async (connection, orderId, status = "paid") => {
 
     await connection.query(
         `
         UPDATE orders
-        SET payment_status = ?, order_status = 'confirmed'
+        SET payment_status = ?, order_status = 'pending'
         WHERE order_id = ?
         `,
         [status, orderId]
