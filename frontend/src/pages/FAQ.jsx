@@ -44,8 +44,8 @@ const faqs = [
   },
   {
     category: "Payments & Offers",
-    q: "How do I apply a discount coupon?",
-    a: "You can enter your promotional coupon code during the Checkout process in the 'Apply Coupon' box to instantly receive your discount before payment.",
+    q: "How do seasonal sales and discounts work?",
+    a: "Special sale discounts and promotional pricing are applied directly to featured collections across our store, allowing you to enjoy exclusive savings seamlessly without any coupon codes.",
   },
   {
     category: "Product & Care",

@@ -485,7 +485,7 @@ export default function AdminEmails() {
                     rows={7}
                     value={body}
                     onChange={(e) => setBody(e.target.value)}
-                    placeholder="Compose your rich email message here. Line breaks, coupon codes, and details will be formatted luxuriously..."
+                    placeholder="Compose your rich email message here. Line breaks, styling, and details will be formatted luxuriously..."
                     className="w-full border border-gray-200 bg-gray-50/50 rounded-xl p-3.5 text-xs font-medium outline-none focus:border-gray-900 focus:bg-white transition leading-relaxed resize-none"
                   />
                 </div>
@@ -600,7 +600,7 @@ export default function AdminEmails() {
                       </h4>
 
                       <div className="text-xs text-gray-600 leading-relaxed bg-gray-50/70 p-3.5 rounded-xl border-l-3 border-pink-500 whitespace-pre-line font-normal">
-                        {body || "Your message body content will appear here with rich formatting, styling, and coupon codes."}
+                        {body || "Your message body content will appear here with rich formatting, styling, and line breaks."}
                       </div>
 
                       <div className="text-center pt-2">

@@ -91,10 +91,6 @@ const buildEmailTemplate = ({
                 line-height: 1.7 !important;
                 margin-bottom: 14px !important;
             }
-            .mobile-coupon-card {
-                padding: 12px 14px !important;
-                font-size: 13px !important;
-            }
             .mobile-btn {
                 display: block !important;
                 width: 100% !important;
