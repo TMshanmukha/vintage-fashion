@@ -1,6 +1,4 @@
 import shiprocketApi from "../config/shiprocket.js";
-import { getOrderById, updateShiprocketInfo, updateShippingStatus, updateOrderStatus } from "../models/orderModel.js";
-import * as NotificationService from "../services/notificationService.js";
 
 // ==========================================================
 // SERVICEABILITY — check if a pincode combination is deliverable,
@@ -130,41 +128,11 @@ export async function trackShipment(awbCode) {
 // ==========================================================
 // CANCEL SHIPMENT
 // ==========================================================
-export async function cancel(req, res, next) {
-  try {
-    const { orderId } = req.params;
-    const order = await getOrderById(orderId);
-    if (!order?.awb_number) {
-      return res.status(400).json({ success: false, message: "No AWB to cancel." });
-    }
-
-    const data = await ShiprocketService.cancelShipment(order.awb_number);
-
-    // NEW — this was missing before: reflect the cancellation in your
-    // own DB, not just Shiprocket's side.
-    await updateShippingStatus(orderId, { shipping_status: "Cancelled" });
-    await updateOrderStatus(orderId, "cancelled"); // needs import from orderModel.js
-
-    await NotificationService.createNotification({
-      title: "Shipment Cancelled",
-      body: `Order #${order.order_number}'s shipment was cancelled.`,
-      type: "order",
-      referenceId: orderId,
-    });
-
-    try {
-      getIO().to(`user:${order.user_id}`).emit("order:status-changed", {
-        orderId,
-        order_status: "cancelled",
-      });
-    } catch (err) {
-      console.warn("Socket emit skipped:", err.message);
-    }
-
-    res.json({ success: true, data });
-  } catch (error) {
-    next(error);
-  }
+export async function cancelShipment(awbCode) {
+  const { data } = await shiprocketApi.post("/orders/cancel/shipment/awbs", {
+    awbs: [awbCode],
+  });
+  return data;
 }
 // ==========================================================
 // CREATE RETURN PICKUP — reverse shipment, customer's address
