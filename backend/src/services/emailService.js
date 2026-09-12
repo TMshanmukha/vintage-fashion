@@ -120,7 +120,7 @@ export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
     const bannerHtml = imageUrl ? `
             <tr>
                 <td align="center" style="padding:0;background:#ffffff;">
-                    <img src="${imageUrl}" alt="${subject}" style="width:100%;max-width:600px;max-height:340px;object-fit:cover;display:block;border-bottom:1px solid #f3f4f6;" />
+                    <img src="${imageUrl}" alt="${subject}" style="width:100%;max-width:600px;max-height:340px;object-fit:cover;display:block;border-bottom:1px solid #f1f5f9;" />
                 </td>
             </tr>
     ` : "";
@@ -131,51 +131,73 @@ export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
     <head>
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>${subject}</title>
     </head>
-    <body style="margin:0;padding:40px 0;background:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#333;">
-        <table align="center" width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.08);max-width:92%;margin:0 auto;border:1px solid #e5e7eb;">
-            <!-- Header -->
+    <body style="margin:0;padding:40px 12px;background:#f8fafc;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;-webkit-font-smoothing:antialiased;">
+        <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:18px;overflow:hidden;box-shadow:0 10px 30px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
+            <!-- Luxury Brand Header -->
             <tr>
-                <td align="center" style="background:#111827;color:#ffffff;padding:35px 25px;">
-                    <h1 style="margin:0;font-size:26px;font-weight:800;letter-spacing:-0.5px;">
-                        Vintage Fashion<span style="color:#ec4899;">.</span>
+                <td align="center" style="background:#0f172a;padding:36px 24px;border-bottom:3px solid #ec4899;">
+                    <span style="display:inline-block;background:rgba(236,72,153,0.15);color:#f472b6;font-size:10px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase;padding:5px 14px;border-radius:20px;border:1px solid rgba(244,114,182,0.3);margin-bottom:12px;">
+                        EXCLUSIVE NOTIFICATION
+                    </span>
+                    <h1 style="margin:6px 0 0;font-size:28px;font-weight:900;letter-spacing:-0.5px;color:#ffffff;">
+                        VINTAGE FASHION<span style="color:#ec4899;">.</span>
                     </h1>
-                    <p style="margin:6px 0 0;color:#9ca3af;font-size:13px;letter-spacing:1px;text-transform:uppercase;">
-                        Official Communication
+                    <p style="margin:8px 0 0;color:#94a3b8;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;">
+                        Curated Heritage &amp; Modern Luxury
                     </p>
                 </td>
             </tr>
 
             ${bannerHtml}
 
-            <!-- Content -->
+            <!-- Main Body -->
             <tr>
-                <td style="padding:35px 35px 25px;">
-                    <div style="display:inline-block;background:#fdf2f8;color:#db2777;font-size:12px;font-weight:700;padding:4px 12px;border-radius:6px;margin-bottom:12px;">
-                        OFFICIAL UPDATE
-                    </div>
-                    <h2 style="margin:0 0 20px;color:#111827;font-size:20px;font-weight:700;">
+                <td style="padding:36px 32px 28px;">
+                    <h2 style="margin:0 0 18px;color:#0f172a;font-size:22px;font-weight:800;line-height:1.3;letter-spacing:-0.3px;">
                         ${subject}
                     </h2>
 
-                    <div style="font-size:15px;line-height:1.8;color:#4b5563;background:#fafafa;padding:20px;border-radius:12px;border-left:4px solid #ec4899;">
+                    <div style="font-size:15px;line-height:1.8;color:#334155;background:#fafafa;padding:22px 24px;border-radius:14px;border-left:4px solid #ec4899;margin-bottom:28px;">
                         ${body.replace(/\n/g, "<br>")}
                     </div>
 
-                    <div align="center" style="margin:30px 0 10px;">
-                        <a href="${storeUrl}" target="_blank" style="display:inline-block;background:#111827;color:#ffffff;text-decoration:none;font-weight:600;font-size:14px;padding:12px 28px;border-radius:8px;">
-                            Visit Storefront →
+                    <!-- Call to Action -->
+                    <div align="center" style="margin:32px 0 16px;">
+                        <a href="${storeUrl}" target="_blank" style="display:inline-block;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.5px;padding:15px 34px;border-radius:12px;box-shadow:0 6px 18px rgba(15,23,42,0.25);text-transform:uppercase;">
+                            Shop Vintage Collection &rarr;
                         </a>
                     </div>
+
+                    <!-- Trust Badges -->
+                    <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:28px;padding-top:20px;border-top:1px dashed #e2e8f0;">
+                        <tr>
+                            <td align="center" style="font-size:12px;color:#64748b;line-height:1.5;">
+                                <span style="display:inline-block;margin:4px 8px;">&#10022; <strong>100% Authentic Quality</strong></span>
+                                <span style="display:inline-block;margin:4px 8px;">&#10022; <strong>Express Shipping</strong></span>
+                                <span style="display:inline-block;margin:4px 8px;">&#10022; <strong>Dedicated Support</strong></span>
+                            </td>
+                        </tr>
+                    </table>
                 </td>
             </tr>
 
-            <!-- Footer -->
+            <!-- Luxury Footer -->
             <tr>
-                <td align="center" style="background:#f9fafb;padding:25px;font-size:12px;color:#6b7280;border-top:1px solid #f3f4f6;">
-                    © ${new Date().getFullYear()} Vintage Fashion. All Rights Reserved.
-                    <br><br>
-                    This email was sent by the Vintage Fashion Store Management Team.
+                <td align="center" style="background:#f8fafc;padding:28px 24px;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;line-height:1.6;">
+                    <p style="margin:0 0 6px;font-weight:700;color:#1e293b;">
+                        Vintage Fashion Boutique
+                    </p>
+                    <p style="margin:0 0 10px;">
+                        <a href="${storeUrl}" target="_blank" style="color:#ec4899;text-decoration:none;font-weight:600;">https://vintage-fashion-xi.vercel.app</a>
+                    </p>
+                    <p style="margin:0 0 12px;color:#94a3b8;font-size:11px;">
+                        This communication was dispatched directly from the Vintage Fashion Store Team.
+                    </p>
+                    <p style="margin:0;color:#cbd5e1;font-size:11px;">
+                        &copy; ${new Date().getFullYear()} Vintage Fashion. All rights reserved.
+                    </p>
                 </td>
             </tr>
         </table>
