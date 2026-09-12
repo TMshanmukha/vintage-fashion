@@ -183,18 +183,6 @@ export default function Checkout() {
         description: "Order payment",
         order_id: razorpay_order_id,
         prefill,
-        config: {
-          display: {
-            blocks: {
-              qrBlock: {
-                name: "Pay using UPI QR",
-                instruments: [{ method: "upi", flows: ["qr"] }],
-              },
-            },
-            sequence: ["block.qrBlock"],
-            preferences: { show_default_blocks: false },
-          },
-        },
         handler: async (response) => {
           try {
             await verifyPayment({
