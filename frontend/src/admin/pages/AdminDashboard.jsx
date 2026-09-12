@@ -499,130 +499,107 @@ export default function AdminDashboard() {
             />
           </div>
 
-          {/* Category Inventory Breakdown Widget */}
-          <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Category Stock Overview (Clean & Simple) */}
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
               <div>
-                <div className="flex items-center gap-2">
-                  <span className="text-base">🏷️</span>
-                  <h2 className="text-base font-bold text-gray-900">Category Catalog & Live Stock Overview</h2>
-                </div>
-                <p className="text-xs text-gray-500 mt-0.5">
-                  Live inventory stock health and product distribution across all store categories
-                </p>
+                <h2 className="text-sm sm:text-base font-bold text-gray-900">Category Stock Breakdown</h2>
+                <p className="text-xs text-gray-400 mt-0.5">Live stock units and product count by category</p>
               </div>
-
-              <div className="flex items-center gap-2 self-start sm:self-auto">
-                <span className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-xl">
-                  <strong>{allProducts.length}</strong> Total Products • <strong className="text-emerald-700">{totalStockAvailable}</strong> Units
-                </span>
-                <Link
-                  to="/admin/products"
-                  className="text-xs font-bold text-pink-600 hover:text-pink-700 bg-pink-50 hover:bg-pink-100 px-3 py-1.5 rounded-xl transition-colors"
-                >
-                  Manage Products →
-                </Link>
-              </div>
+              <Link
+                to="/admin/products"
+                className="text-xs font-semibold text-pink-600 hover:text-pink-700 transition-colors self-start sm:self-auto"
+              >
+                View all products →
+              </Link>
             </div>
 
             {categoryBreakdown.length === 0 ? (
-              <div className="py-10 text-center text-xs text-gray-400 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
-                No active categories configured. Add categories to view live breakdown.
-              </div>
+              <p className="text-xs text-gray-400 py-6 text-center">No categories configured yet.</p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {categoryBreakdown.map((cat) => {
-                  const isHealthy = cat.stockCount > 10;
-                  const isLow = cat.stockCount > 0 && cat.stockCount <= 10;
-                  const isOut = cat.stockCount === 0;
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs min-w-[500px]">
+                  <thead>
+                    <tr className="border-b border-gray-100 text-[11px] font-bold uppercase tracking-wider text-gray-400">
+                      <th className="pb-3 font-semibold">Category</th>
+                      <th className="pb-3 font-semibold text-center">Products</th>
+                      <th className="pb-3 font-semibold text-center">In Stock Units</th>
+                      <th className="pb-3 font-semibold text-center">Catalog Share</th>
+                      <th className="pb-3 font-semibold text-right">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-50">
+                    {categoryBreakdown.map((cat) => {
+                      const isHealthy = cat.stockCount > 10;
+                      const isLow = cat.stockCount > 0 && cat.stockCount <= 10;
+                      const isOut = cat.stockCount === 0;
 
-                  return (
-                    <div
-                      key={cat.category_id}
-                      className="bg-white border border-gray-200/90 rounded-2xl p-4.5 hover:border-gray-400 hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
-                    >
-                      <div>
-                        {/* Top: Category Title & Health Badge */}
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-100 to-rose-100 text-pink-700 font-extrabold flex items-center justify-center text-xs flex-shrink-0 border border-pink-200/60">
-                              {cat.name?.charAt(0)?.toUpperCase() || "C"}
-                            </div>
-                            <span className="text-sm font-bold text-gray-900 truncate group-hover:text-pink-600 transition-colors">
-                              {cat.name}
-                            </span>
-                          </div>
-
-                          {isHealthy && (
-                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full whitespace-nowrap">
-                              ● In Stock
-                            </span>
-                          )}
-                          {isLow && (
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full whitespace-nowrap">
-                              ▲ Low Stock
-                            </span>
-                          )}
-                          {isOut && (
-                            <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200/80 px-2 py-0.5 rounded-full whitespace-nowrap">
-                              ✕ Out of Stock
-                            </span>
-                          )}
-                        </div>
-
-                        {/* Metrics Grid */}
-                        <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-gray-50/80 border border-gray-100 mb-3">
-                          <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
-                              Products
-                            </span>
-                            <span className="text-lg font-black text-gray-900 mt-0.5 block">
-                              {cat.productCount}
-                            </span>
-                          </div>
-                          <div>
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
-                              Available Units
-                            </span>
-                            <span
-                              className={`text-lg font-black mt-0.5 block ${
-                                isOut ? "text-red-600" : isLow ? "text-amber-600" : "text-emerald-700"
-                              }`}
+                      return (
+                        <tr key={cat.category_id} className="hover:bg-gray-50/70 transition-colors">
+                          {/* Category Name */}
+                          <td className="py-3 font-bold text-gray-900">
+                            <Link
+                              to="/admin/products"
+                              className="hover:text-pink-600 transition-colors flex items-center gap-2"
                             >
-                              {cat.stockCount}
-                            </span>
-                          </div>
-                        </div>
+                              <span className="w-6 h-6 rounded-lg bg-pink-50 text-pink-700 font-bold flex items-center justify-center text-[10px]">
+                                {cat.name?.charAt(0)?.toUpperCase() || "C"}
+                              </span>
+                              <span>{cat.name}</span>
+                            </Link>
+                          </td>
 
-                        {/* Distribution Progress */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="text-gray-500 font-medium">Catalog Share</span>
-                            <span className="font-bold text-gray-900">{cat.percentage}%</span>
-                          </div>
-                          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                            <div
-                              className="h-full bg-gradient-to-r from-pink-500 to-rose-600 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.max(4, cat.percentage)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </div>
+                          {/* Products Count */}
+                          <td className="py-3 text-center text-gray-600 font-semibold">
+                            {cat.productCount}
+                          </td>
 
-                      {/* Card Footer Link */}
-                      <div className="pt-3.5 mt-3 border-t border-gray-100 flex items-center justify-between">
-                        <Link
-                          to="/admin/products"
-                          className="text-[11px] font-bold text-gray-600 group-hover:text-pink-600 flex items-center gap-1 transition-colors"
-                        >
-                          <span>Browse {cat.name}</span>
-                          <span>→</span>
-                        </Link>
-                        <span className="text-[10px] font-mono text-gray-400">ID: #{cat.category_id}</span>
-                      </div>
-                    </div>
-                  );
-                })}
+                          {/* In Stock Units */}
+                          <td className="py-3 text-center font-bold text-gray-900">
+                            {cat.stockCount}
+                          </td>
+
+                          {/* Catalog Share Bar */}
+                          <td className="py-3">
+                            <div className="flex items-center justify-center gap-2 max-w-[120px] mx-auto">
+                              <div className="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-pink-500 rounded-full"
+                                  style={{ width: `${Math.max(4, cat.percentage)}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-gray-400 font-medium w-7 text-right">
+                                {cat.percentage}%
+                              </span>
+                            </div>
+                          </td>
+
+                          {/* Stock Status Badge */}
+                          <td className="py-3 text-right">
+                            {isHealthy && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                                In Stock
+                              </span>
+                            )}
+                            {isLow && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                                Low Stock ({cat.stockCount})
+                              </span>
+                            )}
+                            {isOut && (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-full">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+                                Out of Stock
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
