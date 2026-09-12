@@ -13,7 +13,7 @@ const getStoreUrl = () => {
 
 const STORE_URL = getStoreUrl();
 
-const SENDER_EMAIL = process.env.RESEND_FROM_EMAIL || "Vintage Fashion <onboarding@resend.dev>";
+const SENDER_EMAIL = process.env.RESEND_FROM_EMAIL || "Vintage Fashion <contact@vintagefashion.in>";
 
 /**
  * Bulletproof Mobile-First Email Template Shell
