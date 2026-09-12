@@ -13,6 +13,8 @@ const getStoreUrl = () => {
 
 const STORE_URL = getStoreUrl();
 
+const SENDER_EMAIL = process.env.RESEND_FROM_EMAIL || "Vintage Fashion <onboarding@resend.dev>";
+
 /**
  * Bulletproof Mobile-First Email Template Shell
  * Compatible with Gmail (Web, iOS, Android), Apple Mail, Outlook (Web & Desktop), Yahoo Mail
@@ -247,7 +249,7 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
 
     try {
         const data = await resend.emails.send({
-            from: "Vintage Fashion <onboarding@resend.dev>",
+            from: SENDER_EMAIL,
             to,
             subject,
             html
@@ -307,7 +309,7 @@ export const sendAdminEmail = async ({ to, customerName, subject, body, imageUrl
 
     try {
         const data = await resend.emails.send({
-            from: "Vintage Fashion <onboarding@resend.dev>",
+            from: SENDER_EMAIL,
             to,
             subject: personalizedSubject,
             html
@@ -440,7 +442,7 @@ export const sendOrderConfirmationEmail = async ({
 
     try {
         const data = await resend.emails.send({
-            from: "Vintage Fashion <onboarding@resend.dev>",
+            from: SENDER_EMAIL,
             to,
             subject,
             html
@@ -503,7 +505,7 @@ export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, 
 
     try {
         const data = await resend.emails.send({
-            from: "Vintage Fashion <onboarding@resend.dev>",
+            from: SENDER_EMAIL,
             to,
             subject,
             html

@@ -1,4 +1,5 @@
 import shiprocketApi from "../config/shiprocket.js";
+import { calculatePackageMetrics } from "./shipping.service.js";
 
 // ==========================================================
 // SERVICEABILITY — check if a pincode combination is deliverable,
@@ -30,7 +31,9 @@ export async function getCourierRecommendation(params) {
 // CREATE SHIPMENT (Order + Shipment in one call — Shiprocket's
 // "Create Order" endpoint creates both simultaneously)
 // ==========================================================
-export async function createShipment(order, items, pickupLocationName) {
+export async function createShipment(order, items = [], pickupLocationName) {
+  const metrics = calculatePackageMetrics(items);
+
   const payload = {
     order_id: String(order.order_number),   // must be unique per Shiprocket account
     order_date: new Date(order.ordered_at).toISOString().slice(0, 19).replace("T", " "),
@@ -54,10 +57,10 @@ export async function createShipment(order, items, pickupLocationName) {
     })),
     payment_method: "Prepaid",               // always — no COD supported
     sub_total: order.subtotal,
-    length: 20,  // cm — placeholder; replace with real per-product dimensions once you track them
-    breadth: 15,
-    height: 5,
-    weight: 0.5, // kg — same caveat; ideally sum real product weights
+    length: metrics.length,
+    breadth: metrics.width,
+    height: metrics.height,
+    weight: metrics.weight,
   };
 
   const { data } = await shiprocketApi.post("/orders/create/adhoc", payload);
