@@ -205,6 +205,7 @@ const formatEmailBody = (rawBody) => {
         if (!trimmed) return "";
 
 
+
         // Highlight coupon or promo discount blocks
         if (/(coupon|code|voucher|🎟️|⚡|🛍️|💎|discount)/i.test(trimmed) && (trimmed.includes(":") || trimmed.includes("checkout") || trimmed.includes("OFF"))) {
             return `

@@ -4,9 +4,21 @@ import * as EmailCenterService from "../services/emailCenterService.js";
 export const sendEmailToUsers = async (req, res) => {
     try {
         const { recipientType, userId, subject, body } = req.body;
-        const imageUrl = req.file 
-            ? (req.file.path || req.file.secure_url || req.file.url) 
-            : (req.body.imageUrl || req.body.image_url || req.body.bannerUrl || null);
+        let imageUrl = null;
+        if (req.file) {
+            imageUrl = req.file.secure_url || req.file.path || req.file.url;
+        } else {
+            imageUrl = req.body.imageUrl || req.body.image_url || req.body.bannerUrl || req.body.image || null;
+        }
+
+        if (imageUrl && typeof imageUrl === "string") {
+            imageUrl = imageUrl.trim();
+            if (imageUrl.startsWith("http://")) {
+                imageUrl = imageUrl.replace("http://", "https://");
+            }
+        } else {
+            imageUrl = null;
+        }
 
         console.log("sendEmailToUsers payload:", {
             recipientType,
