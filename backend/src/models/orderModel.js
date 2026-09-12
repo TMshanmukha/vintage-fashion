@@ -217,8 +217,9 @@ export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) =
 
     const [rows] = await pool.query(
         `SELECT order_id, order_number, subtotal, discount_amount, shipping_fee,
-            tax_amount, total_amount, order_status, payment_status,
-            tracking_id, courier_partner, shipment_status, tracking_events, ordered_at
+            tax_amount, total_amount, order_status, payment_status, delivery_method,
+            awb_number, courier_name, shipping_status, shipment_id,
+            tracking_id, courier_partner, tracking_events, ordered_at
      FROM orders
      WHERE user_id = ? AND payment_status IN ('paid', 'success', 'refunded')
      ORDER BY ordered_at DESC

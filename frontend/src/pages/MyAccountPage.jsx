@@ -460,6 +460,14 @@ export default function MyAccountPage() {
                       </div>
                     </div>
 
+                    {order.awb_number && (
+                      <div className="mt-2.5 flex items-center gap-1.5 text-xs font-medium text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-1.5 w-fit">
+                        <span>🚚</span>
+                        <span>{order.courier_name || "Courier"}:</span>
+                        <span className="font-mono font-bold">{order.awb_number}</span>
+                      </div>
+                    )}
+
                     <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <p className="text-base font-extrabold text-gray-900">
                         Order total: {formatINR(order.total_amount)}
