@@ -3,7 +3,15 @@ import resend from "../config/resend.js";
 const formatINR = (value) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(value || 0);
 
-const STORE_URL = process.env.FRONTEND_URL || "https://vintage-fashion-xi.vercel.app";
+const getStoreUrl = () => {
+    const raw = process.env.FRONTEND_URL;
+    if (raw && typeof raw === "string" && !raw.includes("localhost") && (raw.startsWith("https://") || raw.startsWith("http://"))) {
+        return raw.replace(/\/+$/, "");
+    }
+    return "https://vintage-fashion-xi.vercel.app";
+};
+
+const STORE_URL = getStoreUrl();
 
 /**
  * Bulletproof Mobile-First Email Template Shell
@@ -151,7 +159,7 @@ const buildEmailTemplate = ({
                         Vintage Fashion Boutique
                     </p>
                     <p style="margin:0 0 10px;">
-                        <a href="${STORE_URL}" target="_blank" style="color:#ec4899;text-decoration:none;font-weight:600;">${STORE_URL}</a>
+                        <a href="${getStoreUrl()}" target="_blank" style="color:#ec4899;text-decoration:none;font-weight:600;">${getStoreUrl().replace(/^https?:\/\//, "")}</a>
                     </p>
                     <p style="margin:0 0 10px;color:#94a3b8;font-size:11px;">
                         ${footerNote}
