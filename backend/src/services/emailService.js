@@ -3,13 +3,11 @@ import resend from "../config/resend.js";
 const formatINR = (value) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(value || 0);
 
-const STORE_URL = (!process.env.FRONTEND_URL || process.env.FRONTEND_URL.includes("localhost"))
-    ? "https://vintage-fashion-xi.vercel.app"
-    : process.env.FRONTEND_URL;
+const STORE_URL = process.env.FRONTEND_URL || "https://vintage-fashion-xi.vercel.app";
 
 /**
- * Mobile-First Bulletproof Email Template Shell
- * Fully responsive across Mobile (Gmail iOS/Android, Apple Mail) and Desktop
+ * Bulletproof Email Template Shell
+ * Compatible with Gmail (Web, iOS, Android), Apple Mail, Outlook (Web & Desktop), Yahoo Mail
  */
 const buildEmailTemplate = ({
     badge = "OFFICIAL UPDATE",
@@ -20,22 +18,21 @@ const buildEmailTemplate = ({
     ctaButtonUrl = STORE_URL,
     footerNote = "You are receiving this official communication as a valued patron of Vintage Fashion."
 }) => {
-    // Edge-to-Edge Responsive Banner
     const bannerSection = bannerImageUrl ? `
-        <!-- Full-Width Responsive Banner Image -->
+        <!-- Full-Width Banner Image -->
         <tr>
             <td align="center" style="padding:0;margin:0;background-color:#0f172a;line-height:0;font-size:0;">
-                <img src="${bannerImageUrl}" alt="${subjectTitle}" width="600" class="mobile-banner" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;margin:0 auto;" />
+                <img src="${bannerImageUrl}" alt="${subjectTitle}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
             </td>
         </tr>
     ` : "";
 
     const ctaSection = ctaButtonText && ctaButtonUrl ? `
-        <!-- Mobile Responsive CTA Button -->
-        <table border="0" cellpadding="0" cellspacing="0" align="center" class="mobile-table-wrapper" style="margin:24px auto 10px;width:100%;max-width:320px;">
+        <!-- Bulletproof CTA Button -->
+        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin:28px auto 10px;">
             <tr>
                 <td align="center" style="border-radius:12px;background-color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,0.2);">
-                    <a href="${ctaButtonUrl}" target="_blank" class="mobile-btn" style="display:inline-block;padding:15px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#ffffff !important;text-decoration:none;font-weight:700;letter-spacing:0.5px;border-radius:12px;text-transform:uppercase;">
+                    <a href="${ctaButtonUrl}" target="_blank" style="display:inline-block;padding:15px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#ffffff !important;text-decoration:none;font-weight:700;letter-spacing:0.5px;border-radius:12px;text-transform:uppercase;">
                         ${ctaButtonText} &rarr;
                     </a>
                 </td>
@@ -49,85 +46,28 @@ const buildEmailTemplate = ({
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="x-apple-disable-message-reformatting" />
-    <meta name="color-scheme" content="light" />
-    <meta name="supported-color-schemes" content="light" />
     <title>${subjectTitle}</title>
+    <!--[if mso]>
     <style type="text/css">
-        /* Client-specific Resets */
-        body, table, td, a { -webkit-text-size-adjust: 100%; -ms-text-size-adjust: 100%; }
-        table, td { mso-table-lspace: 0pt; mso-table-rspace: 0pt; }
-        img { -ms-interpolation-mode: bicubic; border: 0; height: auto; line-height: 100%; outline: none; text-decoration: none; }
-        table { border-collapse: collapse !important; }
-        body { height: 100% !important; margin: 0 !important; padding: 0 !important; width: 100% !important; background-color: #f4f4f6; }
-
-        /* Mobile Responsive Styles */
-        @media only screen and (max-width: 600px) {
-            .email-container {
-                width: 100% !important;
-                max-width: 100% !important;
-                border-radius: 0 !important;
-                border-left: none !important;
-                border-right: none !important;
-            }
-            .mobile-header-padding {
-                padding: 26px 16px !important;
-            }
-            .mobile-content-padding {
-                padding: 24px 16px 20px !important;
-            }
-            .mobile-footer-padding {
-                padding: 22px 16px !important;
-            }
-            .mobile-title {
-                font-size: 20px !important;
-                line-height: 1.3 !important;
-                margin-bottom: 14px !important;
-            }
-            .mobile-brand-title {
-                font-size: 24px !important;
-            }
-            .mobile-paragraph {
-                font-size: 14px !important;
-                line-height: 1.7 !important;
-                margin-bottom: 14px !important;
-            }
-            .mobile-btn {
-                display: block !important;
-                width: 100% !important;
-                padding: 14px 18px !important;
-                box-sizing: border-box !important;
-                text-align: center !important;
-            }
-            .mobile-banner {
-                width: 100% !important;
-                max-width: 100% !important;
-                height: auto !important;
-                display: block !important;
-            }
-            .mobile-table-wrapper {
-                width: 100% !important;
-            }
-            .mobile-trust-badge {
-                display: block !important;
-                margin: 4px 0 !important;
-            }
-        }
+        table {border-collapse:collapse;border-spacing:0;margin:0;}
+        div, p, a, li, td {font-family: Arial, sans-serif !important;}
     </style>
+    <![endif]-->
 </head>
-<body style="margin:0;padding:24px 8px;background-color:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1e293b;">
+<body style="margin:0;padding:30px 10px;background-color:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1e293b;">
     <center>
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" class="email-container" style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 10px 30px rgba(0,0,0,0.06);">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 10px 30px rgba(0,0,0,0.06);">
             
             <!-- Luxury Obsidian Header -->
             <tr>
-                <td align="center" class="mobile-header-padding" style="background-color:#0f172a;padding:34px 24px;border-bottom:3px solid #ec4899;">
+                <td align="center" style="background-color:#0f172a;padding:34px 24px;border-bottom:3px solid #ec4899;">
                     <table border="0" cellpadding="0" cellspacing="0" align="center">
                         <tr>
                             <td align="center">
                                 <span style="display:inline-block;background-color:rgba(236,72,153,0.18);color:#f472b6;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:20px;border:1px solid rgba(244,114,182,0.35);margin-bottom:10px;">
                                     ${badge}
                                 </span>
-                                <h1 class="mobile-brand-title" style="margin:6px 0 0;font-size:27px;font-weight:900;letter-spacing:-0.5px;color:#ffffff;line-height:1.2;">
+                                <h1 style="margin:6px 0 0;font-size:27px;font-weight:900;letter-spacing:-0.5px;color:#ffffff;line-height:1.2;">
                                     VINTAGE FASHION<span style="color:#ec4899;">.</span>
                                 </h1>
                                 <p style="margin:6px 0 0;color:#94a3b8;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;">
@@ -143,7 +83,7 @@ const buildEmailTemplate = ({
 
             <!-- Main Body Content -->
             <tr>
-                <td class="mobile-content-padding" style="padding:34px 30px 24px;background-color:#ffffff;">
+                <td style="padding:34px 30px 24px;background-color:#ffffff;">
                     ${contentHtml}
                     ${ctaSection}
 
@@ -151,9 +91,9 @@ const buildEmailTemplate = ({
                     <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:28px;padding-top:18px;border-top:1px dashed #e2e8f0;">
                         <tr>
                             <td align="center" style="font-size:12px;color:#64748b;line-height:1.6;">
-                                <span class="mobile-trust-badge" style="display:inline-block;margin:3px 8px;">&#10022; <strong>100% Authentic Quality</strong></span>
-                                <span class="mobile-trust-badge" style="display:inline-block;margin:3px 8px;">&#10022; <strong>Pan-India Express Delivery</strong></span>
-                                <span class="mobile-trust-badge" style="display:inline-block;margin:3px 8px;">&#10022; <strong>Dedicated Support</strong></span>
+                                <span style="display:inline-block;margin:3px 8px;">&#10022; <strong>100% Authentic Quality</strong></span>
+                                <span style="display:inline-block;margin:3px 8px;">&#10022; <strong>Pan-India Express Delivery</strong></span>
+                                <span style="display:inline-block;margin:3px 8px;">&#10022; <strong>Dedicated Support</strong></span>
                             </td>
                         </tr>
                     </table>
@@ -162,7 +102,7 @@ const buildEmailTemplate = ({
 
             <!-- Luxury Footer -->
             <tr>
-                <td align="center" class="mobile-footer-padding" style="background-color:#f8fafc;padding:26px 24px;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;line-height:1.6;">
+                <td align="center" style="background-color:#f8fafc;padding:26px 24px;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;line-height:1.6;">
                     <p style="margin:0 0 6px;font-weight:700;color:#1e293b;font-size:13px;">
                         Vintage Fashion Boutique
                     </p>
@@ -184,29 +124,16 @@ const buildEmailTemplate = ({
 </html>`;
 };
 
-const formatEmailBody = (rawBody) => {
-    if (!rawBody) return "";
-
-    const paragraphs = rawBody.split(/\r?\n\r?\n/);
-
-    return paragraphs.map(p => {
-        const trimmed = p.trim();
-        if (!trimmed) return "";
-
-        return `<p class="mobile-paragraph" style="margin:0 0 16px;font-size:15px;line-height:1.75;color:#334155;letter-spacing:0.2px;">${trimmed.replace(/\r?\n/g, "<br>")}</p>`;
-    }).join("");
-};
-
 // 1. Welcome Email (Dispatched after new user registration)
 export const sendWelcomeEmail = async ({ to, customerName }) => {
     const name = customerName || "Gentleman";
     const subject = `Welcome to Vintage Fashion, ${name}! ✨`;
 
     const contentHtml = `
-        <h2 class="mobile-title" style="margin:0 0 16px;color:#0f172a;font-size:22px;font-weight:800;letter-spacing:-0.3px;line-height:1.3;">
+        <h2 style="margin:0 0 16px;color:#0f172a;font-size:22px;font-weight:800;letter-spacing:-0.3px;line-height:1.3;">
             Welcome to the Club, ${name} 👋
         </h2>
-        <p class="mobile-paragraph" style="margin:0 0 20px;font-size:15px;line-height:1.75;color:#475569;">
+        <p style="margin:0 0 20px;font-size:15px;line-height:1.75;color:#475569;">
             We are thrilled to welcome you to <strong>Vintage Fashion</strong>! Your account is active, giving you exclusive access to hand-curated vintage apparel, tailored menswear, and limited-edition drops.
         </p>
 
@@ -267,12 +194,40 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
     }
 };
 
+const formatEmailBody = (rawBody) => {
+    if (!rawBody) return "";
+
+    // Split by double or single line breaks into paragraphs
+    const paragraphs = rawBody.split(/\r?\n\r?\n/);
+
+    return paragraphs.map(p => {
+        const trimmed = p.trim();
+        if (!trimmed) return "";
+
+
+        // Highlight coupon or promo discount blocks
+        if (/(coupon|code|voucher|🎟️|⚡|🛍️|💎|discount)/i.test(trimmed) && (trimmed.includes(":") || trimmed.includes("checkout") || trimmed.includes("OFF"))) {
+            return `
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;background-color:#fdf2f8;border:1.5px dashed #f472b6;border-radius:12px;">
+                <tr>
+                    <td align="center" style="padding:16px 20px;color:#db2777;font-size:15px;font-weight:700;letter-spacing:0.5px;line-height:1.6;">
+                        ${trimmed.replace(/\r?\n/g, "<br>")}
+                    </td>
+                </tr>
+            </table>`;
+        }
+
+        // Standard clean paragraph
+        return `<p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#334155;letter-spacing:0.2px;">${trimmed.replace(/\r?\n/g, "<br>")}</p>`;
+    }).join("");
+};
+
 // 2. Admin Promotional & Broadcast Email
 export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
     const formattedContent = formatEmailBody(body);
 
     const contentHtml = `
-        <h2 class="mobile-title" style="margin:0 0 18px;color:#0f172a;font-size:22px;font-weight:800;line-height:1.35;letter-spacing:-0.3px;">
+        <h2 style="margin:0 0 20px;color:#0f172a;font-size:22px;font-weight:800;line-height:1.35;letter-spacing:-0.3px;">
             ${subject}
         </h2>
 
@@ -328,8 +283,8 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
     const contentHtml = `
         <div style="text-align:center;margin-bottom:20px;">
             <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background-color:#ecfdf5;line-height:52px;font-size:24px;color:#059669;margin-bottom:10px;">✓</div>
-            <h2 class="mobile-title" style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Thank you for your order, ${name}!</h2>
-            <p class="mobile-paragraph" style="margin:0;color:#64748b;font-size:14px;">Your payment has been successfully verified.</p>
+            <h2 style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Thank you for your order, ${name}!</h2>
+            <p style="margin:0;color:#64748b;font-size:14px;">Your payment has been successfully verified.</p>
         </div>
 
         <!-- Order Summary Pill -->
@@ -408,8 +363,8 @@ export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, 
     const contentHtml = `
         <div style="text-align:center;margin-bottom:20px;">
             <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background-color:#eff6ff;line-height:52px;font-size:24px;color:#2563eb;margin-bottom:10px;">📦</div>
-            <h2 class="mobile-title" style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Hi ${name}, your order has shipped!</h2>
-            <p class="mobile-paragraph" style="margin:0;color:#64748b;font-size:14px;">Order #${orderNumber} has been handed over to the courier partner.</p>
+            <h2 style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Hi ${name}, your order has shipped!</h2>
+            <p style="margin:0;color:#64748b;font-size:14px;">Order #${orderNumber} has been handed over to the courier partner.</p>
         </div>
 
         <!-- Tracking Card -->

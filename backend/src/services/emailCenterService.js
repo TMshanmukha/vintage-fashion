@@ -14,7 +14,15 @@ export const sendToAllUsers = async ({ subject, body, imageUrl, sentBy }) => {
     }
 
     const results = await Promise.allSettled(
-        recipients.map((c) => sendAdminEmail({ to: c.email, subject, body, imageUrl }))
+        recipients.map((c) =>
+            sendAdminEmail({
+                to: c.email,
+                customerName: c.name || (c.email ? c.email.split("@")[0] : "Gentleman"),
+                subject,
+                body,
+                imageUrl
+            })
+        )
     );
 
     const successfulCount = results.filter(r => r.status === "fulfilled").length;
@@ -40,7 +48,15 @@ export const sendToSingleUser = async ({ userId, subject, body, imageUrl, sentBy
     const user = await UserAdminService.getCustomer(userId);
     if (!user || !user.email) return null;
 
-    await sendAdminEmail({ to: user.email, subject, body, imageUrl });
+    const customerName = user.name || (user.email ? user.email.split("@")[0] : "Gentleman");
+
+    await sendAdminEmail({
+        to: user.email,
+        customerName,
+        subject,
+        body,
+        imageUrl
+    });
 
     await EmailModel.logEmail({
         recipientType: "single",
