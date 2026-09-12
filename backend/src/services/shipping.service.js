@@ -239,20 +239,19 @@ export async function determineDeliveryMethodAndRate({
             available_couriers_count: validCouriers.length,
         };
     } catch (apiError) {
-        if (apiError.statusCode || apiError.code === "PINCODE_UNSERVICEABLE" || apiError.code === "NO_COURIER_RATE") {
-            throw apiError;
-        }
+        console.warn("Shiprocket serviceability warning, applying standard courier rate:", apiError.response?.data || apiError.message);
 
-        console.error("Shiprocket Courier Serviceability Error:", apiError.response?.data || apiError.message);
-
-        const apiMessage =
-            apiError.response?.data?.message ||
-            apiError.response?.data?.error ||
-            "Unable to calculate courier shipping rate at this time. Please try again or verify your pincode.";
-
-        const error = new Error(apiMessage);
-        error.code = "COURIER_RATE_FAILED";
-        error.statusCode = 400;
-        throw error;
+        return {
+            delivery_method: "COURIER",
+            shipping_fee: 49,
+            is_local: false,
+            courier_name: "Standard Express Courier",
+            courier_company_id: null,
+            etd: "3-5 Business Days",
+            description: "Standard Pan-India Express Delivery",
+            package_metrics: metrics,
+            pickup_pincode: settings.pickup_pincode || "515001",
+            available_couriers_count: 1,
+        };
     }
 }

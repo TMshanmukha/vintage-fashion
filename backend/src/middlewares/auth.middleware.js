@@ -32,3 +32,28 @@ export const authenticate = (req, res, next) => {
         });
     }
 };
+
+export const optionalAuthenticate = (req, res, next) => {
+    try {
+        let token = null;
+        const authHeader = req.headers.authorization;
+
+        if (authHeader && authHeader.startsWith("Bearer ")) {
+            token = authHeader.split(" ")[1];
+        } else if (req.cookies?.accessToken) {
+            token = req.cookies.accessToken;
+        } else if (req.cookies?.adminAccessToken) {
+            token = req.cookies.adminAccessToken;
+        } else if (req.headers["x-access-token"]) {
+            token = req.headers["x-access-token"];
+        }
+
+        if (token) {
+            const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+            req.user = decoded;
+        }
+    } catch (err) {
+        // Soft fail
+    }
+    next();
+};

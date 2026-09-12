@@ -1,7 +1,7 @@
 import { Router } from "express";
 import * as ShippingController from "../controllers/shipping.controller.js";
 import * as ShiprocketController from "../controllers/shiprocket.controller.js";
-import { authenticate } from "../middlewares/auth.middleware.js";
+import { authenticate, optionalAuthenticate } from "../middlewares/auth.middleware.js";
 import { authorizeAdmin } from "../middlewares/admin.middleware.js";
 
 const requireAdminAuth = [authenticate, authorizeAdmin];
@@ -10,23 +10,7 @@ const requireCustomerAuth = authenticate;
 const router = Router();
 
 // 1. Rate Calculation (supports logged in users or guests with pincode/address_id)
-router.post("/calculate", (req, res, next) => {
-    const hasToken =
-        req.headers.authorization ||
-        req.cookies?.accessToken ||
-        req.cookies?.adminAccessToken ||
-        req.cookies?.token ||
-        req.headers["x-access-token"];
-
-    if (hasToken) {
-        authenticate(req, res, (err) => {
-            // Proceed even if token is expired/invalid so guest pincode calculation still works
-            next();
-        });
-    } else {
-        next();
-    }
-}, ShippingController.calculateShipping);
+router.post("/calculate", optionalAuthenticate, ShippingController.calculateShipping);
 
 // 2. Settings
 router.get("/settings", ShippingController.getPublicShippingSettings);
