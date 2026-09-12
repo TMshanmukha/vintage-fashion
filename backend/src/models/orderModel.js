@@ -29,6 +29,8 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
     o.awb_number,
     o.courier_name,
     o.shipping_status,
+    o.shipping_label_url,
+    o.invoice_url,
     o.pickup_scheduled,
     o.ordered_at,
     u.user_id,

@@ -17,6 +17,8 @@ import {
 import {
   updateOrderDeliveryMethod,
   updateLocalDeliveryStatus,
+  getShippingLabel,
+  getShippingInvoice,
 } from "../../api/shippingApi";
 import useAdminSocket from "../../hooks/Useadminsocket";
 
@@ -258,6 +260,50 @@ export default function AdminOrders() {
       loadOrders(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to refresh tracking.");
+      console.error(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handlePrintLabel = async (order) => {
+    if (order.shipping_label_url) {
+      window.open(order.shipping_label_url, "_blank");
+      return;
+    }
+    setActionLoadingId(order.order_id);
+    try {
+      const res = await getShippingLabel(order.order_id);
+      const url = res.data?.label_url || res.data?.data?.label_url || res.data?.response?.label_url;
+      if (url) {
+        window.open(url, "_blank");
+      } else {
+        toast.error("Shipping label is still generating in Shiprocket. Please retry in a few moments.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to fetch shipping label.");
+      console.error(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handlePrintInvoice = async (order) => {
+    if (order.invoice_url) {
+      window.open(order.invoice_url, "_blank");
+      return;
+    }
+    setActionLoadingId(order.order_id);
+    try {
+      const res = await getShippingInvoice(order.order_id);
+      const url = res.data?.invoice_url || res.data?.data?.invoice_url || res.data?.response?.invoice_url;
+      if (url) {
+        window.open(url, "_blank");
+      } else {
+        toast.error("Invoice is still generating in Shiprocket. Please retry in a few moments.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to fetch invoice.");
       console.error(err);
     } finally {
       setActionLoadingId(null);
@@ -577,6 +623,22 @@ export default function AdminOrders() {
                                       {o.courier_name && (
                                         <p className="text-gray-400 text-[10px]">{o.courier_name}</p>
                                       )}
+                                      <div className="flex items-center gap-1.5 pt-1">
+                                        <button
+                                          onClick={() => handlePrintLabel(o)}
+                                          className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 bg-indigo-50 hover:bg-indigo-100 px-1.5 py-0.5 rounded transition-colors flex items-center gap-0.5"
+                                          title="Print Official Courier Shipping Label"
+                                        >
+                                          <span>🖨️</span> Label
+                                        </button>
+                                        <button
+                                          onClick={() => handlePrintInvoice(o)}
+                                          className="text-[10px] font-bold text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 px-1.5 py-0.5 rounded transition-colors flex items-center gap-0.5"
+                                          title="Print Tax Invoice / Packing Slip"
+                                        >
+                                          <span>📄</span> Invoice
+                                        </button>
+                                      </div>
                                     </div>
                                   )}
                                 </div>
@@ -686,6 +748,14 @@ export default function AdminOrders() {
 
                               {!isLocal && hasShipment && !isCancelled && (
                                 <>
+                                  <button
+                                    onClick={() => handlePrintLabel(o)}
+                                    disabled={busy}
+                                    className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-50 shadow-xs flex items-center gap-1"
+                                    title="Print Shipping Label"
+                                  >
+                                    <span>🖨️</span> Label
+                                  </button>
                                   <button
                                     onClick={() => handleRefreshTracking(o)}
                                     disabled={busy}

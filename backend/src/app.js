@@ -93,6 +93,23 @@ app.use((err, req, res, next) => {
     });
   }
 
+  // Handle external API errors (e.g. Shiprocket, Razorpay, Nominatim)
+  if (err.isAxiosError || err.response) {
+    const statusCode = err.response?.status || 500;
+    const data = err.response?.data;
+    let courierMsg = data?.message || data?.error;
+    if (!courierMsg && data?.errors && typeof data.errors === "object") {
+      courierMsg = Object.entries(data.errors)
+        .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+        .join("; ");
+    }
+    return res.status(statusCode).json({
+      success: false,
+      message: courierMsg ? `Courier Error: ${courierMsg}` : err.message,
+      details: data || null,
+    });
+  }
+
   const statusCode = err.status || (err.name === "UnauthorizedError" ? 401 : 500);
   
   // Guard against leaking internal database or system crash messages to client

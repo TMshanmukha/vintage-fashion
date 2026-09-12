@@ -4,7 +4,8 @@ import * as NotificationService from "../services/notificationService.js";
 import { sendShipmentCreatedEmail } from "../services/emailService.js";
 import { getIO } from "../socket/index.js";
 
-const PICKUP_LOCATION_NAME = process.env.SHIPROCKET_PICKUP_LOCATION_NAME;
+const getPickupLocationName = () =>
+  process.env.SHIPROCKET_PICKUP_LOCATION_NAME || "Primary";
 
 export async function checkServiceability(req, res, next) {
   try {
@@ -62,36 +63,63 @@ export async function createFullShipment(req, res, next) {
     const shipmentResult = await ShiprocketService.createShipment(
       order,
       items,
-      PICKUP_LOCATION_NAME
+      getPickupLocationName()
     );
 
-    const awbResult = await ShiprocketService.assignCourierAndGenerateAWB(
-      shipmentResult.shipment_id
-    );
+    let awbResult = null;
+    try {
+      awbResult = await ShiprocketService.assignCourierAndGenerateAWB(
+        shipmentResult.shipment_id
+      );
+    } catch (awbError) {
+      console.warn("AWB generation failed (will proceed with shipment creation):", awbError.message);
+    }
 
-    const labelResult = await ShiprocketService.generateLabel(shipmentResult.shipment_id);
-    const invoiceResult = await ShiprocketService.generateInvoice(shipmentResult.order_id);
+    let labelResult = null;
+    try {
+      if (shipmentResult.shipment_id) {
+        labelResult = await ShiprocketService.generateLabel(shipmentResult.shipment_id);
+      }
+    } catch (labelError) {
+      console.warn("Label generation skipped/delayed:", labelError.message);
+    }
+
+    let invoiceResult = null;
+    try {
+      if (shipmentResult.order_id) {
+        invoiceResult = await ShiprocketService.generateInvoice(shipmentResult.order_id);
+      }
+    } catch (invError) {
+      console.warn("Invoice generation skipped/delayed:", invError.message);
+    }
 
     let pickupResult = null;
     try {
-      pickupResult = await ShiprocketService.schedulePickup(shipmentResult.shipment_id);
+      if (shipmentResult.shipment_id) {
+        pickupResult = await ShiprocketService.schedulePickup(shipmentResult.shipment_id);
+      }
     } catch (pickupError) {
       console.warn("Pickup scheduling failed, shipment still saved:", pickupError.message);
     }
 
+    const labelUrl = labelResult?.label_url || labelResult?.response?.label_url || null;
+    const invoiceUrl = invoiceResult?.invoice_url || invoiceResult?.response?.invoice_url || null;
+    const awbCode = awbResult?.awb_code || awbResult?.response?.data?.awb_code || null;
+    const courierName = awbResult?.courier_name || awbResult?.response?.data?.courier_name || "Assigned Courier";
+
     await updateShiprocketInfo(orderId, {
       shiprocket_order_id: shipmentResult.order_id,
       shipment_id: shipmentResult.shipment_id,
-      awb_number: awbResult.awb_code,
-      courier_name: awbResult.courier_name,
-      shipping_label_url: labelResult.label_url,
-      invoice_url: invoiceResult.invoice_url,
+      awb_number: awbCode,
+      courier_name: courierName,
+      shipping_label_url: labelUrl,
+      invoice_url: invoiceUrl,
       pickup_scheduled: !!pickupResult,
     });
 
     await NotificationService.createNotification({
       title: "Shipment Created",
-      body: `Order #${order.order_number} has been handed to ${awbResult.courier_name} for delivery.`,
+      body: `Order #${order.order_number} shipment created (${courierName}).`,
       type: "order",
       referenceId: orderId,
     });
@@ -236,7 +264,7 @@ export async function createReturn(req, res, next) {
       order,
       req.body.returnRequest,
       items,
-      PICKUP_LOCATION_NAME
+      getPickupLocationName()
     );
     res.json({ success: true, data });
   } catch (error) {
