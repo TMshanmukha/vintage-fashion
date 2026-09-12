@@ -114,8 +114,16 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
     }
 };
 
-export const sendAdminEmail = async ({ to, subject, body }) => {
+export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
     const storeUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+
+    const bannerHtml = imageUrl ? `
+            <tr>
+                <td align="center" style="padding:0;background:#ffffff;">
+                    <img src="${imageUrl}" alt="${subject}" style="width:100%;max-width:600px;max-height:340px;object-fit:cover;display:block;border-bottom:1px solid #f3f4f6;" />
+                </td>
+            </tr>
+    ` : "";
 
     const html = `
     <!DOCTYPE html>
@@ -133,10 +141,12 @@ export const sendAdminEmail = async ({ to, subject, body }) => {
                         Vintage Fashion<span style="color:#ec4899;">.</span>
                     </h1>
                     <p style="margin:6px 0 0;color:#9ca3af;font-size:13px;letter-spacing:1px;text-transform:uppercase;">
-                        Customer Communication
+                        Official Communication
                     </p>
                 </td>
             </tr>
+
+            ${bannerHtml}
 
             <!-- Content -->
             <tr>

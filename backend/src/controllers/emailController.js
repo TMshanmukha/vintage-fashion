@@ -4,6 +4,7 @@ import * as EmailCenterService from "../services/emailCenterService.js";
 export const sendEmailToUsers = async (req, res) => {
     try {
         const { recipientType, userId, subject, body } = req.body;
+        const imageUrl = req.file ? req.file.path : (req.body.imageUrl || req.body.image_url || null);
 
         if (!subject || !body) {
             return res.status(400).json({ message: "Subject and body are required." });
@@ -13,6 +14,7 @@ export const sendEmailToUsers = async (req, res) => {
             const count = await EmailCenterService.sendToAllUsers({
                 subject,
                 body,
+                imageUrl,
                 sentBy: req.user?.user_id
             });
             return res.json({ message: `Email sent to ${count} users.` });
@@ -22,6 +24,7 @@ export const sendEmailToUsers = async (req, res) => {
             userId,
             subject,
             body,
+            imageUrl,
             sentBy: req.user?.user_id
         });
         if (!user) return res.status(404).json({ message: "User not found." });

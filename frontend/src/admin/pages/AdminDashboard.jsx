@@ -193,11 +193,22 @@ export default function AdminDashboard() {
 
   const activeCustomers = customers.filter(isActiveCustomer).length;
 
+  // Safe stock helper
+  const getProdStock = (p) => {
+    if (p.stock_quantity !== undefined && p.stock_quantity !== null && p.stock_quantity !== "") {
+      return Number(p.stock_quantity) || 0;
+    }
+    if (Array.isArray(p.variants) && p.variants.length > 0) {
+      return p.variants.reduce((sum, v) => sum + (Number(v.stock_quantity) || 0), 0);
+    }
+    return 0;
+  };
+
   // ===========================
   // Total Stock Available Calculation
   // ===========================
   const totalStockAvailable = useMemo(() => {
-    return allProducts.reduce((acc, p) => acc + (Number(p.stock_quantity) || 0), 0);
+    return allProducts.reduce((acc, p) => acc + getProdStock(p), 0);
   }, [allProducts]);
 
   // ===========================
@@ -207,17 +218,32 @@ export default function AdminDashboard() {
     const totalCatalogCount = allProducts.length || 1;
     return (categories || []).map((cat) => {
       const catId = cat.category_id || cat.id;
-      const catProducts = allProducts.filter(
-        (p) =>
-          (catId && Number(p.category_id) === Number(catId)) ||
-          (p.category_name && cat.name && p.category_name.toLowerCase() === cat.name.toLowerCase())
-      );
+      const catName = cat.name?.toLowerCase()?.trim();
+      const catSlug = cat.slug?.toLowerCase()?.trim();
+
+      const catProducts = allProducts.filter((p) => {
+        const pCatId = p.category_id ?? p.category;
+        const pCatName = (
+          p.category_name ||
+          (typeof p.category === "string" ? p.category : "")
+        )?.toLowerCase()?.trim();
+
+        return (
+          (catId != null && Number(pCatId) === Number(catId)) ||
+          (catName && pCatName === catName) ||
+          (catSlug && pCatName === catSlug)
+        );
+      });
+
       const productCount = catProducts.length;
-      const stockCount = catProducts.reduce(
-        (sum, p) => sum + (Number(p.stock_quantity) || 0),
-        0
-      );
+      const stockCount = catProducts.reduce((sum, p) => sum + getProdStock(p), 0);
       const percentage = Math.round((productCount / totalCatalogCount) * 100);
+
+      const lowStockCount = catProducts.filter((p) => {
+        const q = getProdStock(p);
+        return q > 0 && q <= 5;
+      }).length;
+      const outOfStockCount = catProducts.filter((p) => getProdStock(p) === 0).length;
 
       return {
         ...cat,
@@ -225,6 +251,8 @@ export default function AdminDashboard() {
         productCount,
         stockCount,
         percentage,
+        lowStockCount,
+        outOfStockCount,
       };
     });
   }, [categories, allProducts]);
@@ -472,61 +500,129 @@ export default function AdminDashboard() {
           </div>
 
           {/* Category Inventory Breakdown Widget */}
-          <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-6">
+          <div className="bg-white border border-gray-200/80 rounded-2xl p-5 sm:p-6 shadow-sm space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <h2 className="text-base font-bold text-gray-900">Category Catalog & Live Stock Breakdown</h2>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Available product counts and real inventory stock distribution across all categories
+                <div className="flex items-center gap-2">
+                  <span className="text-base">🏷️</span>
+                  <h2 className="text-base font-bold text-gray-900">Category Catalog & Live Stock Overview</h2>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Live inventory stock health and product distribution across all store categories
                 </p>
               </div>
-              <Link
-                to="/admin/products"
-                className="text-xs font-semibold text-gray-900 hover:text-pink-600 transition-colors flex items-center gap-1"
-              >
-                View all products →
-              </Link>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto">
+                <span className="text-xs font-semibold text-gray-700 bg-gray-100 px-3 py-1.5 rounded-xl">
+                  <strong>{allProducts.length}</strong> Total Products • <strong className="text-emerald-700">{totalStockAvailable}</strong> Units
+                </span>
+                <Link
+                  to="/admin/products"
+                  className="text-xs font-bold text-pink-600 hover:text-pink-700 bg-pink-50 hover:bg-pink-100 px-3 py-1.5 rounded-xl transition-colors"
+                >
+                  Manage Products →
+                </Link>
+              </div>
             </div>
 
             {categoryBreakdown.length === 0 ? (
-              <p className="text-xs text-gray-400 py-4 text-center">No categories configured yet.</p>
+              <div className="py-10 text-center text-xs text-gray-400 bg-gray-50/50 rounded-xl border border-dashed border-gray-200">
+                No active categories configured. Add categories to view live breakdown.
+              </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 sm:gap-4">
-                {categoryBreakdown.map((cat) => (
-                  <div
-                    key={cat.category_id}
-                    className="bg-gray-50/70 border border-gray-200/70 rounded-xl p-3.5 hover:bg-white hover:shadow-md hover:border-gray-300 transition-all duration-200 group flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold text-gray-900 truncate group-hover:text-pink-600 transition-colors">
-                          {cat.name}
-                        </span>
-                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-white border border-gray-200 text-gray-600">
-                          {cat.percentage}%
-                        </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {categoryBreakdown.map((cat) => {
+                  const isHealthy = cat.stockCount > 10;
+                  const isLow = cat.stockCount > 0 && cat.stockCount <= 10;
+                  const isOut = cat.stockCount === 0;
+
+                  return (
+                    <div
+                      key={cat.category_id}
+                      className="bg-white border border-gray-200/90 rounded-2xl p-4.5 hover:border-gray-400 hover:shadow-md transition-all duration-200 flex flex-col justify-between group"
+                    >
+                      <div>
+                        {/* Top: Category Title & Health Badge */}
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-pink-100 to-rose-100 text-pink-700 font-extrabold flex items-center justify-center text-xs flex-shrink-0 border border-pink-200/60">
+                              {cat.name?.charAt(0)?.toUpperCase() || "C"}
+                            </div>
+                            <span className="text-sm font-bold text-gray-900 truncate group-hover:text-pink-600 transition-colors">
+                              {cat.name}
+                            </span>
+                          </div>
+
+                          {isHealthy && (
+                            <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              ● In Stock
+                            </span>
+                          )}
+                          {isLow && (
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              ▲ Low Stock
+                            </span>
+                          )}
+                          {isOut && (
+                            <span className="text-[10px] font-bold text-red-700 bg-red-50 border border-red-200/80 px-2 py-0.5 rounded-full whitespace-nowrap">
+                              ✕ Out of Stock
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Metrics Grid */}
+                        <div className="grid grid-cols-2 gap-2.5 p-3 rounded-xl bg-gray-50/80 border border-gray-100 mb-3">
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                              Products
+                            </span>
+                            <span className="text-lg font-black text-gray-900 mt-0.5 block">
+                              {cat.productCount}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-gray-400 block">
+                              Available Units
+                            </span>
+                            <span
+                              className={`text-lg font-black mt-0.5 block ${
+                                isOut ? "text-red-600" : isLow ? "text-amber-600" : "text-emerald-700"
+                              }`}
+                            >
+                              {cat.stockCount}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Distribution Progress */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[11px]">
+                            <span className="text-gray-500 font-medium">Catalog Share</span>
+                            <span className="font-bold text-gray-900">{cat.percentage}%</span>
+                          </div>
+                          <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-gradient-to-r from-pink-500 to-rose-600 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.max(4, cat.percentage)}%` }}
+                            />
+                          </div>
+                        </div>
                       </div>
 
-                      <div className="mt-2.5 flex items-baseline justify-between">
-                        <span className="text-lg font-bold text-gray-900">{cat.productCount}</span>
-                        <span className="text-[11px] text-gray-500 font-medium">products</span>
-                      </div>
-
-                      <div className="mt-1 flex items-baseline justify-between text-[11px] text-gray-500">
-                        <span>In Stock:</span>
-                        <span className="font-semibold text-emerald-700">{cat.stockCount} units</span>
+                      {/* Card Footer Link */}
+                      <div className="pt-3.5 mt-3 border-t border-gray-100 flex items-center justify-between">
+                        <Link
+                          to="/admin/products"
+                          className="text-[11px] font-bold text-gray-600 group-hover:text-pink-600 flex items-center gap-1 transition-colors"
+                        >
+                          <span>Browse {cat.name}</span>
+                          <span>→</span>
+                        </Link>
+                        <span className="text-[10px] font-mono text-gray-400">ID: #{cat.category_id}</span>
                       </div>
                     </div>
-
-                    {/* Progress Bar */}
-                    <div className="mt-3 w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                      <div
-                        className="h-full bg-gradient-to-r from-pink-500 to-rose-600 rounded-full transition-all duration-500"
-                        style={{ width: `${Math.max(5, cat.percentage)}%` }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
