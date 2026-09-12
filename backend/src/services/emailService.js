@@ -3,7 +3,9 @@ import resend from "../config/resend.js";
 const formatINR = (value) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(value || 0);
 
-const STORE_URL = process.env.FRONTEND_URL || "https://vintage-fashion-xi.vercel.app";
+const STORE_URL = (!process.env.FRONTEND_URL || process.env.FRONTEND_URL.includes("localhost"))
+    ? "https://vintage-fashion-xi.vercel.app"
+    : process.env.FRONTEND_URL;
 
 /**
  * Bulletproof Email Template Shell
