@@ -6,7 +6,7 @@ const formatINR = (value) =>
 const STORE_URL = process.env.FRONTEND_URL || "https://vintage-fashion-xi.vercel.app";
 
 /**
- * Bulletproof Email Template Shell
+ * Bulletproof Mobile-First Email Template Shell
  * Compatible with Gmail (Web, iOS, Android), Apple Mail, Outlook (Web & Desktop), Yahoo Mail
  */
 const buildEmailTemplate = ({
@@ -18,20 +18,31 @@ const buildEmailTemplate = ({
     ctaButtonUrl = STORE_URL,
     footerNote = "You are receiving this official communication as a valued patron of Vintage Fashion."
 }) => {
-    const bannerSection = bannerImageUrl ? `
-        <!-- Full-Width Banner Image -->
+    // Sanitize image URL to guarantee https://
+    let cleanBannerUrl = bannerImageUrl;
+    if (cleanBannerUrl && typeof cleanBannerUrl === "string") {
+        cleanBannerUrl = cleanBannerUrl.trim();
+        if (cleanBannerUrl.startsWith("http://")) {
+            cleanBannerUrl = cleanBannerUrl.replace("http://", "https://");
+        }
+    } else {
+        cleanBannerUrl = null;
+    }
+
+    const bannerSection = cleanBannerUrl ? `
+        <!-- Full-Width Responsive Banner Image -->
         <tr>
             <td align="center" style="padding:0;margin:0;background-color:#0f172a;line-height:0;font-size:0;">
-                <img src="${bannerImageUrl}" alt="${subjectTitle}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+                <img src="${cleanBannerUrl}" alt="${subjectTitle}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
             </td>
         </tr>
     ` : "";
 
     const ctaSection = ctaButtonText && ctaButtonUrl ? `
         <!-- Bulletproof CTA Button -->
-        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin:28px auto 10px;">
+        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin:28px auto 12px;">
             <tr>
-                <td align="center" style="border-radius:12px;background-color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,0.2);">
+                <td align="center" style="border-radius:12px;background-color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,0.18);">
                     <a href="${ctaButtonUrl}" target="_blank" style="display:inline-block;padding:15px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#ffffff !important;text-decoration:none;font-weight:700;letter-spacing:0.5px;border-radius:12px;text-transform:uppercase;">
                         ${ctaButtonText} &rarr;
                     </a>
@@ -53,14 +64,47 @@ const buildEmailTemplate = ({
         div, p, a, li, td {font-family: Arial, sans-serif !important;}
     </style>
     <![endif]-->
+    <style type="text/css">
+        @media only screen and (max-width: 600px) {
+            .mobile-container {
+                width: 100% !important;
+                max-width: 100% !important;
+                border-radius: 0 !important;
+                border: none !important;
+            }
+            .mobile-content {
+                padding: 24px 18px !important;
+            }
+            .mobile-header {
+                padding: 26px 16px !important;
+            }
+            .mobile-title {
+                font-size: 20px !important;
+                line-height: 1.3 !important;
+                margin-bottom: 14px !important;
+            }
+            .mobile-paragraph {
+                font-size: 14px !important;
+                line-height: 1.7 !important;
+                margin-bottom: 14px !important;
+            }
+            .mobile-btn {
+                display: block !important;
+                width: 100% !important;
+                padding: 14px 18px !important;
+                box-sizing: border-box !important;
+                text-align: center !important;
+            }
+        }
+    </style>
 </head>
-<body style="margin:0;padding:30px 10px;background-color:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1e293b;">
+<body style="margin:0;padding:20px 0;background-color:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1e293b;">
     <center>
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 10px 30px rgba(0,0,0,0.06);">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mobile-container" style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 10px 30px rgba(0,0,0,0.06);">
             
             <!-- Luxury Obsidian Header -->
             <tr>
-                <td align="center" style="background-color:#0f172a;padding:34px 24px;border-bottom:3px solid #ec4899;">
+                <td align="center" class="mobile-header" style="background-color:#0f172a;padding:34px 24px;border-bottom:3px solid #ec4899;">
                     <table border="0" cellpadding="0" cellspacing="0" align="center">
                         <tr>
                             <td align="center">
@@ -83,7 +127,7 @@ const buildEmailTemplate = ({
 
             <!-- Main Body Content -->
             <tr>
-                <td style="padding:34px 30px 24px;background-color:#ffffff;">
+                <td class="mobile-content" style="padding:34px 30px 24px;background-color:#ffffff;">
                     ${contentHtml}
                     ${ctaSection}
 
@@ -124,16 +168,29 @@ const buildEmailTemplate = ({
 </html>`;
 };
 
+const formatEmailBody = (rawBody) => {
+    if (!rawBody) return "";
+
+    const paragraphs = rawBody.split(/\r?\n\r?\n/);
+
+    return paragraphs.map(p => {
+        const trimmed = p.trim();
+        if (!trimmed) return "";
+
+        return `<p class="mobile-paragraph" style="margin:0 0 16px;font-size:15px;line-height:1.75;color:#334155;letter-spacing:0.2px;">${trimmed.replace(/\r?\n/g, "<br>")}</p>`;
+    }).join("");
+};
+
 // 1. Welcome Email (Dispatched after new user registration)
 export const sendWelcomeEmail = async ({ to, customerName }) => {
     const name = customerName || "Gentleman";
     const subject = `Welcome to Vintage Fashion, ${name}! ✨`;
 
     const contentHtml = `
-        <h2 style="margin:0 0 16px;color:#0f172a;font-size:22px;font-weight:800;letter-spacing:-0.3px;line-height:1.3;">
+        <h2 class="mobile-title" style="margin:0 0 16px;color:#0f172a;font-size:22px;font-weight:800;letter-spacing:-0.3px;line-height:1.3;">
             Welcome to the Club, ${name} 👋
         </h2>
-        <p style="margin:0 0 20px;font-size:15px;line-height:1.75;color:#475569;">
+        <p class="mobile-paragraph" style="margin:0 0 20px;font-size:15px;line-height:1.75;color:#475569;">
             We are thrilled to welcome you to <strong>Vintage Fashion</strong>! Your account is active, giving you exclusive access to hand-curated vintage apparel, tailored menswear, and limited-edition drops.
         </p>
 
@@ -162,7 +219,7 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
                             <td width="30" valign="top" style="font-size:18px;">✨</td>
                             <td style="padding-left:12px;">
                                 <strong style="color:#0f172a;font-size:14px;display:block;">Exclusive Member Perks</strong>
-                                <span style="color:#64748b;font-size:13px;line-height:1.5;">First access to seasonal drops, flash discounts, and VIP reward codes.</span>
+                                <span style="color:#64748b;font-size:13px;line-height:1.5;">First access to seasonal drops, flash sales, and early catalog releases.</span>
                             </td>
                         </tr>
                     </table>
@@ -194,42 +251,35 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
     }
 };
 
-const formatEmailBody = (rawBody) => {
-    if (!rawBody) return "";
+// 2. Admin Promotional & Broadcast Email (Dynamic Name & Photo Support)
+export const sendAdminEmail = async ({ to, customerName, subject, body, imageUrl }) => {
+    // Determine friendly fallback name
+    let recipientName = "Gentleman";
+    if (customerName && typeof customerName === "string" && customerName.trim()) {
+        recipientName = customerName.trim();
+    } else if (to && typeof to === "string") {
+        const usernamePart = to.split("@")[0].replace(/[._-]/g, " ");
+        recipientName = usernamePart.charAt(0).toUpperCase() + usernamePart.slice(1);
+    }
 
-    // Split by double or single line breaks into paragraphs
-    const paragraphs = rawBody.split(/\r?\n\r?\n/);
+    // Dynamic token replacement for {name}, {{name}}, {Name}, [name], etc.
+    const nameTokenRegex = /\{\{\s*(name|userName|customerName|user)\s*\}\}|\{\s*(name|userName|customerName|user)\s*\}|\[\s*(name|user\s*name|customer\s*name)\s*\]/gi;
 
-    return paragraphs.map(p => {
-        const trimmed = p.trim();
-        if (!trimmed) return "";
+    let personalizedSubject = subject ? subject.replace(nameTokenRegex, recipientName) : "Vintage Fashion Update";
+    let personalizedBody = body ? body.replace(nameTokenRegex, recipientName) : "";
 
+    // If body still does not have a greeting and didn't have name token, add greeting
+    const trimmed = personalizedBody.trim();
+    const startsWithGreeting = /^(Dear|Hello|Hi|Hey|Greetings|Namaste)\b/i.test(trimmed);
+    if (!startsWithGreeting && !nameTokenRegex.test(body || "")) {
+        personalizedBody = `Dear ${recipientName},\n\n${personalizedBody}`;
+    }
 
-
-        // Highlight coupon or promo discount blocks
-        if (/(coupon|code|voucher|🎟️|⚡|🛍️|💎|discount)/i.test(trimmed) && (trimmed.includes(":") || trimmed.includes("checkout") || trimmed.includes("OFF"))) {
-            return `
-            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;background-color:#fdf2f8;border:1.5px dashed #f472b6;border-radius:12px;">
-                <tr>
-                    <td align="center" style="padding:16px 20px;color:#db2777;font-size:15px;font-weight:700;letter-spacing:0.5px;line-height:1.6;">
-                        ${trimmed.replace(/\r?\n/g, "<br>")}
-                    </td>
-                </tr>
-            </table>`;
-        }
-
-        // Standard clean paragraph
-        return `<p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#334155;letter-spacing:0.2px;">${trimmed.replace(/\r?\n/g, "<br>")}</p>`;
-    }).join("");
-};
-
-// 2. Admin Promotional & Broadcast Email
-export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
-    const formattedContent = formatEmailBody(body);
+    const formattedContent = formatEmailBody(personalizedBody);
 
     const contentHtml = `
-        <h2 style="margin:0 0 20px;color:#0f172a;font-size:22px;font-weight:800;line-height:1.35;letter-spacing:-0.3px;">
-            ${subject}
+        <h2 class="mobile-title" style="margin:0 0 18px;color:#0f172a;font-size:22px;font-weight:800;line-height:1.35;letter-spacing:-0.3px;">
+            ${personalizedSubject}
         </h2>
 
         <div style="margin-bottom:10px;">
@@ -240,24 +290,24 @@ export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
     const html = buildEmailTemplate({
         badge: "OFFICIAL ANNOUNCEMENT",
         bannerImageUrl: imageUrl || null,
-        subjectTitle: subject,
+        subjectTitle: personalizedSubject,
         contentHtml,
         ctaButtonText: "Shop Vintage Collection",
         ctaButtonUrl: STORE_URL,
-        footerNote: "This official update was dispatched directly by the Vintage Fashion Management Team."
+        footerNote: `This official communication was personally addressed to ${recipientName}.`
     });
 
     try {
         const data = await resend.emails.send({
             from: "Vintage Fashion <onboarding@resend.dev>",
             to,
-            subject,
+            subject: personalizedSubject,
             html
         });
-        console.log("Admin broadcast email sent to", to, ":", data);
+        console.log(`Admin email dispatched to ${to} (${recipientName}):`, data);
         return data;
     } catch (err) {
-        console.error("Failed to send admin email to", to, ":", err.message);
+        console.error(`Failed to send admin email to ${to}:`, err.message);
         throw err;
     }
 };
@@ -284,7 +334,7 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
     const contentHtml = `
         <div style="text-align:center;margin-bottom:20px;">
             <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background-color:#ecfdf5;line-height:52px;font-size:24px;color:#059669;margin-bottom:10px;">✓</div>
-            <h2 style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Thank you for your order, ${name}!</h2>
+            <h2 class="mobile-title" style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Thank you for your order, ${name}!</h2>
             <p style="margin:0;color:#64748b;font-size:14px;">Your payment has been successfully verified.</p>
         </div>
 
@@ -364,7 +414,7 @@ export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, 
     const contentHtml = `
         <div style="text-align:center;margin-bottom:20px;">
             <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background-color:#eff6ff;line-height:52px;font-size:24px;color:#2563eb;margin-bottom:10px;">📦</div>
-            <h2 style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Hi ${name}, your order has shipped!</h2>
+            <h2 class="mobile-title" style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Hi ${name}, your order has shipped!</h2>
             <p style="margin:0;color:#64748b;font-size:14px;">Order #${orderNumber} has been handed over to the courier partner.</p>
         </div>
 
