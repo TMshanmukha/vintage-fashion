@@ -180,14 +180,6 @@ export const initiateCheckoutService = async (userId, body) => {
 
 };
 
-    } finally {
-
-        connection.release();
-
-    }
-
-};
-
 export const verifyPaymentService = async (userId, body) => {
 
     const {
