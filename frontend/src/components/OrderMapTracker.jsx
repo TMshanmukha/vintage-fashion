@@ -17,9 +17,8 @@ const courierIcon = L.divIcon({
   iconAnchor: [8, 8],
 });
 
-// EDIT THIS to your actual shop/warehouse coordinates.
-// Placeholder is roughly central Bucharest, matching the address on your Contact page.
-const SHOP_LOCATION = { lat: 44.4268, lng: 26.1025 };
+// Real shop location coordinates: Vintage Clothing, Anantapur
+const SHOP_LOCATION = { lat: 14.6759829, lng: 77.6069951 };
 
 // Same matching rules as OrderProgressTracker — kept in sync by hand
 // since Shiprocket's status text isn't a fixed enum. If you add a new
