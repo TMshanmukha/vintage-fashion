@@ -6,7 +6,16 @@ export const sendEmailToUsers = async (req, res) => {
         const { recipientType, userId, subject, body } = req.body;
         const imageUrl = req.file 
             ? (req.file.path || req.file.secure_url || req.file.url) 
-            : (req.body.imageUrl || req.body.image_url || null);
+            : (req.body.imageUrl || req.body.image_url || req.body.bannerUrl || null);
+
+        console.log("sendEmailToUsers payload:", {
+            recipientType,
+            userId,
+            subject,
+            hasFile: !!req.file,
+            hasImageUrl: !!imageUrl,
+            imageUrl: imageUrl ? imageUrl.substring(0, 60) + "..." : null
+        });
 
         if (!subject || !body) {
             return res.status(400).json({ message: "Subject and body are required." });
