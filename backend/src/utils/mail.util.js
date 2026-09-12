@@ -5,9 +5,9 @@ export const sendResetPasswordEmail = async ({
     resetId,
     token
 }) => {
-
+    const frontendUrl = process.env.FRONTEND_URL || "https://vintage-fashion-xi.vercel.app";
     const resetLink =
-        `http://localhost:5173/reset-password?resetId=${resetId}&token=${token}`;
+        `${frontendUrl}/reset-password?resetId=${resetId}&token=${token}`;
 
     const data = await resend.emails.send({
 

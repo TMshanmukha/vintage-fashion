@@ -4,7 +4,7 @@ const formatINR = (value) =>
     new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 2 }).format(value || 0);
 
 export const sendWelcomeEmail = async ({ to, customerName }) => {
-    const storeUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const storeUrl = process.env.FRONTEND_URL || "https://vintage-fashion-xi.vercel.app";
     const name = customerName || "Fashion Enthusiast";
 
     const html = `
@@ -115,7 +115,7 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
 };
 
 export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
-    const storeUrl = process.env.FRONTEND_URL || "http://localhost:5173";
+    const storeUrl = process.env.FRONTEND_URL || "https://vintage-fashion-xi.vercel.app";
 
     const bannerHtml = imageUrl ? `
             <tr>
