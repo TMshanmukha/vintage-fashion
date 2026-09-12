@@ -134,9 +134,10 @@ export default function Checkout() {
   };
 
   const safeCartTotal = isNaN(Number(cartTotal)) ? 0 : Number(cartTotal);
-  const currentShippingFee = shippingInfo ? Number(shippingInfo.shipping_fee) || 0 : 0;
-  const currentDiscount = shippingInfo ? Number(shippingInfo.discount) || 0 : 0;
-  const currentTotal = shippingInfo ? Number(shippingInfo.total) : (safeCartTotal + currentShippingFee);
+  const currentShippingFee = shippingInfo ? (Number(shippingInfo.shipping_fee) || 0) : 0;
+  const currentDiscount = shippingInfo ? (Number(shippingInfo.discount_amount || shippingInfo.discount) || 0) : 0;
+  const calculatedTotal = shippingInfo?.pricing?.total_amount ?? shippingInfo?.total_amount ?? (safeCartTotal - currentDiscount + currentShippingFee);
+  const currentTotal = isNaN(Number(calculatedTotal)) ? (safeCartTotal + currentShippingFee) : Number(calculatedTotal);
 
   const handlePlaceOrder = async () => {
     if (!selectedAddressId) {
