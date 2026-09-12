@@ -11,8 +11,18 @@ const router = Router();
 
 // 1. Rate Calculation (supports logged in users or guests with pincode/address_id)
 router.post("/calculate", (req, res, next) => {
-    if (req.headers.authorization || req.cookies?.token) {
-        authenticate(req, res, next);
+    const hasToken =
+        req.headers.authorization ||
+        req.cookies?.accessToken ||
+        req.cookies?.adminAccessToken ||
+        req.cookies?.token ||
+        req.headers["x-access-token"];
+
+    if (hasToken) {
+        authenticate(req, res, (err) => {
+            // Proceed even if token is expired/invalid so guest pincode calculation still works
+            next();
+        });
     } else {
         next();
     }

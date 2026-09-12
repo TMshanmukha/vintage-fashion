@@ -88,8 +88,9 @@ export default function Checkout() {
 
     try {
       const res = await calculateShippingRate({ address_id: addressId });
-      if (res.data?.success && res.data?.data) {
-        setShippingInfo(res.data.data);
+      const shippingData = res.data?.data || res.data;
+      if (shippingData && (shippingData.delivery_method || shippingData.shipping_fee !== undefined)) {
+        setShippingInfo(shippingData);
         setShippingError(null);
       } else {
         throw new Error(res.data?.message || "Shipping calculation failed.");

@@ -1,3 +1,4 @@
+import pool from "../config/db.js";
 import * as ShippingService from "../services/shipping.service.js";
 import { getAddressById } from "../models/address.model.js";
 import { getOrCreateCart } from "../models/cart.model.js";
@@ -10,23 +11,36 @@ import { recalculateCartForCheckout } from "../services/checkout.service.js";
 export const calculateShipping = async (req, res, next) => {
     try {
         const { address_id, pincode } = req.body;
-        const userId = req.user?.user_id;
+        const userId = req.user?.userId || req.user?.user_id || req.user?.id;
 
         let destinationPincode = pincode;
 
         if (address_id) {
-            if (!userId) {
-                return res.status(401).json({ message: "Authentication required to resolve saved address." });
+            let address = null;
+            if (userId) {
+                address = await getAddressById(userId, address_id);
             }
-            const address = await getAddressById(userId, address_id);
             if (!address) {
-                return res.status(404).json({ message: "Selected address not found." });
+                const [rows] = await pool.query(
+                    `SELECT * FROM user_addresses WHERE address_id = ? LIMIT 1`,
+                    [address_id]
+                );
+                address = rows[0];
+            }
+            if (!address) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Selected address not found. Please reselect or enter your address.",
+                });
             }
             destinationPincode = address.pincode;
         }
 
         if (!destinationPincode) {
-            return res.status(400).json({ message: "Destination pincode or address_id is required." });
+            return res.status(400).json({
+                success: false,
+                message: "Destination pincode or address_id is required.",
+            });
         }
 
         // Get user's cart items to determine weight & dimensions
@@ -53,16 +67,23 @@ export const calculateShipping = async (req, res, next) => {
             subtotal,
         });
 
-        res.json({
-            success: true,
+        const pricing = {
+            subtotal,
+            discount_amount: discountAmount,
+            shipping_fee: deliveryResult.shipping_fee,
+            total_amount: subtotal - discountAmount + deliveryResult.shipping_fee,
+        };
+
+        const responseData = {
             pincode: destinationPincode,
             ...deliveryResult,
-            pricing: {
-                subtotal,
-                discount_amount: discountAmount,
-                shipping_fee: deliveryResult.shipping_fee,
-                total_amount: subtotal - discountAmount + deliveryResult.shipping_fee,
-            },
+            pricing,
+        };
+
+        res.json({
+            success: true,
+            data: responseData,
+            ...responseData,
         });
     } catch (error) {
         console.error("Calculate shipping error:", error.message);
