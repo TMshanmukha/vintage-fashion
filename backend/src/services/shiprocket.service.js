@@ -126,6 +126,14 @@ export async function trackShipment(awbCode) {
 }
 
 // ==========================================================
+// GET SHIPROCKET ORDER DETAILS (Live Status, AWB, Labels)
+// ==========================================================
+export async function getOrderDetails(shiprocketOrderId) {
+  const { data } = await shiprocketApi.get(`/orders/show/${shiprocketOrderId}`);
+  return data;
+}
+
+// ==========================================================
 // CANCEL SHIPMENT
 // ==========================================================
 export async function cancelShipment(awbCode) {
