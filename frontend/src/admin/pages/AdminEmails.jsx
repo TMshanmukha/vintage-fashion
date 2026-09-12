@@ -21,7 +21,7 @@ const RICH_TEMPLATES = [
     icon: "🎁",
     subject: "Grand Festive Sale: Flat 25% OFF on Men's Vintage Wear 🎁",
     bannerUrl: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=1200&auto=format&fit=crop&q=80",
-    body: "Dear Gentleman,\n\nCelebrate the season in classic style and supreme confidence! We are thrilled to announce our Grand Festive Sale with an exclusive 25% discount across our entire curated Men's Vintage Fashion collection.\n\n🎟️ Use Coupon Code: MENSFESTIVE at checkout.\n\nFrom hand-tailored Cuban shirts and classic blazers to raw selvage denim, vintage leather jackets, and heritage festive kurtas, elevate your wardrobe today.\n\nLimited stock per piece. Happy Shopping!",
+    body: "Dear Gentleman,\n\nCelebrate the festive season in classic style and supreme confidence! Our Grand Festive Sale is now live with direct discounts across our entire curated Men's Vintage Fashion collection.\n\nEnjoy Flat 25% OFF on hand-tailored Cuban shirts, classic blazers, raw selvage denim, vintage leather jackets, and heritage festive kurtas.\n\nLimited pieces per vintage design. Explore the collection today!",
   },
   {
     category: "promotions",
@@ -29,15 +29,15 @@ const RICH_TEMPLATES = [
     icon: "⚡",
     subject: "⚡ 24 Hours Only: Flat 40% OFF Signature Men's Fits!",
     bannerUrl: "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=1200&auto=format&fit=crop&q=80",
-    body: "Hi there!\n\nThis is your golden window. For the next 24 hours only, get Flat 40% OFF on all signature Men's vintage jackets, premium tees, and casual shirts.\n\n⚡ Coupon Code: MENFLASH40\n\nStock is strictly limited to 1-2 pieces per vintage design. Once sold out, these rare pieces won't restock.\n\nClaim your style before the timer runs out!",
+    body: "Hi there!\n\nThis is your golden window. For the next 24 hours only, enjoy direct 40% OFF discounts on all signature Men's vintage jackets, premium tees, and casual shirts.\n\nStock is strictly limited to 1-2 pieces per vintage design. Once sold out, these rare pieces won't restock.\n\nClaim your style before the timer runs out!",
   },
   {
     category: "promotions",
-    label: "🛍️ Men's Buy 2 Get 1 Free Promo",
+    label: "🛍️ Men's Buy 2 Get 1 Special",
     icon: "🛍️",
-    subject: "Gentleman's Special: Buy Any 2 Items & Get 1 FREE! 🛍️",
+    subject: "Gentleman's Special: Buy Any 2 Items & Get 1 Free! 🛍️",
     bannerUrl: "https://images.unsplash.com/photo-1489987707025-afc232f7ea0f?w=1200&auto=format&fit=crop&q=80",
-    body: "Hello Styler,\n\nUpgrade your wardrobe for less! For a limited time, when you add any 3 Men's items from our collection to your bag, the lowest-priced item is completely FREE on us.\n\n🛍️ Use Code: MENSB2G1 at checkout.\n\nMix and match your favorite printed shirts, retro trousers, heavyweight tees, and accessories today!",
+    body: "Hello Styler,\n\nUpgrade your wardrobe with timeless classics! For a limited time, explore our exclusive Buy 2 Get 1 special across our entire Men's vintage catalog.\n\nMix and match your favorite printed shirts, retro trousers, heavyweight tees, and jackets today.\n\nVisit our storefront to discover the curated styles waiting for you!",
   },
   {
     category: "launches",
@@ -57,11 +57,11 @@ const RICH_TEMPLATES = [
   },
   {
     category: "vip",
-    label: "💎 VIP Gentleman's Club Reward",
+    label: "💎 VIP Gentleman's Club Perks",
     icon: "💎",
-    subject: "An Exclusive VIP Gift Just for You, From Vintage Fashion 💎",
+    subject: "VIP Gentleman's Privilege: Early Drop Access & Priority Shipping 💎",
     bannerUrl: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?w=1200&auto=format&fit=crop&q=80",
-    body: "Dear VIP Patron,\n\nAs one of our most valued gentlemen, we would love to treat you to an exclusive ₹500 voucher on your next shopping journey.\n\n💎 Coupon Code: GENTLEMANVIP\n\nEnjoy complimentary express shipping, early access to limited edition drops, and priority customer support on every order.\n\nThank you for making Vintage Fashion your trusted style destination!",
+    body: "Dear VIP Patron,\n\nAs one of our most valued gentlemen, we are delighted to offer you priority access to all new vintage menswear drops and complimentary express doorstep shipping.\n\nThank you for making Vintage Fashion your premier style destination. Explore the newest catalog today!",
   },
   {
     category: "customer_care",

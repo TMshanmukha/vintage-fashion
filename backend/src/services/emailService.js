@@ -197,19 +197,6 @@ const formatEmailBody = (rawBody) => {
         const trimmed = p.trim();
         if (!trimmed) return "";
 
-        // Highlight coupon or promo discount blocks
-        if (/(coupon|code|voucher|🎟️|⚡|🛍️|💎|discount)/i.test(trimmed) && (trimmed.includes(":") || trimmed.includes("checkout") || trimmed.includes("OFF") || trimmed.includes("Free") || trimmed.includes("FREE"))) {
-            return `
-            <table border="0" cellpadding="0" cellspacing="0" width="100%" class="mobile-coupon-card" style="margin:16px 0;background-color:#fdf2f8;border:1.5px dashed #f472b6;border-radius:12px;">
-                <tr>
-                    <td align="center" style="padding:14px 18px;color:#db2777;font-size:14px;font-weight:700;letter-spacing:0.5px;line-height:1.5;">
-                        ${trimmed.replace(/\r?\n/g, "<br>")}
-                    </td>
-                </tr>
-            </table>`;
-        }
-
-        // Standard clean paragraph
         return `<p class="mobile-paragraph" style="margin:0 0 16px;font-size:15px;line-height:1.75;color:#334155;letter-spacing:0.2px;">${trimmed.replace(/\r?\n/g, "<br>")}</p>`;
     }).join("");
 };
