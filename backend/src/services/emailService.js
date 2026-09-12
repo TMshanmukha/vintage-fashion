@@ -194,39 +194,70 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
     }
 };
 
+const formatEmailBody = (rawBody) => {
+    if (!rawBody) return "";
+
+    // Split by double or single line breaks into paragraphs
+    const paragraphs = rawBody.split(/\r?\n\r?\n/);
+
+    return paragraphs.map(p => {
+        const trimmed = p.trim();
+        if (!trimmed) return "";
+
+        // Highlight coupon or promo discount blocks
+        if (/(coupon|code|voucher|🎟️|⚡|🛍️|💎|discount)/i.test(trimmed) && (trimmed.includes(":") || trimmed.includes("checkout") || trimmed.includes("OFF"))) {
+            return `
+            <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:20px 0;background-color:#fdf2f8;border:1.5px dashed #f472b6;border-radius:12px;">
+                <tr>
+                    <td align="center" style="padding:16px 20px;color:#db2777;font-size:15px;font-weight:700;letter-spacing:0.5px;line-height:1.6;">
+                        ${trimmed.replace(/\r?\n/g, "<br>")}
+                    </td>
+                </tr>
+            </table>`;
+        }
+
+        // Standard clean paragraph
+        return `<p style="margin:0 0 16px;font-size:15px;line-height:1.8;color:#334155;letter-spacing:0.2px;">${trimmed.replace(/\r?\n/g, "<br>")}</p>`;
+    }).join("");
+};
+
 // 2. Admin Promotional & Broadcast Email
 export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
-    const formattedBody = (body || "").replace(/\r\n/g, "<br>").replace(/\n/g, "<br>");
+    const formattedContent = formatEmailBody(body);
 
     const contentHtml = `
-        <h2 style="margin:0 0 16px;color:#0f172a;font-size:22px;font-weight:800;line-height:1.3;letter-spacing:-0.3px;">
+        <h2 style="margin:0 0 20px;color:#0f172a;font-size:22px;font-weight:800;line-height:1.35;letter-spacing:-0.3px;">
             ${subject}
         </h2>
 
-        <div style="font-size:15px;line-height:1.8;color:#334155;background-color:#fafafa;padding:20px 22px;border-radius:14px;border-left:4px solid #ec4899;margin-bottom:16px;">
-            ${formattedBody}
+        <div style="margin-bottom:10px;">
+            ${formattedContent}
         </div>
     `;
 
     const html = buildEmailTemplate({
-        badge: "EXCLUSIVE UPDATE",
+        badge: "OFFICIAL ANNOUNCEMENT",
         bannerImageUrl: imageUrl || null,
         subjectTitle: subject,
         contentHtml,
         ctaButtonText: "Shop Vintage Collection",
         ctaButtonUrl: STORE_URL,
-        footerNote: "This official update was dispatched directly by the Vintage Fashion Team."
+        footerNote: "This official update was dispatched directly by the Vintage Fashion Management Team."
     });
 
-    const data = await resend.emails.send({
-        from: "Vintage Fashion <onboarding@resend.dev>",
-        to,
-        subject,
-        html
-    });
-
-    console.log("Admin broadcast email sent:", data);
-    return data;
+    try {
+        const data = await resend.emails.send({
+            from: "Vintage Fashion <onboarding@resend.dev>",
+            to,
+            subject,
+            html
+        });
+        console.log("Admin broadcast email sent to", to, ":", data);
+        return data;
+    } catch (err) {
+        console.error("Failed to send admin email to", to, ":", err.message);
+        throw err;
+    }
 };
 
 // 3. Order Confirmation & Payment Receipt
