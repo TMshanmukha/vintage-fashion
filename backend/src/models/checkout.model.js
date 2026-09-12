@@ -5,8 +5,8 @@ export const createOrder = async (connection, order) => {
     const [result] = await connection.query(
         `
         INSERT INTO orders
-            (user_id, shipping_address_id, order_number, subtotal, discount_amount, shipping_fee, tax_amount, total_amount, order_status, payment_status)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')
+            (user_id, shipping_address_id, order_number, subtotal, discount_amount, shipping_fee, tax_amount, total_amount, delivery_method, shipping_status, order_status, payment_status)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', 'pending')
         `,
         [
             order.user_id,
@@ -16,7 +16,9 @@ export const createOrder = async (connection, order) => {
             order.discount_amount,
             order.shipping_fee,
             order.tax_amount,
-            order.total_amount
+            order.total_amount,
+            order.delivery_method || 'COURIER',
+            order.shipping_status || null
         ]
     );
 

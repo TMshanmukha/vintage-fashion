@@ -202,15 +202,15 @@ export default function Cart() {
                   <span className="font-semibold text-pink-500">− ₹ {totalSavings.toFixed(2)}</span>
                 </div>
               )}
-              <div className="flex justify-between text-sm">
+              <div className="flex justify-between text-sm items-center">
                 <span className="text-gray-500">Shipping</span>
-                <span className="font-semibold text-green-500">
-                  {shippingFee === 0 ? "Free" : `₹ ${shippingFee.toFixed(2)}`}
+                <span className="font-semibold text-gray-500 text-xs">
+                  Calculated at Checkout
                 </span>
               </div>
               <div className="border-t border-gray-200 pt-3 flex justify-between text-sm font-bold">
-                <span>Total</span>
-                <span>₹ {total.toFixed(2)}</span>
+                <span>Subtotal</span>
+                <span>₹ {safeCartTotal.toFixed(2)}</span>
               </div>
             </div>
 

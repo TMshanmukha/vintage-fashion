@@ -182,3 +182,89 @@ export const changeReturnStatus = async (returnId, action) => {
 
     return { success: true, status: nextStatus };
 };
+
+export const changeDeliveryMethod = async (orderId, deliveryMethod) => {
+    const order = await OrderModel.getOrderById(orderId);
+    if (!order) return null;
+
+    const method = String(deliveryMethod).toUpperCase();
+    if (!["LOCAL", "COURIER"].includes(method)) {
+        throw new Error("Invalid delivery method. Allowed: LOCAL, COURIER");
+    }
+
+    await OrderModel.updateDeliveryMethod(orderId, method);
+
+    try {
+        getIO().to(`user:${order.user_id}`).emit("order:delivery-method-changed", {
+            orderId,
+            delivery_method: method,
+        });
+        getIO().to("admins").emit("admin:order-updated", {
+            orderId,
+            delivery_method: method,
+        });
+    } catch (err) {
+        console.warn("Socket emit skipped:", err.message);
+    }
+
+    return { success: true, delivery_method: method };
+};
+
+export const changeLocalDeliveryStatus = async (orderId, action) => {
+    const order = await OrderModel.getOrderById(orderId);
+    if (!order) return null;
+
+    let orderStatus = order.order_status;
+    let shippingStatus = order.shipping_status;
+
+    switch (action) {
+        case "ready_for_delivery":
+            shippingStatus = "READY_FOR_DELIVERY";
+            orderStatus = "processing";
+            break;
+        case "out_for_delivery":
+            shippingStatus = "OUT_FOR_DELIVERY";
+            orderStatus = "shipped";
+            break;
+        case "delivered":
+            shippingStatus = "DELIVERED";
+            orderStatus = "delivered";
+            break;
+        default:
+            throw new Error("Invalid local delivery action. Allowed: ready_for_delivery, out_for_delivery, delivered");
+    }
+
+    await OrderModel.updateLocalDeliveryStatus(orderId, {
+        order_status: orderStatus,
+        shipping_status: shippingStatus
+    });
+
+    const statusLabel = shippingStatus.replace(/_/g, " ");
+    await NotificationService.createNotification({
+        title: "Local Delivery Status Updated",
+        body: `Order #${order.order_number} is now ${statusLabel}`,
+        type: "order",
+        referenceId: orderId,
+    });
+
+    try {
+        getIO().to(`user:${order.user_id}`).emit("order:status-changed", {
+            orderId,
+            order_status: orderStatus,
+            shipping_status: shippingStatus,
+        });
+        getIO().to("admins").emit("admin:order-updated", {
+            orderId,
+            order_status: orderStatus,
+            shipping_status: shippingStatus,
+        });
+    } catch (err) {
+        console.warn("Socket emit skipped:", err.message);
+    }
+
+    return {
+        success: true,
+        order_status: orderStatus,
+        shipping_status: shippingStatus
+    };
+};

@@ -10,6 +10,7 @@ import * as featuredApi from "../../api/featuredProductApi";
 import * as flashSaleApi from "../../api/flashSaleApi";
 import * as sectionApi from "../../api/homepageSectionApi";
 import * as productPickerApi from "../../api/ProductPickerApi";
+import * as shippingApi from "../../api/shippingApi";
 import { useEffect, useMemo, useState } from "react";
 
 export default function AdminMarketing() {
@@ -19,6 +20,22 @@ export default function AdminMarketing() {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3000);
   }
+
+  /* ============== SHIPPING & STORE LOCATION SETTINGS ============== */
+  const [shippingSettings, setShippingSettings] = useState({
+    shop_name: "Vintage Fashion",
+    shop_address: "Old Town, Boya Vedi Street",
+    shop_city: "Anantapur",
+    shop_state: "Andhra Pradesh",
+    shop_country: "India",
+    pickup_pincode: "515001",
+    local_delivery_enabled: true,
+    local_delivery_pincodes: "515001, 515002, 515003, 515004, 515005",
+    local_delivery_charge: 0,
+    courier_delivery_enabled: true,
+    courier_provider: "Shiprocket",
+  });
+  const [savingShipping, setSavingShipping] = useState(false);
 
   /* ============== ANNOUNCEMENT BAR ============== */
   const [settings, setSettings] = useState({
@@ -101,6 +118,7 @@ export default function AdminMarketing() {
     setLoading(true);
     try {
       await Promise.all([
+        loadShippingSettings(),
         loadSettings(),
         loadBanners(),
         loadCards(),
@@ -114,6 +132,17 @@ export default function AdminMarketing() {
       console.error("Failed to load marketing data:", err);
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function loadShippingSettings() {
+    try {
+      const res = await shippingApi.getAdminShippingSettings();
+      if (res.data?.data) {
+        setShippingSettings((prev) => ({ ...prev, ...res.data.data }));
+      }
+    } catch (err) {
+      console.error("Failed to load shipping settings:", err);
     }
   }
 
@@ -158,6 +187,7 @@ export default function AdminMarketing() {
           (category) =>
             category.is_active === true ||
             category.is_active === 1 ||
+            category.is_active === "true" ||
             category.is_active === "1"
         )
       );
@@ -173,18 +203,19 @@ export default function AdminMarketing() {
 
   async function loadFlashSales() {
     const res = await flashSaleApi.getFlashSales();
-    setFlashSales(res.data?.data || []);
-    if (res.data?.data?.[0]) {
-      const f = res.data.data[0];
+    const sales = res.data?.data || [];
+    setFlashSales(sales);
+    if (sales[0]) {
+      const s = sales[0];
       setFlashForm({
-        title: f.title || "",
-        description: f.description || "",
-        discount_value: f.discount_value || "",
-        badge: f.badge || "",
-        button_text: f.button_text || "Shop Now",
-        button_link: f.button_link || "/shop",
-        start_date: f.start_date?.slice(0, 16) || "",
-        end_date: f.end_date?.slice(0, 16) || "",
+        title: s.title || "",
+        description: s.description || "",
+        discount_value: s.discount_value ?? "",
+        badge: s.badge || "",
+        button_text: s.button_text || "Shop Now",
+        button_link: s.button_link || "/shop",
+        start_date: s.start_date ? s.start_date.slice(0, 16) : "",
+        end_date: s.end_date ? s.end_date.slice(0, 16) : "",
       });
     }
   }
@@ -203,6 +234,25 @@ export default function AdminMarketing() {
     } catch (err) {
       console.error("Could not load products for picker:", err);
       showToast("Could not load products list.", "error");
+    }
+  }
+
+  /* ==========================================================
+     SHIPPING & STORE LOCATION
+  ========================================================== */
+  async function handleSaveShippingSettings() {
+    setSavingShipping(true);
+    try {
+      await shippingApi.updateAdminShippingSettings(shippingSettings);
+      showToast("Shipping and delivery settings updated.");
+    } catch (err) {
+      console.error("Failed to save shipping settings:", err);
+      showToast(
+        err?.response?.data?.message || "Could not save shipping settings.",
+        "error"
+      );
+    } finally {
+      setSavingShipping(false);
     }
   }
 
@@ -536,6 +586,202 @@ export default function AdminMarketing() {
 
       <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
         <div className="max-w-7xl mx-auto space-y-6 sm:space-y-8">
+
+          {/* Dual Delivery & Store Location Settings */}
+          <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                  <span>🚚</span> Dual Delivery & Shop Location Settings
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Configure your primary shop pickup origin (Anantapur) and delivery channels (Local Store Delivery vs. Shiprocket Courier).
+                </p>
+              </div>
+            </div>
+
+            {/* Shop Origin Location */}
+            <div className="mb-6 p-4 bg-gray-50/70 border border-gray-200/80 rounded-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                  <span>📍</span> Shop Pickup Location (Origin)
+                </h3>
+                <a
+                  href="https://www.google.com/maps/search/?api=1&query=Anantapur+Old+Town+Boya+Vedi+Street+shop+Vintage"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-semibold text-pink-600 hover:text-pink-700 flex items-center gap-1"
+                >
+                  <span>View on Google Maps</span>
+                  <span>↗</span>
+                </a>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Store / Brand Name</label>
+                  <input
+                    type="text"
+                    value={shippingSettings.shop_name || ""}
+                    onChange={(e) => setShippingSettings((s) => ({ ...s, shop_name: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs bg-white focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Street Address</label>
+                  <input
+                    type="text"
+                    value={shippingSettings.shop_address || ""}
+                    onChange={(e) => setShippingSettings((s) => ({ ...s, shop_address: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs bg-white focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">City</label>
+                  <input
+                    type="text"
+                    value={shippingSettings.shop_city || ""}
+                    onChange={(e) => setShippingSettings((s) => ({ ...s, shop_city: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs bg-white focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">State</label>
+                  <input
+                    type="text"
+                    value={shippingSettings.shop_state || ""}
+                    onChange={(e) => setShippingSettings((s) => ({ ...s, shop_state: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs bg-white focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-600 mb-1.5">Country</label>
+                  <input
+                    type="text"
+                    value={shippingSettings.shop_country || ""}
+                    onChange={(e) => setShippingSettings((s) => ({ ...s, shop_country: e.target.value }))}
+                    className="w-full border border-gray-200 rounded-xl px-3.5 py-2.5 text-xs bg-white focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-800 mb-1.5">Pickup Pincode *</label>
+                  <input
+                    type="text"
+                    value={shippingSettings.pickup_pincode || ""}
+                    onChange={(e) => setShippingSettings((s) => ({ ...s, pickup_pincode: e.target.value }))}
+                    placeholder="e.g. 515001"
+                    className="w-full border border-pink-300 rounded-xl px-3.5 py-2.5 text-xs bg-white font-bold text-gray-900 focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Delivery Channels Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+              {/* Local Delivery Option */}
+              <div className="p-4 border border-emerald-200 bg-emerald-50/20 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🛵</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-950 uppercase tracking-wide">Local Store Delivery</h4>
+                      <p className="text-[11px] text-emerald-700">Delivered directly from Anantapur store</p>
+                    </div>
+                  </div>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={Boolean(shippingSettings.local_delivery_enabled)}
+                      onChange={(e) =>
+                        setShippingSettings((s) => ({ ...s, local_delivery_enabled: e.target.checked }))
+                      }
+                    />
+                    <div className="w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-emerald-600 relative after:absolute after:left-0.5 after:top-0.5 after:bg-white after:h-4 after:w-4 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Local Serviceable Pincodes (comma separated)</label>
+                  <input
+                    type="text"
+                    value={shippingSettings.local_delivery_pincodes || ""}
+                    onChange={(e) =>
+                      setShippingSettings((s) => ({ ...s, local_delivery_pincodes: e.target.value }))
+                    }
+                    placeholder="515001, 515002, 515003, 515004, 515005"
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-700 mb-1">Local Delivery Charge (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={shippingSettings.local_delivery_charge ?? 0}
+                    onChange={(e) =>
+                      setShippingSettings((s) => ({ ...s, local_delivery_charge: Number(e.target.value) || 0 }))
+                    }
+                    className="w-full border border-gray-200 rounded-xl px-3 py-2 text-xs bg-white focus:ring-2 focus:ring-emerald-500 outline-none"
+                  />
+                  <span className="text-[10px] text-gray-500 mt-0.5 block">Set 0 for Free Delivery on local orders.</span>
+                </div>
+              </div>
+
+              {/* Courier Delivery Option */}
+              <div className="p-4 border border-blue-200 bg-blue-50/20 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">🚚</span>
+                    <div>
+                      <h4 className="text-xs font-bold text-blue-950 uppercase tracking-wide">Express Courier Delivery</h4>
+                      <p className="text-[11px] text-blue-700">All India Courier via Shiprocket</p>
+                    </div>
+                  </div>
+                  <label className="inline-flex items-center cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="sr-only peer"
+                      checked={Boolean(shippingSettings.courier_delivery_enabled)}
+                      onChange={(e) =>
+                        setShippingSettings((s) => ({ ...s, courier_delivery_enabled: e.target.checked }))
+                      }
+                    />
+                    <div className="w-10 h-5 bg-gray-300 rounded-full peer peer-checked:bg-blue-600 relative after:absolute after:left-0.5 after:top-0.5 after:bg-white after:h-4 after:w-4 after:rounded-full after:transition-all peer-checked:after:translate-x-5"></div>
+                  </label>
+                </div>
+
+                <div className="p-3 bg-white border border-blue-100 rounded-lg text-xs space-y-1.5 text-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-600">Provider:</span>
+                    <span className="font-bold text-blue-900">Shiprocket Live API</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="font-semibold text-gray-600">Rate Calculation:</span>
+                    <span className="text-emerald-700 font-semibold">Real-Time Prepaid Courier Rates</span>
+                  </div>
+                  <p className="text-[11px] text-gray-500 pt-1">
+                    Calculates live rates based on pickup pincode, destination pincode, weight, and box dimensions. Unserviceable pincodes block checkout safely without fake rates.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                type="button"
+                disabled={savingShipping}
+                onClick={handleSaveShippingSettings}
+                className="bg-gray-900 hover:bg-gray-800 disabled:opacity-50 text-white px-6 py-2.5 rounded-xl font-bold text-xs transition shadow-sm"
+              >
+                {savingShipping ? "Saving Settings…" : "Save Shipping & Location Settings"}
+              </button>
+            </div>
+          </section>
 
           {/* Announcement Bar */}
           <section className="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-6">

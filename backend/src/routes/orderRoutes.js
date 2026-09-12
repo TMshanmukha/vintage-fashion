@@ -8,7 +8,9 @@ import {
     changePaymentStatus,
     getStats,
     listReturns,
-    changeReturnStatus
+    changeReturnStatus,
+    changeDeliveryMethod,
+    changeLocalDeliveryStatus
 } from "../controllers/orderController.js";
 
 const router = Router();
@@ -22,5 +24,7 @@ router.get("/", listOrders);
 router.get("/:orderId", getOrder);
 router.patch("/:orderId/status", changeOrderStatus);
 router.patch("/:orderId/payment-status", changePaymentStatus);
+router.patch("/:orderId/delivery-method", changeDeliveryMethod);
+router.patch("/:orderId/local-delivery-status", changeLocalDeliveryStatus);
 
 export default router;

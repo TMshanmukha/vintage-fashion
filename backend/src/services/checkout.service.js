@@ -33,25 +33,7 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
-// Mirrors frontend/utils/shipping.js — keep both in sync if you change either.
-// TODO: consider adding a real `free_shipping_threshold` column to
-// website_settings instead of parsing a number out of announcement_text.
-const SHIPPING_FEE = 40;
-const DEFAULT_THRESHOLD = 999;
-
-function getFreeShippingThreshold(announcementText) {
-
-    if (!announcementText) return DEFAULT_THRESHOLD;
-
-    const match = announcementText.replace(/,/g, "").match(/(\d+(\.\d+)?)/);
-
-    if (!match) return DEFAULT_THRESHOLD;
-
-    const value = Number(match[1]);
-
-    return Number.isFinite(value) && value > 0 ? value : DEFAULT_THRESHOLD;
-
-}
+import { determineDeliveryMethodAndRate } from "./shipping.service.js";
 
 // The ONLY place order pricing gets computed. Cart values (frozen at
 // add-to-cart time) are never trusted directly here — every item's
@@ -98,12 +80,22 @@ export const initiateCheckoutService = async (userId, body) => {
         0
     );
 
-    const settings = await getWebsiteSettings();
-    const threshold = getFreeShippingThreshold(settings?.announcement_text);
-    const shippingFee = subtotal >= threshold ? 0 : SHIPPING_FEE;
+    // Server-side verified delivery method & shipping calculation (Local vs Courier)
+    // Frontend shipping amounts are never trusted — rates are strictly computed from DB / Courier APIs
+    const deliveryResult = await determineDeliveryMethodAndRate({
+        destinationPincode: address.pincode,
+        cartItems: pricedItems,
+        subtotal,
+    });
 
+    const deliveryMethod = deliveryResult.delivery_method; // 'LOCAL' or 'COURIER'
+    const shippingFee = Number(deliveryResult.shipping_fee || 0);
     const taxAmount = 0;
-    const totalAmount = subtotal + shippingFee + taxAmount;
+    const totalAmount = subtotal - discountAmount + shippingFee + taxAmount;
+
+    if (totalAmount <= 0) {
+        throw new Error("Invalid order total amount.");
+    }
 
     const orderNumber = generateOrderNumber();
 
@@ -121,17 +113,26 @@ export const initiateCheckoutService = async (userId, body) => {
             discount_amount: discountAmount,
             shipping_fee: shippingFee,
             tax_amount: taxAmount,
-            total_amount: totalAmount
+            total_amount: totalAmount,
+            delivery_method: deliveryMethod,
+            shipping_status: deliveryMethod === "LOCAL" ? "Pending Local Delivery" : "Pending Shipment"
         });
 
         for (const item of pricedItems) {
             await createOrderItem(connection, orderId, item);
         }
 
+        // Razorpay order amount strictly includes the server-verified shipping fee
         const razorpayOrder = await razorpay.orders.create({
             amount: Math.round(totalAmount * 100), // paise
             currency: "INR",
-            receipt: orderNumber
+            receipt: orderNumber,
+            notes: {
+                order_number: orderNumber,
+                delivery_method: deliveryMethod,
+                pincode: address.pincode,
+                shipping_fee: String(shippingFee)
+            }
         });
 
         await createPayment(connection, {
@@ -149,6 +150,13 @@ export const initiateCheckoutService = async (userId, body) => {
             amount: totalAmount,
             currency: "INR",
             key_id: process.env.RAZORPAY_KEY_ID,
+            delivery: {
+                method: deliveryMethod,
+                is_local: deliveryResult.is_local,
+                courier_name: deliveryResult.courier_name,
+                etd: deliveryResult.etd,
+                description: deliveryResult.description
+            },
             pricing: {
                 subtotal,
                 discount_amount: discountAmount,
@@ -163,6 +171,14 @@ export const initiateCheckoutService = async (userId, body) => {
 
         await connection.rollback();
         throw error;
+
+    } finally {
+
+        connection.release();
+
+    }
+
+};
 
     } finally {
 

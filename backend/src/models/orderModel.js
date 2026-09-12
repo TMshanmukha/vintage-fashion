@@ -24,6 +24,7 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
     o.total_amount,
     o.order_status,
     o.payment_status,
+    o.delivery_method,
     o.shipment_id,
     o.awb_number,
     o.courier_name,
@@ -269,5 +270,26 @@ export const updateShippingStatus = async (orderId, { shipping_status, delivered
     WHERE order_id = ?
     `,
     [shipping_status, delivered_at || null, orderId]
+  );
+};
+
+export const updateDeliveryMethod = async (orderId, deliveryMethod) => {
+  await pool.query(
+    `UPDATE orders SET delivery_method = ? WHERE order_id = ?`,
+    [deliveryMethod, orderId]
+  );
+};
+
+export const updateLocalDeliveryStatus = async (orderId, { order_status, shipping_status }) => {
+  const isDelivered = order_status === "delivered" || shipping_status === "DELIVERED";
+  await pool.query(
+    `
+    UPDATE orders
+    SET order_status = COALESCE(?, order_status),
+        shipping_status = COALESCE(?, shipping_status),
+        delivered_at = IF(?, NOW(), delivered_at)
+    WHERE order_id = ?
+    `,
+    [order_status || null, shipping_status || null, isDelivered, orderId]
   );
 };

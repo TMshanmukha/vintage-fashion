@@ -133,3 +133,41 @@ export const changeReturnStatus = async (req, res) => {
         res.status(500).json({ message: "Failed to update return status." });
     }
 };
+
+// PATCH /api/orders/:orderId/delivery-method
+// body: { delivery_method } — "LOCAL" | "COURIER"
+export const changeDeliveryMethod = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { delivery_method } = req.body;
+
+        if (!delivery_method || !["LOCAL", "COURIER"].includes(delivery_method.toUpperCase())) {
+            return res.status(400).json({ message: "Invalid delivery method. Allowed: LOCAL, COURIER" });
+        }
+
+        const result = await OrderService.changeDeliveryMethod(orderId, delivery_method.toUpperCase());
+        if (!result) return res.status(404).json({ message: "Order not found." });
+
+        res.json({ success: true, message: `Delivery method updated to ${delivery_method.toUpperCase()}`, delivery_method: delivery_method.toUpperCase() });
+    } catch (err) {
+        console.error("Change Delivery Method Error:", err);
+        res.status(500).json({ message: err.message || "Failed to update delivery method." });
+    }
+};
+
+// PATCH /api/orders/:orderId/local-delivery-status
+// body: { action } — "ready_for_delivery" | "out_for_delivery" | "delivered"
+export const changeLocalDeliveryStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const { action } = req.body;
+
+        const result = await OrderService.changeLocalDeliveryStatus(orderId, action);
+        if (!result) return res.status(404).json({ message: "Order not found." });
+
+        res.json({ success: true, message: "Local delivery status updated.", ...result });
+    } catch (err) {
+        console.error("Change Local Delivery Status Error:", err);
+        res.status(500).json({ message: err.message || "Failed to update local delivery status." });
+    }
+};

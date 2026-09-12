@@ -313,7 +313,17 @@ export const sendAdminEmail = async ({ to, customerName, subject, body, imageUrl
 };
 
 // 3. Order Confirmation & Payment Receipt
-export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber, items = [], totalAmount }) => {
+export const sendOrderConfirmationEmail = async ({
+    to,
+    customerName,
+    orderNumber,
+    items = [],
+    subtotal = 0,
+    discountAmount = 0,
+    shippingFee = 0,
+    deliveryMethod = "COURIER",
+    totalAmount,
+}) => {
     const name = customerName || "Valued Customer";
     const subject = `Order Confirmed — #${orderNumber} ✨`;
 
@@ -330,6 +340,12 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
             </td>
         </tr>
     `).join("");
+
+    const isLocal = deliveryMethod === "LOCAL";
+    const deliveryMethodLabel = isLocal ? "🛵 Local Delivery (Anantapur Store)" : "🚚 Express Courier Delivery";
+    const footerNoteText = isLocal
+        ? "Our Anantapur team is preparing your package and will personally deliver it to your address."
+        : "We are carefully packaging your curated vintage pieces and will email you as soon as the courier tracking AWB is assigned.";
 
     const contentHtml = `
         <div style="text-align:center;margin-bottom:20px;">
@@ -354,6 +370,12 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
                                 </span>
                             </td>
                         </tr>
+                        <tr>
+                            <td colspan="2" style="padding-top:10px;border-top:1px dashed #e2e8f0;margin-top:10px;">
+                                <span style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;">Delivery Method</span>
+                                <strong style="font-size:13px;color:#0f172a;">${deliveryMethodLabel}</strong>
+                            </td>
+                        </tr>
                     </table>
                 </td>
             </tr>
@@ -372,11 +394,27 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
             </tbody>
         </table>
 
-        <!-- Total Paid -->
-        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:14px 0;padding-top:8px;">
+        <!-- Price Breakdown -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:14px 0;padding-top:10px;border-top:1px solid #f1f5f9;">
+            ${Number(subtotal) > 0 ? `
             <tr>
-                <td style="font-size:15px;font-weight:800;color:#0f172a;">Total Amount Paid</td>
-                <td align="right" style="font-size:18px;font-weight:900;color:#ec4899;">
+                <td style="font-size:13px;color:#64748b;padding:4px 0;">Subtotal</td>
+                <td align="right" style="font-size:13px;font-weight:600;color:#0f172a;padding:4px 0;">${formatINR(subtotal)}</td>
+            </tr>` : ""}
+            ${Number(discountAmount) > 0 ? `
+            <tr>
+                <td style="font-size:13px;color:#059669;padding:4px 0;">Discount Savings</td>
+                <td align="right" style="font-size:13px;font-weight:700;color:#059669;padding:4px 0;">- ${formatINR(discountAmount)}</td>
+            </tr>` : ""}
+            <tr>
+                <td style="font-size:13px;color:#64748b;padding:4px 0;">Shipping (${isLocal ? "Local Delivery" : "Courier"})</td>
+                <td align="right" style="font-size:13px;font-weight:600;color:#0f172a;padding:4px 0;">
+                    ${Number(shippingFee) === 0 ? '<span style="color:#059669;font-weight:700;">FREE</span>' : formatINR(shippingFee)}
+                </td>
+            </tr>
+            <tr>
+                <td style="font-size:15px;font-weight:800;color:#0f172a;padding-top:10px;border-top:1px dashed #e2e8f0;">Total Amount Paid</td>
+                <td align="right" style="font-size:18px;font-weight:900;color:#ec4899;padding-top:10px;border-top:1px dashed #e2e8f0;">
                     ${formatINR(totalAmount)}
                 </td>
             </tr>
@@ -389,7 +427,7 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
         contentHtml,
         ctaButtonText: "View Order Status",
         ctaButtonUrl: `${STORE_URL}/my-account`,
-        footerNote: "We are carefully packaging your curated vintage pieces and will email you as soon as the courier is assigned."
+        footerNote: footerNoteText,
     });
 
     try {

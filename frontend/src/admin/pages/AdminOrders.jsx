@@ -14,6 +14,10 @@ import {
   trackShipment,
   cancelShipment,
 } from "../../api/orderApi";
+import {
+  updateOrderDeliveryMethod,
+  updateLocalDeliveryStatus,
+} from "../../api/shippingApi";
 import useAdminSocket from "../../hooks/Useadminsocket";
 
 const PAYMENT_STATUSES = ["pending", "success", "failed", "refunded"];
@@ -31,7 +35,7 @@ const orderStatusStyles = {
   pending: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200", dot: "bg-amber-500", label: "Pending" },
   confirmed: { bg: "bg-sky-50", text: "text-sky-700", border: "border-sky-200", dot: "bg-sky-500", label: "Confirmed" },
   processing: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", dot: "bg-indigo-500", label: "Processing" },
-  shipped: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", dot: "bg-purple-500", label: "Shipped" },
+  shipped: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", dot: "bg-purple-500", label: "Shipped / In Transit" },
   delivered: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", label: "Delivered" },
   cancelled: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200", dot: "bg-red-500", label: "Cancelled" },
   returned: { bg: "bg-gray-100", text: "text-gray-700", border: "border-gray-300", dot: "bg-gray-500", label: "Returned" },
@@ -131,9 +135,9 @@ export default function AdminOrders() {
   }, []);
 
   useAdminSocket({
-    "admin:order-updated": ({ orderId, order_status }) => {
+    "admin:order-updated": (data) => {
       setOrders((current) =>
-        current.map((o) => (o.order_id === orderId ? { ...o, order_status } : o))
+        current.map((o) => (o.order_id === data.orderId ? { ...o, ...data } : o))
       );
       loadStats();
     },
@@ -142,6 +146,43 @@ export default function AdminOrders() {
   const handleTabChange = (newStatus) => {
     setStatus(newStatus);
     setPage(1);
+  };
+
+  const handleDeliveryMethodChange = async (orderId, newMethod) => {
+    setActionLoadingId(orderId);
+    try {
+      await updateOrderDeliveryMethod(orderId, newMethod);
+      toast.success(`Delivery method updated to ${newMethod}.`);
+      setOrders((prev) =>
+        prev.map((o) => (o.order_id === orderId ? { ...o, delivery_method: newMethod } : o))
+      );
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update delivery method.");
+      console.error(err);
+    } finally {
+      setActionLoadingId(null);
+    }
+  };
+
+  const handleLocalStatusChange = async (orderId, action) => {
+    setActionLoadingId(orderId);
+    try {
+      const res = await updateLocalDeliveryStatus(orderId, action);
+      toast.success(res.message || "Local delivery status updated.");
+      setOrders((prev) =>
+        prev.map((o) =>
+          o.order_id === orderId
+            ? { ...o, order_status: res.order_status, shipping_status: res.shipping_status }
+            : o
+        )
+      );
+      loadStats();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to update local delivery status.");
+      console.error(err);
+    } finally {
+      setActionLoadingId(null);
+    }
   };
 
   const handleConfirm = async (order) => {
@@ -414,14 +455,14 @@ export default function AdminOrders() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs min-w-[1000px]">
+                <table className="w-full text-left text-xs min-w-[1100px]">
                   <thead className="bg-gray-50/80 text-[11px] font-bold uppercase tracking-wider text-gray-600 border-b border-gray-200">
                     <tr>
                       <th className="py-4 px-5">Order #</th>
                       <th className="py-4 px-5">Customer</th>
                       <th className="py-4 px-5">Items & Amount</th>
                       <th className="py-4 px-5">Order Status</th>
-                      <th className="py-4 px-5">Courier Shipping</th>
+                      <th className="py-4 px-5">Delivery Method & Shipping</th>
                       <th className="py-4 px-5">Payment</th>
                       <th className="py-4 px-5">Date</th>
                       <th className="py-4 px-5 text-right">Actions</th>
@@ -432,6 +473,10 @@ export default function AdminOrders() {
                       const isPending = o.order_status === "pending";
                       const isConfirmed = o.order_status === "confirmed";
                       const isCancelled = o.order_status === "cancelled";
+                      const isDelivered = o.order_status === "delivered" || o.shipping_status === "DELIVERED";
+                      const isOutForDelivery = o.shipping_status === "OUT_FOR_DELIVERY" || o.order_status === "shipped";
+                      const deliveryMethod = o.delivery_method || "COURIER";
+                      const isLocal = deliveryMethod === "LOCAL";
                       const hasShipment = !!o.shipment_id;
                       const busy = actionLoadingId === o.order_id;
                       const resolvedPaymentStatus = o.payment_status === "paid" ? "success" : o.payment_status;
@@ -478,24 +523,65 @@ export default function AdminOrders() {
                             </span>
                           </td>
 
-                          {/* Courier Shipping */}
+                          {/* Delivery Method & Shipping */}
                           <td className="py-4 px-5">
-                            {!hasShipment ? (
-                              <span className="text-[11px] text-gray-400 italic">Not Dispatched</span>
-                            ) : (
-                              <div className="text-[11px] space-y-0.5">
-                                <p className="font-bold text-gray-800 flex items-center gap-1">
-                                  <span>🚚</span>
-                                  {formatStatusLabel(o.shipping_status) || "In Transit"}
-                                </p>
-                                {o.awb_number && (
-                                  <p className="text-gray-500 font-mono text-[10px]">AWB: {o.awb_number}</p>
-                                )}
-                                {o.courier_name && (
-                                  <p className="text-gray-400 text-[10px]">{o.courier_name}</p>
-                                )}
+                            <div className="space-y-1.5">
+                              {/* Method Selector & Badge */}
+                              <div className="flex items-center gap-1.5">
+                                <select
+                                  value={deliveryMethod}
+                                  disabled={busy || isCancelled || isDelivered}
+                                  onChange={(e) => handleDeliveryMethodChange(o.order_id, e.target.value)}
+                                  className={`text-[10px] font-bold px-2 py-0.5 rounded border outline-none cursor-pointer transition-colors ${
+                                    isLocal
+                                      ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                                      : "bg-blue-50 text-blue-800 border-blue-200"
+                                  }`}
+                                  title="Change delivery method"
+                                >
+                                  <option value="LOCAL">🛵 LOCAL (Store)</option>
+                                  <option value="COURIER">🚚 COURIER (Shiprocket)</option>
+                                </select>
                               </div>
-                            )}
+
+                              {/* Fulfillment Detail */}
+                              {isLocal ? (
+                                <div className="text-[11px] text-gray-600">
+                                  {isDelivered ? (
+                                    <span className="text-emerald-700 font-semibold flex items-center gap-1">
+                                      <span>✅</span> Hand Delivered
+                                    </span>
+                                  ) : isOutForDelivery ? (
+                                    <span className="text-purple-700 font-semibold flex items-center gap-1 animate-pulse">
+                                      <span>🛵</span> Out for Delivery
+                                    </span>
+                                  ) : (
+                                    <span className="text-amber-700 font-medium flex items-center gap-1">
+                                      <span>📦</span> Ready at Store
+                                    </span>
+                                  )}
+                                </div>
+                              ) : (
+                                <div>
+                                  {!hasShipment ? (
+                                    <span className="text-[11px] text-gray-400 italic">Not Dispatched</span>
+                                  ) : (
+                                    <div className="text-[11px] space-y-0.5">
+                                      <p className="font-bold text-gray-800 flex items-center gap-1">
+                                        <span>🚚</span>
+                                        {formatStatusLabel(o.shipping_status) || "In Transit"}
+                                      </p>
+                                      {o.awb_number && (
+                                        <p className="text-gray-500 font-mono text-[10px]">AWB: {o.awb_number}</p>
+                                      )}
+                                      {o.courier_name && (
+                                        <p className="text-gray-400 text-[10px]">{o.courier_name}</p>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
                           </td>
 
                           {/* Payment */}
@@ -523,6 +609,7 @@ export default function AdminOrders() {
                           {/* Actions */}
                           <td className="py-4 px-5 text-right">
                             <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                              {/* Pending State */}
                               {isPending && (
                                 <>
                                   <button
@@ -542,7 +629,42 @@ export default function AdminOrders() {
                                 </>
                               )}
 
-                              {isConfirmed && !hasShipment && (
+                              {/* LOCAL DELIVERY ACTIONS */}
+                              {isLocal && !isPending && !isCancelled && !isDelivered && (
+                                <>
+                                  {!isOutForDelivery ? (
+                                    <button
+                                      onClick={() => handleLocalStatusChange(o.order_id, "out_for_delivery")}
+                                      disabled={busy}
+                                      className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 transition-colors disabled:opacity-50 shadow-xs flex items-center gap-1"
+                                      title="Mark order as out for local delivery"
+                                    >
+                                      <span>🛵</span>
+                                      {busy ? "..." : "Out for Delivery"}
+                                    </button>
+                                  ) : (
+                                    <button
+                                      onClick={() => handleLocalStatusChange(o.order_id, "delivered")}
+                                      disabled={busy}
+                                      className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-green-700 text-white hover:bg-green-800 transition-colors disabled:opacity-50 shadow-xs flex items-center gap-1"
+                                      title="Mark order as delivered"
+                                    >
+                                      <span>✅</span>
+                                      {busy ? "..." : "Mark Delivered"}
+                                    </button>
+                                  )}
+                                  <button
+                                    onClick={() => setCancelTargetOrder(o)}
+                                    disabled={busy}
+                                    className="text-xs font-bold px-2 py-1.5 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                                  >
+                                    Cancel
+                                  </button>
+                                </>
+                              )}
+
+                              {/* COURIER DELIVERY ACTIONS */}
+                              {!isLocal && isConfirmed && !hasShipment && (
                                 <>
                                   <button
                                     onClick={() => handleScheduleCourier(o)}
@@ -562,7 +684,7 @@ export default function AdminOrders() {
                                 </>
                               )}
 
-                              {hasShipment && !isCancelled && (
+                              {!isLocal && hasShipment && !isCancelled && (
                                 <>
                                   <button
                                     onClick={() => handleRefreshTracking(o)}
@@ -583,7 +705,8 @@ export default function AdminOrders() {
                                 </>
                               )}
 
-                              {!isCancelled && !hasShipment && !isPending && !isConfirmed && (
+                              {/* Generic Cancel for remaining states */}
+                              {!isCancelled && !isDelivered && !isPending && (isLocal ? false : (!isConfirmed && !hasShipment)) && (
                                 <button
                                   onClick={() => setCancelTargetOrder(o)}
                                   disabled={busy}
