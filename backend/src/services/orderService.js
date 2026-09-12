@@ -1,3 +1,5 @@
+import pool from "../config/db.js";
+import razorpay from "../config/razorpay.js";
 import * as OrderModel from "../models/orderModel.js";
 import * as ReturnModel from "../models/returnModel.js";
 import * as NotificationService from "./notificationService.js";
@@ -74,6 +76,74 @@ export const changePaymentStatus = async (orderId, status) => {
         }
     }
     return OrderModel.updatePaymentStatus(orderId, status);
+};
+
+export const syncRazorpayPayment = async (orderId) => {
+    const order = await OrderModel.getOrderById(orderId);
+    if (!order) {
+        return { success: false, message: "Order not found." };
+    }
+
+    const payment = await OrderModel.getOrderPayment(orderId);
+    if (!payment) {
+        return { success: false, message: "No payment record found for this order." };
+    }
+
+    if (order.payment_status === "paid" || order.payment_status === "success") {
+        return { success: true, payment_status: "paid", message: "Order is already recorded as paid." };
+    }
+
+    const txId = payment.transaction_id || "";
+    let capturedPayment = null;
+
+    try {
+        if (txId.startsWith("order_")) {
+            const rzpPayments = await razorpay.orders.fetchPayments(txId);
+            capturedPayment = rzpPayments?.items?.find(p => p.status === "captured" || p.status === "authorized");
+        } else if (txId.startsWith("pay_")) {
+            const p = await razorpay.payments.fetch(txId);
+            if (p.status === "captured" || p.status === "authorized") {
+                capturedPayment = p;
+            }
+        }
+    } catch (err) {
+        console.warn("Razorpay API sync lookup error:", err.message);
+        return { success: false, message: `Razorpay API lookup: ${err.message}` };
+    }
+
+    if (capturedPayment) {
+        await pool.query(`UPDATE orders SET payment_status = 'paid' WHERE order_id = ?`, [orderId]);
+        await pool.query(
+            `UPDATE payments SET payment_status = 'success', transaction_id = ?, paid_at = COALESCE(paid_at, NOW()) WHERE order_id = ?`,
+            [capturedPayment.id, orderId]
+        );
+
+        try {
+            getIO().to(`user:${order.user_id}`).emit("order:payment-status-changed", {
+                orderId,
+                payment_status: "paid",
+            });
+            getIO().to("admins").emit("admin:order-updated", {
+                orderId,
+                payment_status: "paid",
+            });
+        } catch (sockErr) {
+            console.warn("Socket emission skipped:", sockErr.message);
+        }
+
+        return {
+            success: true,
+            payment_status: "paid",
+            transaction_id: capturedPayment.id,
+            message: `Payment verified! ₹${(capturedPayment.amount / 100).toFixed(2)} captured on Razorpay.`
+        };
+    }
+
+    return {
+        success: false,
+        payment_status: payment.payment_status || "pending",
+        message: "Razorpay shows payment is not yet completed/captured."
+    };
 };
 
 export const getStats = async () => {

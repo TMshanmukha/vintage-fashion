@@ -7,6 +7,7 @@ import toast from "react-hot-toast";
 import {
   getOrders,
   updatePaymentStatus,
+  syncPaymentStatus,
   getOrderStats,
   confirmOrder,
   cancelOrder,
@@ -141,6 +142,10 @@ export default function AdminOrders() {
       setOrders((current) =>
         current.map((o) => (o.order_id === data.orderId ? { ...o, ...data } : o))
       );
+      loadStats();
+    },
+    "admin:order-created": () => {
+      loadOrders(true);
       loadStats();
     },
   });
@@ -321,6 +326,25 @@ export default function AdminOrders() {
     } catch (err) {
       toast.error("Failed to update payment status.");
       console.error(err);
+    }
+  };
+
+  const handleSyncPayment = async (orderId) => {
+    setActionLoadingId(orderId);
+    try {
+      const res = await syncPaymentStatus(orderId);
+      if (res.success) {
+        toast.success(res.message || "Payment verified & updated!");
+        loadOrders(true);
+        loadStats();
+      } else {
+        toast.error(res.message || "No captured payment found in Razorpay.");
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Failed to sync with Razorpay.");
+      console.error(err);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -676,19 +700,32 @@ export default function AdminOrders() {
 
                           {/* Payment */}
                           <td className="py-4 px-5">
-                            <select
-                              value={resolvedPaymentStatus}
-                              onChange={(e) => handlePaymentStatusChange(o.order_id, e.target.value)}
-                              className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border outline-none cursor-pointer ${
-                                paymentStatusStyles[resolvedPaymentStatus] || "bg-gray-100 text-gray-700 border-gray-200"
-                              }`}
-                            >
-                              {PAYMENT_STATUSES.map((s) => (
-                                <option key={s} value={s}>
-                                  {s === "success" ? "Paid (Success)" : s[0].toUpperCase() + s.slice(1)}
-                                </option>
-                              ))}
-                            </select>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <select
+                                value={resolvedPaymentStatus}
+                                onChange={(e) => handlePaymentStatusChange(o.order_id, e.target.value)}
+                                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border outline-none cursor-pointer ${
+                                  paymentStatusStyles[resolvedPaymentStatus] || "bg-gray-100 text-gray-700 border-gray-200"
+                                }`}
+                              >
+                                {PAYMENT_STATUSES.map((s) => (
+                                  <option key={s} value={s}>
+                                    {s === "success" ? "Paid (Success)" : s[0].toUpperCase() + s.slice(1)}
+                                  </option>
+                                ))}
+                              </select>
+                              {resolvedPaymentStatus === "pending" && (
+                                <button
+                                  type="button"
+                                  onClick={() => handleSyncPayment(o.order_id)}
+                                  disabled={busy}
+                                  title="Check & sync payment directly from Razorpay"
+                                  className="text-[10px] font-bold text-sky-700 bg-sky-50 hover:bg-sky-100 border border-sky-200 px-2 py-1 rounded-md transition-colors flex items-center gap-1"
+                                >
+                                  <span>🔄</span> Sync
+                                </button>
+                              )}
+                            </div>
                           </td>
 
                           {/* Date */}

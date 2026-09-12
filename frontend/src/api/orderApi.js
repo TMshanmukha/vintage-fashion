@@ -20,6 +20,11 @@ export const updatePaymentStatus = async (orderId, status) => {
     return data;
 };
 
+export const syncPaymentStatus = async (orderId) => {
+    const { data } = await axiosAdmin.post(`/admin/orders/${orderId}/sync-payment`);
+    return data;
+};
+
 export const getOrderStats = async () => {
     const { data } = await axiosAdmin.get("/admin/orders/stats");
     return data.data || data;

@@ -6,6 +6,7 @@ import {
     getOrder,
     changeOrderStatus,
     changePaymentStatus,
+    syncPaymentStatus,
     getStats,
     listReturns,
     changeReturnStatus,
@@ -24,6 +25,7 @@ router.get("/", listOrders);
 router.get("/:orderId", getOrder);
 router.patch("/:orderId/status", changeOrderStatus);
 router.patch("/:orderId/payment-status", changePaymentStatus);
+router.post("/:orderId/sync-payment", syncPaymentStatus);
 router.patch("/:orderId/delivery-method", changeDeliveryMethod);
 router.patch("/:orderId/local-delivery-status", changeLocalDeliveryStatus);
 

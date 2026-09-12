@@ -18,6 +18,8 @@ import {
 
 import { createPayment, updatePaymentStatus } from "../models/payment.model.js";
 import { sendOrderConfirmationEmail } from "./emailService.js";
+import * as NotificationService from "./notificationService.js";
+import { getIO } from "../socket/index.js";
 
 import {
     initiateCheckoutSchema,
@@ -251,7 +253,7 @@ export const verifyPaymentService = async (userId, body) => {
 
         await connection.commit();
 
-        // Email is sent after commit so a Resend outage never rolls back a real payment.
+        // Email & Admin alerts are sent after commit so a 3rd party outage never rolls back a real payment.
         try {
 
             const [[customer]] = await pool.query(
@@ -278,9 +280,26 @@ export const verifyPaymentService = async (userId, body) => {
                 });
             }
 
-        } catch (emailError) {
+            await NotificationService.createNotification({
+                title: "New Paid Order Received! 💰",
+                body: `Order #${order.order_number} by ${customer?.name || "Customer"} has been verified as PAID (₹${Number(order.total_amount).toFixed(2)})`,
+                type: "order",
+                referenceId: order_id
+            });
 
-            console.warn("Order confirmation email failed to send:", emailError.message);
+            getIO().to("admins").emit("admin:order-updated", {
+                orderId: order_id,
+                payment_status: "paid",
+                order_status: "pending"
+            });
+            getIO().to(`user:${userId}`).emit("order:payment-status-changed", {
+                orderId: order_id,
+                payment_status: "paid",
+            });
+
+        } catch (alertError) {
+
+            console.warn("Post-payment alert dispatch warning:", alertError.message);
 
         }
 

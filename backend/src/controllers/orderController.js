@@ -75,6 +75,17 @@ export const changePaymentStatus = async (req, res) => {
     }
 };
 
+export const syncPaymentStatus = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const result = await OrderService.syncRazorpayPayment(orderId);
+        res.json(result);
+    } catch (err) {
+        console.error("Sync Payment Status Error:", err);
+        res.status(500).json({ success: false, message: err.message || "Failed to sync payment status with Razorpay." });
+    }
+};
+
 export const getStats = async (req, res) => {
     try {
         const stats = await OrderService.getStats();
