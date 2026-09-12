@@ -4,7 +4,8 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
 
     const offset = (page - 1) * limit;
     const params = [];
-    let where = "WHERE 1=1";
+    // Strictly only display confirmed paid or refunded orders; unpaid/abandoned drafts are filtered out
+    let where = "WHERE o.payment_status IN ('paid', 'success', 'refunded')";
 
     if (status) {
         where += " AND o.order_status = ?";
@@ -200,6 +201,7 @@ export const getOrderStats = async () => {
             COALESCE(SUM(CASE WHEN payment_status != 'refunded' AND order_status != 'cancelled' THEN total_amount ELSE 0 END), 0) AS total_revenue,
             COALESCE(SUM(CASE WHEN payment_status = 'refunded' THEN total_amount ELSE 0 END), 0) AS total_refunded
         FROM orders
+        WHERE payment_status IN ('paid', 'success', 'refunded')
         `
     );
 
@@ -218,14 +220,14 @@ export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) =
             tax_amount, total_amount, order_status, payment_status,
             tracking_id, courier_partner, shipment_status, tracking_events, ordered_at
      FROM orders
-     WHERE user_id = ?
+     WHERE user_id = ? AND payment_status IN ('paid', 'success', 'refunded')
      ORDER BY ordered_at DESC
      LIMIT ? OFFSET ?`,
         [userId, Number(limit), Number(offset)]
     );
 
     const [[{ total }]] = await pool.query(
-        `SELECT COUNT(*) AS total FROM orders WHERE user_id = ?`,
+        `SELECT COUNT(*) AS total FROM orders WHERE user_id = ? AND payment_status IN ('paid', 'success', 'refunded')`,
         [userId]
     );
 
@@ -236,14 +238,15 @@ export const getOrdersByUserId = async (userId, { page = 1, limit = 20 } = {}) =
 export const getOrderOwnedByUser = async (orderId, userId) => {
     const [rows] = await pool.query(
         `SELECT
-            o.order_id, o.order_status, o.user_id,
+            o.order_id, o.order_number, o.order_status, o.payment_status, o.delivery_method, o.user_id,
+            o.subtotal, o.discount_amount, o.shipping_fee, o.tax_amount, o.total_amount,
             o.awb_number, o.courier_name, o.shipping_status,
             o.shipping_label_url, o.invoice_url, o.tracking_url,
             o.estimated_delivery, o.pickup_scheduled, o.delivered_at,
             a.address_line1, a.address_line2, a.city, a.state, a.pincode, a.country
          FROM orders o
          JOIN user_addresses a ON a.address_id = o.shipping_address_id
-         WHERE o.order_id = ? AND o.user_id = ?`,
+         WHERE o.order_id = ? AND o.user_id = ? AND o.payment_status IN ('paid', 'success', 'refunded')`,
         [orderId, userId]
     );
     return rows[0] || null;
