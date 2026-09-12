@@ -547,6 +547,17 @@ export default function AdminOrders() {
                               <div className="min-w-0">
                                 <p className="font-semibold text-gray-900 truncate max-w-xs">{o.customer_name || "Guest Customer"}</p>
                                 <p className="text-[11px] text-gray-400 truncate max-w-xs">{o.customer_email || "—"}</p>
+                                {o.city && o.pincode && (
+                                  <p
+                                    className="text-[10px] text-indigo-600 font-medium truncate max-w-xs mt-0.5 flex items-center gap-1"
+                                    title={`${o.address_line1 || ""}${o.address_line2 ? ", " + o.address_line2 : ""}, ${o.city}, ${o.state} - ${o.pincode}`}
+                                  >
+                                    <span>📍</span> {o.city}, {o.state} ({o.pincode})
+                                  </p>
+                                )}
+                                {o.customer_phone && o.customer_phone !== "—" && (
+                                  <p className="text-[10px] text-gray-500">📞 {o.customer_phone}</p>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -556,9 +567,20 @@ export default function AdminOrders() {
                             <div className="font-bold text-gray-900 text-sm">
                               {formatCurrency(o.total_amount)}
                             </div>
-                            <span className="inline-block text-[11px] font-medium text-gray-500 mt-0.5">
-                              {o.item_count} {Number(o.item_count) === 1 ? "item" : "items"}
-                            </span>
+                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                              <span className="text-[11px] font-medium text-gray-500">
+                                {o.item_count} {Number(o.item_count) === 1 ? "item" : "items"}
+                              </span>
+                              {Number(o.shipping_fee) > 0 ? (
+                                <span className="text-[10px] bg-gray-100 text-gray-700 font-medium px-1.5 py-0.5 rounded">
+                                  +₹{Number(o.shipping_fee)} ship
+                                </span>
+                              ) : (
+                                <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded">
+                                  Free Ship
+                                </span>
+                              )}
+                            </div>
                           </td>
 
                           {/* Order Status */}
@@ -589,6 +611,12 @@ export default function AdminOrders() {
                                   <option value="COURIER">🚚 COURIER (Shiprocket)</option>
                                 </select>
                               </div>
+
+                              {o.pincode && (
+                                <p className="text-[10px] text-gray-500">
+                                  Dest: <span className="font-semibold text-gray-700">{o.city || "India"} ({o.pincode})</span>
+                                </p>
+                              )}
 
                               {/* Fulfillment Detail */}
                               {isLocal ? (

@@ -270,7 +270,11 @@ export const verifyPaymentService = async (userId, body) => {
                     customerName: customer.name,
                     orderNumber: order.order_number,
                     items: orderItemRows,
-                    totalAmount: order.total_amount,
+                    subtotal: Number(order.subtotal || 0),
+                    discountAmount: Number(order.discount_amount || 0),
+                    shippingFee: Number(order.shipping_fee || 0),
+                    deliveryMethod: order.delivery_method || "COURIER",
+                    totalAmount: Number(order.total_amount || 0),
                 });
             }
 

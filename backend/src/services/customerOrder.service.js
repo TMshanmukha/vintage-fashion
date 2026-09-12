@@ -31,6 +31,7 @@ export const cancelMyOrder = async (orderId, userId) => {
         return { error: "NOT_CANCELLABLE" };
     }
 
+    await OrderModel.restoreOrderStock(orderId);
     await OrderModel.updateOrderStatus(orderId, "cancelled");
 
     await NotificationService.createNotification({

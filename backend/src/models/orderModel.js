@@ -21,6 +21,9 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
         SELECT
     o.order_id,
     o.order_number,
+    o.subtotal,
+    o.discount_amount,
+    o.shipping_fee,
     o.total_amount,
     o.order_status,
     o.payment_status,
@@ -36,6 +39,13 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
     u.user_id,
     COALESCE(u.name, 'Customer') AS customer_name,
     COALESCE(u.email, '—') AS customer_email,
+    COALESCE(u.phone, '—') AS customer_phone,
+    a.address_line1,
+    a.address_line2,
+    a.city,
+    a.state,
+    a.pincode,
+    a.country,
     (
         SELECT COUNT(*)
         FROM order_items oi
@@ -44,6 +54,8 @@ export const getAllOrders = async ({ status, search, page = 1, limit = 20 }) => 
 FROM orders o
 LEFT JOIN users u
     ON u.user_id = o.user_id
+LEFT JOIN user_addresses a
+    ON a.address_id = o.shipping_address_id
 ${where}
 ORDER BY o.ordered_at DESC
 LIMIT ? OFFSET ?;
@@ -113,6 +125,25 @@ export const getOrderPayment = async (orderId) => {
     );
 
     return rows[0];
+};
+
+export const restoreOrderStock = async (orderId) => {
+    try {
+        const [items] = await pool.query(
+            `SELECT variant_id, quantity FROM order_items WHERE order_id = ?`,
+            [orderId]
+        );
+        for (const item of items) {
+            if (item.variant_id && item.quantity > 0) {
+                await pool.query(
+                    `UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE variant_id = ?`,
+                    [item.quantity, item.variant_id]
+                );
+            }
+        }
+    } catch (err) {
+        console.warn("Failed to restore order stock:", err.message);
+    }
 };
 
 export const updateOrderStatus = async (orderId, status) => {
