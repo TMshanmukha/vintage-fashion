@@ -19,7 +19,9 @@ export const sendBulkEmail = async ({ subject, body, imageUrl, imageFile }) => {
         recipientType: "all",
         subject,
         body,
-        imageUrl
+        imageUrl: imageUrl || null,
+        image_url: imageUrl || null,
+        bannerUrl: imageUrl || null
     });
     return data;
 };
@@ -45,7 +47,9 @@ export const sendSingleEmail = async ({ userId, subject, body, imageUrl, imageFi
         userId,
         subject,
         body,
-        imageUrl
+        imageUrl: imageUrl || null,
+        image_url: imageUrl || null,
+        bannerUrl: imageUrl || null
     });
     return data;
 };
