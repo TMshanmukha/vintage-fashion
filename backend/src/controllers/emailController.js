@@ -4,7 +4,9 @@ import * as EmailCenterService from "../services/emailCenterService.js";
 export const sendEmailToUsers = async (req, res) => {
     try {
         const { recipientType, userId, subject, body } = req.body;
-        const imageUrl = req.file ? req.file.path : (req.body.imageUrl || req.body.image_url || null);
+        const imageUrl = req.file 
+            ? (req.file.path || req.file.secure_url || req.file.url) 
+            : (req.body.imageUrl || req.body.image_url || null);
 
         if (!subject || !body) {
             return res.status(400).json({ message: "Subject and body are required." });

@@ -5,135 +5,186 @@ const formatINR = (value) =>
 
 const STORE_URL = process.env.FRONTEND_URL || "https://vintage-fashion-xi.vercel.app";
 
-// Reusable Luxury Email Base Wrapper
-const renderEmailLayout = ({ previewText = "", headerTag = "OFFICIAL UPDATE", contentHtml, footerExtra = "" }) => `
-<!DOCTYPE html>
-<html lang="en">
+/**
+ * Bulletproof Email Template Shell
+ * Compatible with Gmail (Web, iOS, Android), Apple Mail, Outlook (Web & Desktop), Yahoo Mail
+ */
+const buildEmailTemplate = ({
+    badge = "OFFICIAL UPDATE",
+    bannerImageUrl = null,
+    subjectTitle = "Vintage Fashion Update",
+    contentHtml = "",
+    ctaButtonText = "Shop Vintage Collection",
+    ctaButtonUrl = STORE_URL,
+    footerNote = "You are receiving this official communication as a valued patron of Vintage Fashion."
+}) => {
+    const bannerSection = bannerImageUrl ? `
+        <!-- Full-Width Banner Image -->
+        <tr>
+            <td align="center" style="padding:0;margin:0;background-color:#0f172a;line-height:0;font-size:0;">
+                <img src="${bannerImageUrl}" alt="${subjectTitle}" width="600" style="display:block;width:100%;max-width:600px;height:auto;border:0;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;" />
+            </td>
+        </tr>
+    ` : "";
+
+    const ctaSection = ctaButtonText && ctaButtonUrl ? `
+        <!-- Bulletproof CTA Button -->
+        <table border="0" cellpadding="0" cellspacing="0" align="center" style="margin:28px auto 10px;">
+            <tr>
+                <td align="center" style="border-radius:12px;background-color:#0f172a;box-shadow:0 6px 18px rgba(15,23,42,0.2);">
+                    <a href="${ctaButtonUrl}" target="_blank" style="display:inline-block;padding:15px 36px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:14px;color:#ffffff !important;text-decoration:none;font-weight:700;letter-spacing:0.5px;border-radius:12px;text-transform:uppercase;">
+                        ${ctaButtonText} &rarr;
+                    </a>
+                </td>
+            </tr>
+        </table>
+    ` : "";
+
+    return `<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en">
 <head>
-    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vintage Fashion</title>
+    <meta name="x-apple-disable-message-reformatting" />
+    <title>${subjectTitle}</title>
+    <!--[if mso]>
+    <style type="text/css">
+        table {border-collapse:collapse;border-spacing:0;margin:0;}
+        div, p, a, li, td {font-family: Arial, sans-serif !important;}
+    </style>
+    <![endif]-->
 </head>
-<body style="margin:0;padding:40px 12px;background:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#1e293b;-webkit-font-smoothing:antialiased;">
-    <table align="center" width="100%" cellpadding="0" cellspacing="0" style="max-width:600px;margin:0 auto;background:#ffffff;border-radius:20px;overflow:hidden;box-shadow:0 12px 36px rgba(0,0,0,0.06);border:1px solid #e2e8f0;">
-        
-        <!-- Header -->
-        <tr>
-            <td align="center" style="background:#0f172a;padding:36px 24px;border-bottom:3px solid #ec4899;">
-                <span style="display:inline-block;background:rgba(236,72,153,0.15);color:#f472b6;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:20px;border:1px solid rgba(244,114,182,0.3);margin-bottom:12px;">
-                    ${headerTag}
-                </span>
-                <h1 style="margin:6px 0 0;font-size:28px;font-weight:900;letter-spacing:-0.5px;color:#ffffff;">
-                    VINTAGE FASHION<span style="color:#ec4899;">.</span>
-                </h1>
-                <p style="margin:8px 0 0;color:#94a3b8;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;">
-                    Curated Heritage &amp; Modern Elegance
-                </p>
-            </td>
-        </tr>
+<body style="margin:0;padding:30px 10px;background-color:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;color:#1e293b;">
+    <center>
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="max-width:600px;margin:0 auto;background-color:#ffffff;border-radius:18px;overflow:hidden;border:1px solid #e2e8f0;box-shadow:0 10px 30px rgba(0,0,0,0.06);">
+            
+            <!-- Luxury Obsidian Header -->
+            <tr>
+                <td align="center" style="background-color:#0f172a;padding:34px 24px;border-bottom:3px solid #ec4899;">
+                    <table border="0" cellpadding="0" cellspacing="0" align="center">
+                        <tr>
+                            <td align="center">
+                                <span style="display:inline-block;background-color:rgba(236,72,153,0.18);color:#f472b6;font-size:10px;font-weight:800;letter-spacing:2px;text-transform:uppercase;padding:5px 14px;border-radius:20px;border:1px solid rgba(244,114,182,0.35);margin-bottom:10px;">
+                                    ${badge}
+                                </span>
+                                <h1 style="margin:6px 0 0;font-size:27px;font-weight:900;letter-spacing:-0.5px;color:#ffffff;line-height:1.2;">
+                                    VINTAGE FASHION<span style="color:#ec4899;">.</span>
+                                </h1>
+                                <p style="margin:6px 0 0;color:#94a3b8;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;font-weight:500;">
+                                    Curated Heritage &amp; Contemporary Luxury
+                                </p>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
 
-        <!-- Body Content -->
-        <tr>
-            <td style="padding:36px 32px 28px;">
-                ${contentHtml}
+            ${bannerSection}
 
-                <!-- Trust Badges -->
-                <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:32px;padding-top:20px;border-top:1px dashed #e2e8f0;">
-                    <tr>
-                        <td align="center" style="font-size:12px;color:#64748b;line-height:1.6;">
-                            <span style="display:inline-block;margin:4px 8px;">✦ <strong>100% Authentic Quality</strong></span>
-                            <span style="display:inline-block;margin:4px 8px;">✦ <strong>Pan-India Express Dispatch</strong></span>
-                            <span style="display:inline-block;margin:4px 8px;">✦ <strong>Dedicated Support</strong></span>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
+            <!-- Main Body Content -->
+            <tr>
+                <td style="padding:34px 30px 24px;background-color:#ffffff;">
+                    ${contentHtml}
+                    ${ctaSection}
 
-        <!-- Footer -->
-        <tr>
-            <td align="center" style="background:#f8fafc;padding:28px 24px;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;line-height:1.6;">
-                <p style="margin:0 0 6px;font-weight:700;color:#1e293b;">
-                    Vintage Fashion Boutique
-                </p>
-                <p style="margin:0 0 10px;">
-                    <a href="${STORE_URL}" target="_blank" style="color:#ec4899;text-decoration:none;font-weight:600;">${STORE_URL}</a>
-                </p>
-                ${footerExtra ? `<p style="margin:0 0 10px;color:#94a3b8;font-size:11px;">${footerExtra}</p>` : ""}
-                <p style="margin:0;color:#cbd5e1;font-size:11px;">
-                    &copy; ${new Date().getFullYear()} Vintage Fashion. All rights reserved.
-                </p>
-            </td>
-        </tr>
-    </table>
+                    <!-- Trust Bar -->
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin-top:28px;padding-top:18px;border-top:1px dashed #e2e8f0;">
+                        <tr>
+                            <td align="center" style="font-size:12px;color:#64748b;line-height:1.6;">
+                                <span style="display:inline-block;margin:3px 8px;">&#10022; <strong>100% Authentic Quality</strong></span>
+                                <span style="display:inline-block;margin:3px 8px;">&#10022; <strong>Pan-India Express Delivery</strong></span>
+                                <span style="display:inline-block;margin:3px 8px;">&#10022; <strong>Dedicated Support</strong></span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+
+            <!-- Luxury Footer -->
+            <tr>
+                <td align="center" style="background-color:#f8fafc;padding:26px 24px;font-size:12px;color:#64748b;border-top:1px solid #f1f5f9;line-height:1.6;">
+                    <p style="margin:0 0 6px;font-weight:700;color:#1e293b;font-size:13px;">
+                        Vintage Fashion Boutique
+                    </p>
+                    <p style="margin:0 0 10px;">
+                        <a href="${STORE_URL}" target="_blank" style="color:#ec4899;text-decoration:none;font-weight:600;">${STORE_URL}</a>
+                    </p>
+                    <p style="margin:0 0 10px;color:#94a3b8;font-size:11px;">
+                        ${footerNote}
+                    </p>
+                    <p style="margin:0;color:#cbd5e1;font-size:11px;">
+                        &copy; ${new Date().getFullYear()} Vintage Fashion. All rights reserved.
+                    </p>
+                </td>
+            </tr>
+
+        </table>
+    </center>
 </body>
-</html>
-`;
+</html>`;
+};
 
-// 1. Welcome Email
+// 1. Welcome Email (Dispatched after new user registration)
 export const sendWelcomeEmail = async ({ to, customerName }) => {
     const name = customerName || "Gentleman";
+    const subject = `Welcome to Vintage Fashion, ${name}! ✨`;
 
     const contentHtml = `
-        <h2 style="margin:0 0 16px;color:#0f172a;font-size:22px;font-weight:800;letter-spacing:-0.3px;">
+        <h2 style="margin:0 0 16px;color:#0f172a;font-size:22px;font-weight:800;letter-spacing:-0.3px;line-height:1.3;">
             Welcome to the Club, ${name} 👋
         </h2>
         <p style="margin:0 0 20px;font-size:15px;line-height:1.75;color:#475569;">
-            We are absolutely thrilled to welcome you to <strong>Vintage Fashion</strong>! Your account is active, giving you premier access to hand-curated vintage apparel, tailored fits, and timeless menswear.
+            We are thrilled to welcome you to <strong>Vintage Fashion</strong>! Your account is active, giving you exclusive access to hand-curated vintage apparel, tailored menswear, and limited-edition drops.
         </p>
 
-        <!-- Perks Card -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#fafafa;border-radius:14px;border:1px solid #f1f5f9;margin:24px 0;padding:16px;">
+        <!-- Perks Box -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#fdf2f8;border-radius:14px;border:1px solid #fbcfe8;margin:20px 0;padding:16px;">
             <tr>
                 <td style="padding:10px 14px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%">
                         <tr>
-                            <td width="32" valign="top" style="font-size:18px;">👔</td>
+                            <td width="30" valign="top" style="font-size:18px;">👔</td>
                             <td style="padding-left:12px;">
                                 <strong style="color:#0f172a;font-size:14px;display:block;">Curated Men's Vintage</strong>
-                                <span style="color:#64748b;font-size:13px;line-height:1.5;">Hand-tailored blazers, Cuban collar shirts, retro denim, and heritage kurtas.</span>
+                                <span style="color:#64748b;font-size:13px;line-height:1.5;">Hand-tailored blazers, Cuban shirts, selvage denim, jackets, and royal kurtas.</span>
                             </td>
                         </tr>
                         <tr><td height="12" colspan="2"></td></tr>
                         <tr>
-                            <td width="32" valign="top" style="font-size:18px;">🚚</td>
+                            <td width="30" valign="top" style="font-size:18px;">🚚</td>
                             <td style="padding-left:12px;">
                                 <strong style="color:#0f172a;font-size:14px;display:block;">Fast &amp; Secure Delivery</strong>
-                                <span style="color:#64748b;font-size:13px;line-height:1.5;">Express dispatch with live tracking and doorstep delivery.</span>
+                                <span style="color:#64748b;font-size:13px;line-height:1.5;">Express Pan-India shipping with real-time tracking straight to your doorstep.</span>
                             </td>
                         </tr>
                         <tr><td height="12" colspan="2"></td></tr>
                         <tr>
-                            <td width="32" valign="top" style="font-size:18px;">✨</td>
+                            <td width="30" valign="top" style="font-size:18px;">✨</td>
                             <td style="padding-left:12px;">
-                                <strong style="color:#0f172a;font-size:14px;display:block;">Exclusive Member Drops</strong>
-                                <span style="color:#64748b;font-size:13px;line-height:1.5;">First access to limited-edition drops and VIP reward codes.</span>
+                                <strong style="color:#0f172a;font-size:14px;display:block;">Exclusive Member Perks</strong>
+                                <span style="color:#64748b;font-size:13px;line-height:1.5;">First access to seasonal drops, flash discounts, and VIP reward codes.</span>
                             </td>
                         </tr>
                     </table>
                 </td>
             </tr>
         </table>
-
-        <!-- CTA Button -->
-        <div align="center" style="margin:30px 0 15px;">
-            <a href="${STORE_URL}/shop" target="_blank" style="display:inline-block;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.5px;padding:15px 36px;border-radius:12px;box-shadow:0 8px 20px rgba(15,23,42,0.2);text-transform:uppercase;">
-                Explore The Collection &rarr;
-            </a>
-        </div>
     `;
 
-    const html = renderEmailLayout({
-        headerTag: "WELCOME TO THE FAMILY",
+    const html = buildEmailTemplate({
+        badge: "WELCOME TO THE FAMILY",
+        subjectTitle: subject,
         contentHtml,
-        footerExtra: "Have questions or need sizing assistance? Reply directly to this email anytime."
+        ctaButtonText: "Explore The Collection",
+        ctaButtonUrl: `${STORE_URL}/shop`,
+        footerNote: "Need sizing advice or styling assistance? Reply directly to this email anytime."
     });
 
     try {
         const data = await resend.emails.send({
             from: "Vintage Fashion <onboarding@resend.dev>",
             to,
-            subject: `Welcome to Vintage Fashion, ${name}! ✨`,
+            subject,
             html
         });
         console.log("Welcome email sent:", data);
@@ -143,35 +194,28 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
     }
 };
 
-// 2. Admin Broadcast & Custom Marketing Email
+// 2. Admin Promotional & Broadcast Email
 export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
-    const bannerHtml = imageUrl ? `
-        <div style="margin:-12px -12px 24px -12px;border-radius:14px;overflow:hidden;border:1px solid #f1f5f9;background:#f8fafc;">
-            <img src="${imageUrl}" alt="${subject}" style="width:100%;max-height:320px;object-fit:cover;display:block;" />
-        </div>
-    ` : "";
+    const formattedBody = (body || "").replace(/\r\n/g, "<br>").replace(/\n/g, "<br>");
 
     const contentHtml = `
-        ${bannerHtml}
         <h2 style="margin:0 0 16px;color:#0f172a;font-size:22px;font-weight:800;line-height:1.3;letter-spacing:-0.3px;">
             ${subject}
         </h2>
 
-        <div style="font-size:15px;line-height:1.8;color:#334155;background:#fafafa;padding:22px 24px;border-radius:14px;border-left:4px solid #ec4899;margin-bottom:28px;">
-            ${body.replace(/\n/g, "<br>")}
-        </div>
-
-        <div align="center" style="margin:30px 0 15px;">
-            <a href="${STORE_URL}" target="_blank" style="display:inline-block;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.5px;padding:15px 36px;border-radius:12px;box-shadow:0 8px 20px rgba(15,23,42,0.2);text-transform:uppercase;">
-                Shop Vintage Collection &rarr;
-            </a>
+        <div style="font-size:15px;line-height:1.8;color:#334155;background-color:#fafafa;padding:20px 22px;border-radius:14px;border-left:4px solid #ec4899;margin-bottom:16px;">
+            ${formattedBody}
         </div>
     `;
 
-    const html = renderEmailLayout({
-        headerTag: "EXCLUSIVE UPDATE",
+    const html = buildEmailTemplate({
+        badge: "EXCLUSIVE UPDATE",
+        bannerImageUrl: imageUrl || null,
+        subjectTitle: subject,
         contentHtml,
-        footerExtra: "This official communication was dispatched directly by the Vintage Fashion Team."
+        ctaButtonText: "Shop Vintage Collection",
+        ctaButtonUrl: STORE_URL,
+        footerNote: "This official update was dispatched directly by the Vintage Fashion Team."
     });
 
     const data = await resend.emails.send({
@@ -181,15 +225,16 @@ export const sendAdminEmail = async ({ to, subject, body, imageUrl }) => {
         html
     });
 
-    console.log("Admin email sent:", data);
+    console.log("Admin broadcast email sent:", data);
     return data;
 };
 
-// 3. Order Confirmation & Payment Verified Receipt
+// 3. Order Confirmation & Payment Receipt
 export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber, items = [], totalAmount }) => {
-    const name = customerName || "Customer";
+    const name = customerName || "Valued Customer";
+    const subject = `Order Confirmed — #${orderNumber} ✨`;
 
-    const itemsHtml = items.map((item) => `
+    const itemsRows = items.map((item) => `
         <tr>
             <td style="padding:12px 0;border-bottom:1px solid #f1f5f9;">
                 <strong style="color:#0f172a;font-size:14px;display:block;">${item.product_name}</strong>
@@ -204,24 +249,24 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
     `).join("");
 
     const contentHtml = `
-        <div style="text-align:center;margin-bottom:24px;">
-            <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background:#ecfdf5;line-height:52px;font-size:24px;color:#059669;margin-bottom:12px;">✓</div>
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background-color:#ecfdf5;line-height:52px;font-size:24px;color:#059669;margin-bottom:10px;">✓</div>
             <h2 style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Thank you for your order, ${name}!</h2>
             <p style="margin:0;color:#64748b;font-size:14px;">Your payment has been successfully verified.</p>
         </div>
 
-        <!-- Order Summary Card -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;margin:20px 0;padding:16px;">
+        <!-- Order Summary Pill -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;margin:18px 0;padding:14px;">
             <tr>
-                <td style="padding:10px 14px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
+                <td style="padding:8px 12px;">
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%">
                         <tr>
                             <td>
-                                <span style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;">Order Number</span>
+                                <span style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;">Order ID</span>
                                 <strong style="font-size:16px;color:#0f172a;">#${orderNumber}</strong>
                             </td>
                             <td align="right">
-                                <span style="display:inline-block;background:#ecfdf5;color:#059669;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #a7f3d0;">
+                                <span style="display:inline-block;background-color:#ecfdf5;color:#059669;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #a7f3d0;">
                                     Payment Confirmed
                                 </span>
                             </td>
@@ -231,8 +276,8 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
             </tr>
         </table>
 
-        <!-- Items Table -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin:20px 0;">
+        <!-- Itemized List -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:16px 0;">
             <thead>
                 <tr>
                     <th align="left" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:#94a3b8;padding-bottom:10px;border-bottom:1px solid #e2e8f0;">Item</th>
@@ -240,12 +285,12 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
                 </tr>
             </thead>
             <tbody>
-                ${itemsHtml}
+                ${itemsRows}
             </tbody>
         </table>
 
-        <!-- Total Breakdown -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="margin:16px 0;padding-top:10px;">
+        <!-- Total Paid -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:14px 0;padding-top:8px;">
             <tr>
                 <td style="font-size:15px;font-weight:800;color:#0f172a;">Total Amount Paid</td>
                 <td align="right" style="font-size:18px;font-weight:900;color:#ec4899;">
@@ -253,25 +298,22 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
                 </td>
             </tr>
         </table>
-
-        <div align="center" style="margin:30px 0 15px;">
-            <a href="${STORE_URL}/my-account" target="_blank" style="display:inline-block;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.5px;padding:15px 36px;border-radius:12px;box-shadow:0 8px 20px rgba(15,23,42,0.2);text-transform:uppercase;">
-                View Order Status &rarr;
-            </a>
-        </div>
     `;
 
-    const html = renderEmailLayout({
-        headerTag: "ORDER CONFIRMED",
+    const html = buildEmailTemplate({
+        badge: "ORDER CONFIRMED",
+        subjectTitle: subject,
         contentHtml,
-        footerExtra: "We are carefully packaging your curated vintage pieces and will email you as soon as your parcel is dispatched."
+        ctaButtonText: "View Order Status",
+        ctaButtonUrl: `${STORE_URL}/my-account`,
+        footerNote: "We are carefully packaging your curated vintage pieces and will email you as soon as the courier is assigned."
     });
 
     try {
         const data = await resend.emails.send({
             from: "Vintage Fashion <onboarding@resend.dev>",
             to,
-            subject: `Order Confirmed — #${orderNumber} ✨`,
+            subject,
             html
         });
         console.log("Order confirmation email sent:", data);
@@ -281,29 +323,30 @@ export const sendOrderConfirmationEmail = async ({ to, customerName, orderNumber
     }
 };
 
-// 4. Shipment Dispatch & Live AWB Tracking Notification
+// 4. Shipment & Live Courier Tracking Notification
 export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, awbNumber, courierName }) => {
     const name = customerName || "Customer";
+    const subject = `Your order #${orderNumber} has shipped! 🚚`;
 
     const contentHtml = `
-        <div style="text-align:center;margin-bottom:24px;">
-            <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background:#eff6ff;line-height:52px;font-size:24px;color:#2563eb;margin-bottom:12px;">📦</div>
+        <div style="text-align:center;margin-bottom:20px;">
+            <div style="display:inline-block;width:52px;height:52px;border-radius:50%;background-color:#eff6ff;line-height:52px;font-size:24px;color:#2563eb;margin-bottom:10px;">📦</div>
             <h2 style="margin:0 0 6px;color:#0f172a;font-size:22px;font-weight:800;">Hi ${name}, your order has shipped!</h2>
-            <p style="margin:0;color:#64748b;font-size:14px;">Order #${orderNumber} is now on its way to you.</p>
+            <p style="margin:0;color:#64748b;font-size:14px;">Order #${orderNumber} has been handed over to the courier partner.</p>
         </div>
 
         <!-- Tracking Card -->
-        <table width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;margin:20px 0;padding:16px;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="background-color:#f8fafc;border-radius:14px;border:1px solid #e2e8f0;margin:18px 0;padding:14px;">
             <tr>
-                <td style="padding:12px 14px;">
-                    <table width="100%" cellpadding="0" cellspacing="0">
+                <td style="padding:10px 12px;">
+                    <table border="0" cellpadding="0" cellspacing="0" width="100%">
                         <tr>
                             <td style="padding-bottom:10px;border-bottom:1px solid #f1f5f9;">
                                 <span style="font-size:11px;color:#64748b;font-weight:600;text-transform:uppercase;letter-spacing:1px;display:block;">Courier Partner</span>
                                 <strong style="font-size:14px;color:#0f172a;">${courierName || "Express Courier"}</strong>
                             </td>
                             <td align="right" style="padding-bottom:10px;border-bottom:1px solid #f1f5f9;">
-                                <span style="display:inline-block;background:#eff6ff;color:#2563eb;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #bfdbfe;">
+                                <span style="display:inline-block;background-color:#eff6ff;color:#2563eb;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;border:1px solid #bfdbfe;">
                                     In Transit
                                 </span>
                             </td>
@@ -318,25 +361,22 @@ export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, 
                 </td>
             </tr>
         </table>
-
-        <div align="center" style="margin:30px 0 15px;">
-            <a href="${STORE_URL}/my-account" target="_blank" style="display:inline-block;background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%);color:#ffffff;text-decoration:none;font-weight:700;font-size:14px;letter-spacing:0.5px;padding:15px 36px;border-radius:12px;box-shadow:0 8px 20px rgba(15,23,42,0.2);text-transform:uppercase;">
-                Track Live Shipment &rarr;
-            </a>
-        </div>
     `;
 
-    const html = renderEmailLayout({
-        headerTag: "SHIPMENT DISPATCHED",
+    const html = buildEmailTemplate({
+        badge: "SHIPMENT DISPATCHED",
+        subjectTitle: subject,
         contentHtml,
-        footerExtra: "You can track real-time delivery status anytime by visiting your Orders dashboard."
+        ctaButtonText: "Track Live Shipment",
+        ctaButtonUrl: `${STORE_URL}/my-account`,
+        footerNote: "You can track real-time delivery status anytime by visiting your Orders account page."
     });
 
     try {
         const data = await resend.emails.send({
             from: "Vintage Fashion <onboarding@resend.dev>",
             to,
-            subject: `Your order #${orderNumber} has shipped! 🚚`,
+            subject,
             html
         });
         console.log("Shipment created email sent:", data);
