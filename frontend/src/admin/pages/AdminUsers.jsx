@@ -51,6 +51,7 @@ export default function AdminUsers() {
           .filter((u) => u.account_status !== "DELETED")
           .map((u) => ({
             id: u.user_id,
+            userCode: u.user_code || (`VF-USR-${Number(u.user_id) < 1000 ? (1000 + Number(u.user_id)) : u.user_id}`),
             name: u.name || "Customer",
             email: u.email || "—",
             phone: u.phone || "—",
@@ -253,15 +254,20 @@ export default function AdminUsers() {
                   <tbody className="divide-y divide-gray-100">
                     {filtered.map((u) => (
                       <tr key={u.id} className="hover:bg-gray-50/60 transition-colors">
-                        {/* User Profile */}
+                        {/* User Profile & Business Reference ID */}
                         <td className="py-4 px-5">
                           <div className="flex items-center gap-3.5">
                             <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${getAvatarColor(u.name)} text-white font-bold flex items-center justify-center text-xs shadow-xs flex-shrink-0`}>
                               {getInitials(u.name)}
                             </div>
                             <div className="min-w-0">
-                              <p className="font-bold text-gray-900 text-xs truncate max-w-xs">{u.name}</p>
-                              <p className="text-[11px] text-gray-400 truncate max-w-xs">{u.email}</p>
+                              <div className="flex items-center gap-2">
+                                <p className="font-bold text-gray-900 text-xs truncate max-w-xs">{u.name}</p>
+                                <span className="font-mono text-[10px] font-bold bg-pink-50 text-pink-700 border border-pink-200/80 px-1.5 py-0.5 rounded">
+                                  {u.userCode}
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-gray-400 truncate max-w-xs mt-0.5">{u.email}</p>
                             </div>
                           </div>
                         </td>

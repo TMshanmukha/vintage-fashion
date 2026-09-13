@@ -1,8 +1,43 @@
-import { signupService,loginService,logoutService,forgotPasswordService,resetPasswordService,adminLoginService } from "../services/auth.service.js";
+import {
+    signupService,
+    loginService,
+    logoutService,
+    forgotPasswordService,
+    resetPasswordService,
+    adminLoginService,
+    sendOtpService,
+    verifyOtpService
+} from "../services/auth.service.js";
 
 import { refreshTokenService } from "../services/auth.service.js";
 import { getSessionById } from "../models/session.model.js";
 import { getIO } from "../socket/index.js";
+
+export const sendOtp = async (req, res) => {
+    try {
+        const { email, name } = req.body;
+        const result = await sendOtpService({ email, name });
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to send verification code."
+        });
+    }
+};
+
+export const verifyOtp = async (req, res) => {
+    try {
+        const { email, otp } = req.body;
+        const result = await verifyOtpService({ email, otp });
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Invalid or expired verification code."
+        });
+    }
+};
 
 export const refresh = async (req, res) => {
 
@@ -236,13 +271,14 @@ export const signup = async (req, res) => {
 
     try {
 
-        const { name, email, password, phone } = req.body;
+        const { name, email, password, phone, otp } = req.body;
         const avatarUrl = req.file?.path;
 
         const result = await signupService({
             name,
             email,
             password,
+            otp,
             phone,
             avatarUrl,
             userAgent: req.headers["user-agent"],

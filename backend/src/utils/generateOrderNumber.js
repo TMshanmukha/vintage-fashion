@@ -1,5 +1,5 @@
-export const generateOrderNumber = () => {
-    const timestamp = Date.now().toString().slice(-8);
-    const random = Math.floor(100 + Math.random() * 900);
-    return `ORD-${timestamp}${random}`;
+import { getNextSequence } from "../services/sequence.service.js";
+
+export const generateOrderNumber = async () => {
+    return await getNextSequence("order");
 };

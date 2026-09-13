@@ -539,4 +539,73 @@ export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, 
         console.error("Failed to send shipment email:", err.message);
         return null;
     }
-};
+};
+
+/**
+ * Send 6-Digit Email OTP Verification Code for Signup
+ */
+export const sendVerificationOtpEmail = async ({ email, name, otp }) => {
+    const subject = `${otp} is your Vintage Fashion verification code`;
+
+    const contentHtml = `
+        <h2 style="font-size:22px;color:#0f172a;margin:0 0 14px;font-weight:800;letter-spacing:-0.5px;">Verify Your Email Address</h2>
+        <p style="font-size:15px;color:#475569;line-height:1.7;margin:0 0 20px;">
+            Hello ${name ? `<strong style="color:#0f172a;">${name}</strong>` : "there"},
+        </p>
+        <p style="font-size:14px;color:#475569;line-height:1.7;margin:0 0 24px;">
+            Thank you for signing up with <strong style="color:#0f172a;">Vintage Fashion</strong>. Please enter the following 6-digit verification code to complete your registration:
+        </p>
+
+        <!-- Centered High-Contrast OTP Card -->
+        <table border="0" cellpadding="0" cellspacing="0" width="100%" style="margin:24px 0 28px;">
+            <tr>
+                <td align="center">
+                    <table border="0" cellpadding="0" cellspacing="0" style="background-color:#0f172a;border-radius:14px;box-shadow:0 8px 24px rgba(15,23,42,0.18);">
+                        <tr>
+                            <td align="center" style="padding:22px 38px;">
+                                <span style="font-size:11px;font-weight:700;color:#94a3b8;letter-spacing:2px;text-transform:uppercase;display:block;margin-bottom:8px;">Verification Code</span>
+                                <span style="font-family:'Courier New',Courier,monospace,sans-serif;font-size:36px;font-weight:900;color:#ffffff;letter-spacing:8px;display:block;text-shadow:0 2px 4px rgba(0,0,0,0.3);">${otp}</span>
+                            </td>
+                        </tr>
+                    </table>
+                </td>
+            </tr>
+        </table>
+
+        <div style="background-color:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:14px 18px;margin-bottom:24px;">
+            <p style="font-size:13px;color:#64748b;margin:0;line-height:1.6;">
+                ⏱️ <strong>Valid for 10 minutes:</strong> For your security, this verification code will expire in 10 minutes. If you did not attempt to sign up, please disregard this email.
+            </p>
+        </div>
+    `;
+
+    const html = buildEmailTemplate({
+        badge: "SECURITY VERIFICATION",
+        subjectTitle: subject,
+        contentHtml,
+        ctaButtonText: null,
+        ctaButtonUrl: null,
+        footerNote: "Never share your verification code with anyone. Vintage Fashion will never ask for your code via phone or chat."
+    });
+
+    try {
+        const response = await resend.emails.send({
+            from: SENDER_EMAIL,
+            to: email.toLowerCase().trim(),
+            replyTo: REPLY_TO_EMAIL,
+            subject,
+            html
+        });
+
+        if (response.error) {
+            console.error("OTP email Resend error:", response.error);
+            return { success: false, error: response.error };
+        }
+        console.log("OTP verification email sent successfully to", email);
+        return { success: true, data: response.data };
+    } catch (err) {
+        console.error("Failed to send OTP verification email:", err.message);
+        return { success: false, error: err.message };
+    }
+};
+

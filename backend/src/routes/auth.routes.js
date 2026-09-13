@@ -6,17 +6,18 @@ import {
     refresh,
     forgotPassword,
     resetPassword,
-
+    sendOtp,
+    verifyOtp,
     adminLogin,
     adminLogout,
     adminRefresh
-
 } from "../controllers/auth.controller.js";
 import upload from "../middlewares/upload.middleware.js";
 
 const router = express.Router();
 
-// ...
+router.post("/send-otp", sendOtp);
+router.post("/verify-otp", verifyOtp);
 router.post("/refresh", refresh);
 
 router.post("/signup", (req, res, next) => {

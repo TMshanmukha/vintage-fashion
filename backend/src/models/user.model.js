@@ -31,35 +31,30 @@ export const findUserById = async (userId) => {
 };
 
 export const createUser = async ({
+    userCode,
     name,
     email,
     passwordHash,
     phone,
-    avatarUrl
+    avatarUrl,
+    isEmailVerified = 1
 }) => {
-
-    console.log("Inside createUser");
-
-    console.log({
-        name,
-        email,
-        passwordHash,
-        phone,
-        avatarUrl
-    });
-
     const [result] = await pool.query(
         `
         INSERT INTO users
         (
+            user_code,
             name,
             email,
             password_hash,
             phone,
-            avatar_url
+            avatar_url,
+            is_email_verified
         )
         VALUES
         (
+            ?,
+            ?,
             ?,
             ?,
             ?,
@@ -68,11 +63,13 @@ export const createUser = async ({
         )
         `,
         [
+            userCode || null,
             name,
             email,
             passwordHash,
-            phone,
-            avatarUrl
+            phone || null,
+            avatarUrl || null,
+            isEmailVerified
         ]
     );
 

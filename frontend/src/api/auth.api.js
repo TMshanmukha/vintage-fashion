@@ -1,5 +1,17 @@
 import API from "./API";
 
+// Send OTP for Signup Email Verification
+export const sendOtp = async ({ email, name }) => {
+    const response = await API.post("/auth/send-otp", { email, name });
+    return response.data;
+};
+
+// Verify OTP
+export const verifyOtp = async ({ email, otp }) => {
+    const response = await API.post("/auth/verify-otp", { email, otp });
+    return response.data;
+};
+
 // Signup
 export const signup = async (userData) => {
     const response = await API.post("/auth/signup", userData);

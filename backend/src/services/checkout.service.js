@@ -99,7 +99,7 @@ export const initiateCheckoutService = async (userId, body) => {
         throw new Error("Invalid order total amount.");
     }
 
-    const orderNumber = generateOrderNumber();
+    const orderNumber = await generateOrderNumber();
 
     const connection = await pool.getConnection();
 

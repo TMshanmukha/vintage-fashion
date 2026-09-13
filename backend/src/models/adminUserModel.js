@@ -6,6 +6,7 @@ export const getAllCustomers = async () => {
         `
         SELECT
             u.user_id,
+            u.user_code,
             u.name,
             u.email,
             u.phone,
@@ -27,7 +28,7 @@ export const getAllCustomers = async () => {
 export const getCustomerById = async (userId) => {
     const [rows] = await pool.query(
         `
-        SELECT user_id, name, email, phone, avatar_url, account_status, created_at
+        SELECT user_id, user_code, name, email, phone, avatar_url, account_status, created_at
         FROM users
         WHERE user_id = ?
         LIMIT 1

@@ -32,7 +32,58 @@ import { getSessionById, updateSessionRefreshToken } from "../models/session.mod
 import { findUserById } from "../models/user.model.js";
 
 import * as NotificationService from "./notificationService.js";
-import { sendWelcomeEmail } from "./emailService.js";
+import { sendWelcomeEmail, sendVerificationOtpEmail } from "./emailService.js";
+import { createEmailVerification, verifyEmailOtp } from "../models/emailVerification.model.js";
+import { getNextSequence } from "./sequence.service.js";
+
+export const sendOtpService = async ({ email, name }) => {
+    if (!email || !email.includes("@")) {
+        throw new Error("Please enter a valid email address.");
+    }
+    const cleanEmail = email.toLowerCase().trim();
+
+    // Check if email already registered
+    const existingUser = await findUserByEmail(cleanEmail);
+    if (existingUser) {
+        throw new Error("An account with this email is already registered. Please sign in instead.");
+    }
+
+    // Generate 6-digit numeric OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await createEmailVerification({
+        email: cleanEmail,
+        otpCode: otp,
+        expiresAt
+    });
+
+    const sendRes = await sendVerificationOtpEmail({
+        email: cleanEmail,
+        name: name || "",
+        otp
+    });
+
+    if (!sendRes.success) {
+        throw new Error("Could not send verification code to this email. Please check the address.");
+    }
+
+    return {
+        success: true,
+        message: `Verification code sent to ${cleanEmail}`
+    };
+};
+
+export const verifyOtpService = async ({ email, otp }) => {
+    if (!email || !otp) {
+        throw new Error("Email and verification code are required.");
+    }
+    const verification = await verifyEmailOtp({ email, otpCode: otp });
+    if (!verification.valid) {
+        throw new Error(verification.message || "Invalid or expired verification code.");
+    }
+    return { success: true, message: "Email verified successfully." };
+};
 
 export const refreshTokenService = async ({ sessionId, refreshToken }) => {
 
@@ -225,74 +276,73 @@ export const signupService = async ({
     name,
     email,
     password,
+    otp,
     phone,
     avatarUrl,
     userAgent,
     ipAddress
 }) => {
+    const cleanEmail = email.toLowerCase().trim();
 
     // 1. Check email already exists
-
-    const existingUser = await findUserByEmail(email);
-
+    const existingUser = await findUserByEmail(cleanEmail);
     if (existingUser) {
-
-        throw new Error("Email already registered");
-
+        throw new Error("An account with this email is already registered. Please sign in instead.");
     }
 
-    // 2. Hash Password
-    console.log("Password before hash:", password);
-    console.log("Type:", typeof password);
+    // 2. Verify OTP
+    if (!otp) {
+        throw new Error("Please enter the 6-digit verification code sent to your email.");
+    }
+
+    const verification = await verifyEmailOtp({ email: cleanEmail, otpCode: otp });
+    if (!verification.valid) {
+        throw new Error(verification.message || "Invalid or expired verification code. Please request a new code.");
+    }
+
+    // 3. Hash Password
     const passwordHash = await hashPassword(password);
 
-    console.log("Signup Data");
-    console.log({
-        name,
-        email,
-        password,
-        phone,
-        avatarUrl
-    });
+    // 4. Generate clean sequential business code
+    const userCode = await getNextSequence("user");
 
-    // 3. Save User
-
+    // 5. Save User
     const result = await createUser({
-        name,
-        email,
+        userCode,
+        name: name.trim(),
+        email: cleanEmail,
         passwordHash,
         phone,
-        avatarUrl
+        avatarUrl,
+        isEmailVerified: 1
     });
 
     const userId = result.insertId;
 
     NotificationService.createNotification({
         title: "New User Registered",
-        body: `${name} created a new account.`,
+        body: `${name} (${userCode}) created a new account.`,
         type: "user",
         referenceId: userId
     }).catch(err => console.error("Notification creation failed:", err));
 
-    sendWelcomeEmail({ to: email, customerName: name })
+    sendWelcomeEmail({ to: cleanEmail, customerName: name })
         .catch(err => console.error("Welcome email dispatch failed:", err));
 
-    // 4. Generate Tokens
-
+    // 6. Generate Tokens
     const accessToken = generateAccessToken({
         userId,
-        email
+        email: cleanEmail
     });
 
     const refreshToken = generateRefreshToken({
         userId,
-        email
+        email: cleanEmail
     });
 
     const refreshTokenHash = hashToken(refreshToken);
 
-    // 5. Create Session
-
+    // 7. Create Session
     const sessionId = uuidv4();
 
     await createSession({
@@ -309,8 +359,10 @@ export const signupService = async ({
     return {
         user: {
             id: userId,
+            user_id: userId,
+            user_code: userCode,
             name,
-            email,
+            email: cleanEmail,
             phone,
             avatarUrl,
             role: "customer"
@@ -319,7 +371,6 @@ export const signupService = async ({
         refreshToken,
         sessionId
     };
-
 };
 
 export const loginService = async ({
