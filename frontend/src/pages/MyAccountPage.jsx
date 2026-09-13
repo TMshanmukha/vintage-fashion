@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, Navigate, useNavigate } from "react-router-dom";
+import { Link, Navigate, useNavigate, useSearchParams } from "react-router-dom";
 import toast from "react-hot-toast";
 import useAuth from "../hooks/useAuth";
 import { logout } from "../api/auth.api";
@@ -38,13 +38,10 @@ const statusStyles = {
 };
 
 const RETURN_STATUS_LABELS = {
-  pending: "Return requested — awaiting review",
-  approved: "Return accepted",
+  requested: "Return requested",
+  approved: "Return approved",
   rejected: "Return rejected",
-  pickup_scheduled: "Pickup scheduled",
-  picked_up: "Picked up by courier",
-  received: "Received at warehouse",
-  refunded: "Refunded",
+  completed: "Return completed",
 };
 
 const RETURN_REASONS = [
@@ -69,6 +66,7 @@ const formatINR = (value) =>
 
 export default function MyAccountPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, logoutLocal } = useAuth();
 
   const [orders, setOrders] = useState([]);
@@ -94,7 +92,21 @@ export default function MyAccountPage() {
         setLoading(true);
         const response = await getMyOrders({ limit: 50 });
         const { orders: fetched } = response;
-        if (!cancelled) setOrders(fetched || []);
+        if (!cancelled) {
+          const list = fetched || [];
+          setOrders(list);
+
+          // Deep link support — auto open order if query param ?order=ID is present
+          const targetOrderId = searchParams.get("order");
+          if (targetOrderId && list.length > 0) {
+            const matched = list.find(
+              (o) => String(o.order_id) === String(targetOrderId) || String(o.order_number) === String(targetOrderId)
+            );
+            if (matched) {
+              handleSelectOrder(matched);
+            }
+          }
+        }
       } catch (err) {
         console.error(err);
         toast.error("Couldn't load your orders.");
@@ -107,7 +119,7 @@ export default function MyAccountPage() {
     return () => {
       cancelled = true;
     };
-  }, [user]);
+  }, [user, searchParams]);
 
   // Live updates — when admin changes a status (or a return status
   // changes), reflect it instantly without the customer refreshing.
@@ -540,40 +552,92 @@ export default function MyAccountPage() {
                         />
 
                         {orderDetail?.order?.awb_number ? (
-                          <div className="mt-4 rounded-md border border-gray-100 p-4">
-                            <div className="flex items-center justify-between">
-                              <div>
-                                <p className="text-sm font-bold text-gray-800">
-                                  AWB: {orderDetail.order.awb_number}
-                                </p>
-                                {orderDetail.order.courier_name && (
-                                  <p className="text-xs text-gray-400">{orderDetail.order.courier_name}</p>
-                                )}
+                          <div className="mt-4 rounded-xl border border-pink-100 bg-gradient-to-br from-pink-50/40 to-white p-4.5 shadow-sm">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-pink-100 text-pink-600 flex items-center justify-center shrink-0">
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                                  </svg>
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold uppercase tracking-wider text-pink-600">
+                                      {orderDetail.order.courier_name || "Express Courier"}
+                                    </span>
+                                    <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800">
+                                      Active AWB
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-0.5">
+                                    <span className="text-sm font-mono font-bold text-gray-900">
+                                      AWB: {orderDetail.order.awb_number}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(String(orderDetail.order.awb_number));
+                                        toast.success("AWB Tracking Number copied!");
+                                      }}
+                                      className="text-gray-400 hover:text-pink-600 transition"
+                                      title="Copy AWB"
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                </div>
                               </div>
-                              <button
-                                onClick={handleRefreshTracking}
-                                disabled={trackingLoading}
-                                className="text-xs font-bold text-pink-500 hover:underline disabled:opacity-50"
-                              >
-                                {trackingLoading ? "Refreshing…" : "Refresh Tracking"}
-                              </button>
+
+                              <div className="flex items-center gap-2 shrink-0">
+                                <a
+                                  href={`https://shiprocket.co/tracking/${orderDetail.order.awb_number}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gray-900 hover:bg-pink-600 text-white text-xs font-bold uppercase tracking-wider transition-colors shadow-sm"
+                                >
+                                  <span>Live Tracking</span>
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                </a>
+                                <button
+                                  onClick={handleRefreshTracking}
+                                  disabled={trackingLoading}
+                                  className="p-1.5 text-gray-500 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+                                  title="Refresh tracking status"
+                                >
+                                  <svg className={`w-4 h-4 ${trackingLoading ? 'animate-spin text-pink-600' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                </button>
+                              </div>
                             </div>
 
+                            {/* Live Checkpoint Activities */}
                             {trackingData?.tracking_data?.shipment_track_activities?.length > 0 && (
-                              <div className="mt-4 space-y-2 border-t border-gray-100 pt-3">
-                                {trackingData.tracking_data.shipment_track_activities.map((a, i) => (
-                                  <div key={i} className="text-xs">
-                                    <p className="font-semibold text-gray-700">{a.activity}</p>
-                                    <p className="text-gray-400">{a.location} — {a.date}</p>
-                                  </div>
-                                ))}
+                              <div className="mt-4 space-y-2 border-t border-pink-100/70 pt-3">
+                                <p className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">Recent Tracking Updates</p>
+                                <div className="space-y-2.5 max-h-48 overflow-y-auto pr-1">
+                                  {trackingData.tracking_data.shipment_track_activities.map((a, i) => (
+                                    <div key={i} className="flex items-start gap-2.5 text-xs">
+                                      <span className={`w-2 h-2 rounded-full mt-1 shrink-0 ${i === 0 ? 'bg-pink-600 ring-4 ring-pink-100' : 'bg-gray-300'}`} />
+                                      <div className="flex-1">
+                                        <p className={`font-semibold ${i === 0 ? 'text-gray-900' : 'text-gray-600'}`}>{a.activity}</p>
+                                        <p className="text-[11px] text-gray-400">{a.location} — {a.date}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
                               </div>
                             )}
                           </div>
                         ) : (
-                          <p className="mt-3 text-center text-xs text-gray-400">
-                            Shipment not created yet.
-                          </p>
+                          <div className="mt-4 rounded-xl border border-gray-100 bg-gray-50/70 p-4 text-center">
+                            <p className="text-xs font-semibold text-gray-700">📦 Order is being prepared for dispatch</p>
+                            <p className="text-[11px] text-gray-400 mt-0.5">Courier partner and live tracking AWB will be generated upon dispatch.</p>
+                          </div>
                         )}
                       </div>
 
@@ -585,21 +649,31 @@ export default function MyAccountPage() {
 
                       <div className="space-y-4">
                         {(orderDetail?.items || []).map((item) => (
-                          <div key={item.order_item_id} className="overflow-hidden rounded-lg border border-gray-100">
+                          <div key={item.order_item_id} className="overflow-hidden rounded-xl border border-gray-100 bg-white p-3 flex gap-3 shadow-xs">
                             {item.variant_image && (
                               <img
                                 src={item.variant_image}
                                 alt={item.product_name}
-                                className="aspect-[4/3] w-full object-cover"
+                                className="w-16 h-20 rounded-lg object-cover bg-gray-50 shrink-0"
                               />
                             )}
-                            <div className="p-3">
-                              <p className="font-bold text-gray-900">{item.product_name}</p>
+                            <div className="flex-1 min-w-0">
+                              <Link
+                                to={`/product/${item.product_id}`}
+                                className="font-bold text-sm text-gray-900 hover:text-pink-600 transition truncate block"
+                              >
+                                {item.product_name}
+                              </Link>
                               <p className="mt-1 text-xs text-gray-400">
-                                {[item.size, item.color].filter(Boolean).join(" · ")}
+                                {[item.size, item.color].filter(Boolean).join(" · ") || "Standard"}
                               </p>
-                              <p className="mt-1 text-sm text-gray-500">
+                              <p className="mt-1 text-xs font-bold text-gray-700">
                                 {item.quantity} × {formatINR(item.unit_price)}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-sm font-bold text-gray-900">
+                                {formatINR((Number(item.unit_price) || 0) * (Number(item.quantity) || 1))}
                               </p>
                             </div>
                           </div>

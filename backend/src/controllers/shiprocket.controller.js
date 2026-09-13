@@ -5,13 +5,13 @@ import { sendShipmentCreatedEmail } from "../services/emailService.js";
 import { getIO } from "../socket/index.js";
 
 const getPickupLocationName = () =>
-  process.env.SHIPROCKET_PICKUP_LOCATION_NAME || "Primary";
+  process.env.SHIPROCKET_PICKUP_LOCATION_NAME || "work";
 
 export async function checkServiceability(req, res, next) {
   try {
     const { deliveryPincode, weight, declaredValue } = req.query;
     const data = await ShiprocketService.checkServiceability({
-      pickupPincode: process.env.SHIPROCKET_PICKUP_PINCODE,
+      pickupPincode: process.env.SHIPROCKET_PICKUP_PINCODE || "515001",
       deliveryPincode,
       weight: weight || 0.5,
       declaredValue: declaredValue || 500,
@@ -26,7 +26,7 @@ export async function getCouriers(req, res, next) {
   try {
     const { deliveryPincode } = req.query;
     const data = await ShiprocketService.getCourierRecommendation({
-      pickupPincode: process.env.SHIPROCKET_PICKUP_PINCODE,
+      pickupPincode: process.env.SHIPROCKET_PICKUP_PINCODE || "515001",
       deliveryPincode,
       weight: 0.5,
       declaredValue: 500,

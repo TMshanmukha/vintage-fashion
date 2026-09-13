@@ -20,6 +20,7 @@ export default function Checkout() {
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
   const [savingAddress, setSavingAddress] = useState(false);
   const [placingOrder, setPlacingOrder] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState(null);
   const [announcementText, setAnnouncementText] = useState("");
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -185,23 +186,43 @@ export default function Checkout() {
         prefill,
         handler: async (response) => {
           try {
-            await verifyPayment({
+            const verifyRes = await verifyPayment({
               order_id,
               razorpay_order_id: response.razorpay_order_id,
               razorpay_payment_id: response.razorpay_payment_id,
               razorpay_signature: response.razorpay_signature,
             });
 
+            const confirmedOrderNumber =
+              verifyRes?.data?.order?.order_number ||
+              verifyRes?.data?.order_number ||
+              ("VF-" + String(order_id).padStart(5, "0"));
+
+            setPlacedOrder({
+              order_id,
+              order_number: confirmedOrderNumber,
+              items: [...cartItems],
+              totalAmount: cartTotal + (Number(shippingInfo?.shipping_fee) || 0),
+              shippingAddress: selectedAddress,
+              deliveryMethod: shippingInfo?.delivery_method || "COURIER",
+              courierName: shippingInfo?.courier_name || "Express Courier",
+              deliveryETA: shippingInfo?.delivery_method === "LOCAL" ? "Same Day / Next Day" : (shippingInfo?.estimated_days ? `${shippingInfo.estimated_days} business days` : "2–4 business days"),
+              placedAt: new Date().toISOString(),
+            });
+
             clearCart();
             setStep(4);
           } catch (err) {
-            toast.error("Payment verification failed. Please contact support.");
+            toast.error(err.response?.data?.message || "Payment verification failed. If money was debited, it will be refunded or updated shortly.");
           } finally {
             setPlacingOrder(false);
           }
         },
         modal: {
-          ondismiss: () => setPlacingOrder(false),
+          ondismiss: () => {
+            setPlacingOrder(false);
+            toast("Payment window closed. You can retry whenever you are ready.", { icon: "ℹ️" });
+          },
         },
         theme: { color: "#111827" },
       };
@@ -209,7 +230,7 @@ export default function Checkout() {
       const razorpayInstance = new window.Razorpay(options);
       razorpayInstance.open();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Failed to start checkout.");
+      toast.error(err.response?.data?.message || "Unable to start checkout. Please check your network and retry.");
       setPlacingOrder(false);
     }
   };
@@ -221,18 +242,160 @@ export default function Checkout() {
   }
 
   if (step === 4) {
+    const copyOrderNumber = () => {
+      if (placedOrder?.order_number) {
+        navigator.clipboard.writeText(String(placedOrder.order_number));
+        toast.success("Order number copied!");
+      }
+    };
+
     return (
-      <div className="max-w-lg mx-auto px-6 py-24 text-center">
-        <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-          <svg className="w-8 h-8 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 py-12 sm:py-16 animate-fadeIn">
+        {/* Amazon-Style Top Success Header */}
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6 sm:p-8 mb-6">
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5 text-center sm:text-left">
+            <div className="w-14 h-14 sm:w-16 sm:h-16 bg-emerald-100 text-emerald-600 rounded-2xl flex items-center justify-center shrink-0 shadow-inner">
+              <svg className="w-8 h-8 sm:w-9 sm:h-9" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
+            <div className="flex-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold mb-2">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
+                Order Confirmed & Paid
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-gray-900 tracking-tight">
+                Thank you for your order!
+              </h1>
+              <p className="mt-1 text-sm text-gray-500">
+                We've sent a receipt and invoice breakdown to <span className="font-semibold text-gray-800">{user.email}</span>.
+              </p>
+
+              {/* Order Number Bar */}
+              <div className="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-2 pt-4 border-t border-gray-100 text-xs">
+                <span className="text-gray-500">Order Reference:</span>
+                <span className="font-mono font-bold text-gray-900 bg-gray-100 px-2.5 py-1 rounded-md border border-gray-200">
+                  #{placedOrder?.order_number || ("VF-" + (placedOrder?.order_id || "NEW"))}
+                </span>
+                <button
+                  type="button"
+                  onClick={copyOrderNumber}
+                  className="text-pink-600 hover:text-pink-700 font-semibold flex items-center gap-1 hover:underline"
+                >
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                  </svg>
+                  Copy
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-3">Order Confirmed!</h2>
-        <p className="text-sm text-gray-500 mb-8">Thank you for your purchase. You'll receive a confirmation email shortly.</p>
-        <Link to="/" className="inline-block bg-gray-900 text-white text-xs font-bold uppercase tracking-widest px-8 py-3 hover:bg-pink-500 transition-colors">
-          Back to Home
-        </Link>
+
+        {/* Delivery Timeline & Destination Card */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          {/* Estimated Delivery */}
+          <div className="bg-gradient-to-br from-pink-50/60 to-white rounded-2xl border border-pink-100 p-5 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-pink-100 text-pink-700 rounded-lg">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-pink-600">Estimated Delivery</p>
+                <p className="text-base font-extrabold text-gray-900">
+                  {placedOrder?.deliveryETA || "2–4 Business Days"}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              Dispatched via <span className="font-semibold text-gray-700">{placedOrder?.courierName || "Express Courier"}</span> from our Ananthapur hub.
+            </p>
+          </div>
+
+          {/* Shipping Address */}
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 bg-gray-100 text-gray-700 rounded-lg">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Delivering To</p>
+                <p className="text-sm font-bold text-gray-900">
+                  {placedOrder?.shippingAddress?.label || "Shipping Address"}
+                </p>
+              </div>
+            </div>
+            {placedOrder?.shippingAddress && (
+              <p className="text-xs text-gray-600 line-clamp-2">
+                {placedOrder.shippingAddress.address_line1}, {placedOrder.shippingAddress.city}, {placedOrder.shippingAddress.state} - {placedOrder.shippingAddress.pincode}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Ordered Items Preview */}
+        {placedOrder?.items && placedOrder.items.length > 0 && (
+          <div className="bg-white rounded-2xl border border-gray-100 p-5 sm:p-6 mb-8 shadow-sm">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-4">
+              Items in this shipment ({placedOrder.items.length})
+            </h3>
+            <div className="divide-y divide-gray-100">
+              {placedOrder.items.map((item, idx) => (
+                <div key={idx} className="py-3 flex items-center gap-4">
+                  <div className="w-14 h-16 bg-gray-50 rounded-lg overflow-hidden border border-gray-100 shrink-0">
+                    <img
+                      src={item.image || item.variant_image || "/placeholder.png"}
+                      alt={item.name}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">{item.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {[item.size, item.color].filter(Boolean).join(" · ") || "Standard"} · Qty: {item.qty}
+                    </p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-bold text-gray-900">
+                      ₹{(Number(item.price) * Number(item.qty)).toLocaleString("en-IN")}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center text-sm font-bold text-gray-900">
+              <span>Total Paid (Prepaid)</span>
+              <span className="text-base text-pink-600">₹{Number(placedOrder.totalAmount).toLocaleString("en-IN")}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Primary Action Buttons */}
+        <div className="flex flex-col sm:flex-row items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate(placedOrder?.order_id ? `/account?order=${placedOrder.order_id}` : "/account")}
+            className="w-full sm:flex-1 bg-gray-900 hover:bg-pink-600 text-white text-xs font-bold uppercase tracking-widest py-4 px-6 rounded-xl shadow-lg hover:shadow-pink-500/25 transition-all duration-300 flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            Track Your Package
+          </button>
+
+          <Link
+            to="/shop"
+            className="w-full sm:w-auto bg-gray-100 hover:bg-gray-200 text-gray-800 text-xs font-bold uppercase tracking-widest py-4 px-6 rounded-xl transition-colors text-center"
+          >
+            Continue Shopping →
+          </Link>
+        </div>
       </div>
     );
   }
