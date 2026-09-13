@@ -56,7 +56,6 @@ export async function createCard(data) {
     button_link,
     display_order,
     is_active,
-    badge,
   } = data;
 
   const [result] = await pool.query(
@@ -69,21 +68,19 @@ export async function createCard(data) {
       button_text,
       button_link,
       display_order,
-      is_active,
-      badge
+      is_active
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `,
     [
       title,
       subtitle || null,
       image_url,
-      image_public_id,
+      image_public_id || null,
       button_text || "Shop Now",
       button_link || "/shop",
       display_order || 1,
       is_active ?? true,
-      badge ?? null,
     ]
   );
 
