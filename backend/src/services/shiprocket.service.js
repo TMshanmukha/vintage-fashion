@@ -47,7 +47,10 @@ export async function createShipment(order, items = [], pickupLocationName) {
     billing_state: order.state,
     billing_country: order.country || "India",
     billing_email: order.customer_email,
-    billing_phone: order.customer_phone,
+    billing_phone: (() => {
+      const p = String(order.customer_phone || "").replace(/\D/g, "");
+      return p.length === 10 ? p : (p.length > 10 ? p.slice(-10) : "9876543210");
+    })(),
     shipping_is_billing: true,
     order_items: items.map((item) => ({
       name: item.product_name,
