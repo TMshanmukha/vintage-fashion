@@ -20,43 +20,53 @@ export const sendEmailToUsers = async (req, res) => {
             imageUrl = null;
         }
 
-        console.log("sendEmailToUsers payload:", {
+        const currentUserId = req.user?.userId || req.user?.user_id || null;
+
+        console.log("sendEmailToUsers incoming request:", {
             recipientType,
             userId,
             subject,
+            sentBy: currentUserId,
             hasFile: !!req.file,
             hasImageUrl: !!imageUrl,
-            imageUrl: imageUrl ? imageUrl.substring(0, 60) + "..." : null
         });
 
         if (!subject || !body) {
-            return res.status(400).json({ message: "Subject and body are required." });
+            return res.status(400).json({ success: false, message: "Subject and body are required." });
         }
 
         if (recipientType === "all") {
             const count = await EmailCenterService.sendToAllUsers({
-                subject,
-                body,
+                subject: subject.trim(),
+                body: body.trim(),
                 imageUrl,
-                sentBy: req.user?.user_id
+                sentBy: currentUserId
             });
-            return res.json({ message: `Email sent to ${count} users.` });
+            return res.json({ success: true, message: `Email broadcast sent to ${count} users successfully.` });
+        }
+
+        const targetUserId = userId || req.body.user_id;
+        if (!targetUserId) {
+            return res.status(400).json({ success: false, message: "Recipient user ID is required for single emails." });
         }
 
         const user = await EmailCenterService.sendToSingleUser({
-            userId,
-            subject,
-            body,
+            userId: targetUserId,
+            subject: subject.trim(),
+            body: body.trim(),
             imageUrl,
-            sentBy: req.user?.user_id
+            sentBy: currentUserId
         });
-        if (!user) return res.status(404).json({ message: "User not found." });
 
-        res.json({ message: `Email sent to ${user.email}.` });
+        if (!user) {
+            return res.status(404).json({ success: false, message: "Recipient user not found." });
+        }
+
+        res.json({ success: true, message: `Email sent to ${user.email} successfully.` });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).json({ message: "Failed to send email." });
+        console.error("sendEmailToUsers controller error:", err);
+        res.status(500).json({ success: false, message: err.message || "Failed to send email." });
     }
 };
 

@@ -201,9 +201,15 @@ export default function AdminEmails() {
         });
         toast.success(res?.message || "Email broadcast sent successfully to all users!");
       } else {
-        const user = users.find((u) => u.user_id === Number(selectedUserId));
+        const targetId = selectedUserId || queryUserId;
+        if (!targetId) {
+          toast.error("Please select a recipient customer from the dropdown.");
+          setSending(false);
+          return;
+        }
+        const user = users.find((u) => String(u.user_id) === String(targetId));
         const res = await sendSingleEmail({
-          userId: selectedUserId,
+          userId: targetId,
           subject: subject.trim(),
           body: body.trim(),
           imageUrl: imageUrl.trim() || null,

@@ -131,8 +131,9 @@ export default function AdminUsers() {
   };
 
   const handleEmailUser = (user) => {
+    const userId = user.id || user.user_id;
     navigate(
-      `/admin/emails?userId=${user.id}&name=${encodeURIComponent(user.name)}&email=${encodeURIComponent(user.email)}`
+      `/admin/emails?userId=${userId}&name=${encodeURIComponent(user.name || "")}&email=${encodeURIComponent(user.email || "")}`
     );
   };
 
