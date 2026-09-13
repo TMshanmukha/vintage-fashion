@@ -189,10 +189,10 @@ export default function FAQ() {
             Contact Support
           </Link>
           <a
-            href="tel:9999999999"
+            href="tel:+919398393619"
             className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold uppercase tracking-wider rounded-lg transition-colors"
           >
-            Call Us: 99999-99999
+            Call Us: +91 9398393619
           </a>
         </div>
       </div>
