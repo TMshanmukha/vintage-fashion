@@ -14,6 +14,7 @@ const getStoreUrl = () => {
 const STORE_URL = getStoreUrl();
 
 const SENDER_EMAIL = process.env.RESEND_FROM_EMAIL || "Vintage Fashion <contact@vintagefashion.in>";
+const REPLY_TO_EMAIL = process.env.REPLY_TO_EMAIL || process.env.ADMIN_NOTIFICATION_EMAIL || undefined;
 
 /**
  * Bulletproof Mobile-First Email Template Shell
@@ -251,6 +252,7 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
         const response = await resend.emails.send({
             from: SENDER_EMAIL,
             to,
+            replyTo: REPLY_TO_EMAIL,
             subject,
             html
         });
@@ -316,6 +318,7 @@ export const sendAdminEmail = async ({ to, customerName, subject, body, imageUrl
         const response = await resend.emails.send({
             from: SENDER_EMAIL,
             to,
+            replyTo: REPLY_TO_EMAIL,
             subject: personalizedSubject,
             html
         });
@@ -453,6 +456,7 @@ export const sendOrderConfirmationEmail = async ({
         const response = await resend.emails.send({
             from: SENDER_EMAIL,
             to,
+            replyTo: REPLY_TO_EMAIL,
             subject,
             html
         });
@@ -521,6 +525,7 @@ export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, 
         const response = await resend.emails.send({
             from: SENDER_EMAIL,
             to,
+            replyTo: REPLY_TO_EMAIL,
             subject,
             html
         });
