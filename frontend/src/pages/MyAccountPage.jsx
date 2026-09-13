@@ -692,8 +692,52 @@ export default function MyAccountPage() {
 
                         {/* Return section */}
                         {orderDetail?.returnRequest ? (
-                          <div className="rounded-md border border-pink-200 bg-pink-50 px-4 py-3 text-sm font-semibold text-pink-600">
-                            {RETURN_STATUS_LABELS[orderDetail.returnRequest.status] || "Return in progress"}
+                          <div className="rounded-xl border border-pink-200 bg-gradient-to-br from-pink-50/50 to-white p-4 space-y-3 shadow-xs">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-gray-900 uppercase tracking-wider">
+                                Return #{orderDetail.returnRequest.return_id}
+                              </span>
+                              <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-pink-100 text-pink-700">
+                                {RETURN_STATUS_LABELS[orderDetail.returnRequest.status] || orderDetail.returnRequest.status?.replace("_", " ")}
+                              </span>
+                            </div>
+
+                            <div className="space-y-1.5 text-xs text-gray-600 bg-white p-3 rounded-lg border border-pink-100">
+                              <p><strong>Reason:</strong> {orderDetail.returnRequest.reason}</p>
+                              {orderDetail.returnRequest.pickup_tracking_id && (
+                                <p><strong>Reverse Tracking AWB:</strong> <span className="font-mono font-bold text-purple-700">{orderDetail.returnRequest.pickup_tracking_id}</span></p>
+                              )}
+                              <p><strong>📍 Taking Address:</strong> {[orderDetail.order.address_line1, orderDetail.order.city, orderDetail.order.pincode].filter(Boolean).join(", ") || "Your Delivery Address"}</p>
+                              <p><strong>🏬 Return Destination:</strong> Vintage Fashion Store & Hub, Indiranagar, Bengaluru - 560038</p>
+                            </div>
+
+                            {/* Refund calculation breakdown */}
+                            {(() => {
+                              const totalPaid = Number(orderDetail.order.total_amount || 0);
+                              const fwdFee = Number(orderDetail.order.shipping_fee || 0);
+                              const retFee = fwdFee > 0 ? fwdFee : 89;
+                              const doubleShipping = fwdFee + retFee;
+                              const netRefund = orderDetail.returnRequest.refund_amount != null
+                                ? Number(orderDetail.returnRequest.refund_amount)
+                                : Math.max(1, totalPaid - doubleShipping);
+
+                              return (
+                                <div className="pt-2 border-t border-pink-100 text-[11px] space-y-1">
+                                  <div className="flex justify-between text-gray-500">
+                                    <span>Total Paid:</span>
+                                    <span>{formatINR(totalPaid)}</span>
+                                  </div>
+                                  <div className="flex justify-between text-rose-600">
+                                    <span>Two-Way Shipping Deductions:</span>
+                                    <span>- {formatINR(doubleShipping)}</span>
+                                  </div>
+                                  <div className="flex justify-between font-bold text-emerald-700 text-xs pt-1 border-t border-pink-50">
+                                    <span>{orderDetail.returnRequest.status === "refunded" ? "Refund Settled:" : "Estimated Net Refund:"}</span>
+                                    <span>{formatINR(netRefund)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })()}
                           </div>
                         ) : RETURNABLE.includes(selectedOrder.order_status) && !returnFormOpen ? (
                           <button

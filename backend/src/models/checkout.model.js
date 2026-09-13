@@ -63,6 +63,23 @@ export const decrementVariantStock = async (connection, variantId, quantity) => 
         [quantity, variantId, quantity]
     );
 
+    await connection.query(
+        `
+        UPDATE products p
+        SET p.stock_quantity = (
+            SELECT COALESCE(SUM(stock_quantity), 0)
+            FROM product_variants
+            WHERE product_id = p.product_id
+        )
+        WHERE p.product_id = (
+            SELECT product_id
+            FROM product_variants
+            WHERE variant_id = ?
+        )
+        `,
+        [variantId]
+    );
+
 };
 
 export const getOrderById = async (userId, orderId) => {

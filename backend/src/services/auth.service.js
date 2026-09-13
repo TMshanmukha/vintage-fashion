@@ -2,6 +2,7 @@ import { v4 as uuidv4 } from "uuid";
 
 import {
     findUserByEmail,
+    findUserByPhone,
     createUser
 } from "../models/user.model.js";
 
@@ -34,6 +35,8 @@ import { findUserById } from "../models/user.model.js";
 import * as NotificationService from "./notificationService.js";
 import { sendWelcomeEmail, sendVerificationOtpEmail } from "./emailService.js";
 import { createEmailVerification, verifyEmailOtp } from "../models/emailVerification.model.js";
+import { sendVerificationOtpSms } from "./smsService.js";
+import { createPhoneVerification, verifyPhoneOtp, isPhoneVerified } from "../models/phoneVerification.model.js";
 import { getNextSequence } from "./sequence.service.js";
 
 export const sendOtpService = async ({ email, name }) => {
@@ -83,6 +86,57 @@ export const verifyOtpService = async ({ email, otp }) => {
         throw new Error(verification.message || "Invalid or expired verification code.");
     }
     return { success: true, message: "Email verified successfully." };
+};
+
+export const sendPhoneOtpService = async ({ phone, name }) => {
+    const cleanPhone = String(phone || "").trim().replace(/\D/g, "").slice(-10);
+    if (!cleanPhone || cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+        throw new Error("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).");
+    }
+
+    // Check if mobile number already registered
+    const existingUser = await findUserByPhone(cleanPhone);
+    if (existingUser) {
+        throw new Error("An account with this mobile number is already registered. Please sign in instead.");
+    }
+
+    // Generate 6-digit numeric OTP
+    const otp = crypto.randomInt(100000, 999999).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await createPhoneVerification({
+        phone: cleanPhone,
+        otpCode: otp,
+        expiresAt
+    });
+
+    const sendRes = await sendVerificationOtpSms({
+        phone: cleanPhone,
+        name: name || "",
+        otp
+    });
+
+    if (!sendRes.success) {
+        throw new Error(sendRes.error || "Could not send verification code to this mobile number.");
+    }
+
+    return {
+        success: true,
+        message: `Verification code sent to +91 ${cleanPhone}`,
+        previewOtp: sendRes.previewOtp
+    };
+};
+
+export const verifyPhoneOtpService = async ({ phone, otp }) => {
+    const cleanPhone = String(phone || "").trim().replace(/\D/g, "").slice(-10);
+    if (!cleanPhone || !otp) {
+        throw new Error("Mobile number and verification code are required.");
+    }
+    const verification = await verifyPhoneOtp({ phone: cleanPhone, otpCode: otp });
+    if (!verification.valid) {
+        throw new Error(verification.message || "Invalid or expired mobile verification code.");
+    }
+    return { success: true, message: "Mobile number verified successfully." };
 };
 
 export const refreshTokenService = async ({ sessionId, refreshToken }) => {
@@ -278,11 +332,13 @@ export const signupService = async ({
     password,
     otp,
     phone,
+    phoneOtp,
     avatarUrl,
     userAgent,
     ipAddress
 }) => {
     const cleanEmail = email.toLowerCase().trim();
+    const cleanPhone = phone ? String(phone).trim().replace(/\D/g, "").slice(-10) : null;
 
     // 1. Check email already exists
     const existingUser = await findUserByEmail(cleanEmail);
@@ -290,29 +346,52 @@ export const signupService = async ({
         throw new Error("An account with this email is already registered. Please sign in instead.");
     }
 
-    // 2. Verify OTP
+    // 1b. Check mobile number already exists
+    if (cleanPhone) {
+        const existingPhoneUser = await findUserByPhone(cleanPhone);
+        if (existingPhoneUser) {
+            throw new Error("An account with this mobile number is already registered. Please sign in instead.");
+        }
+    }
+
+    // 2. Verify Email OTP
     if (!otp) {
         throw new Error("Please enter the 6-digit verification code sent to your email.");
     }
 
     const verification = await verifyEmailOtp({ email: cleanEmail, otpCode: otp });
     if (!verification.valid) {
-        throw new Error(verification.message || "Invalid or expired verification code. Please request a new code.");
+        throw new Error(verification.message || "Invalid or expired email verification code. Please request a new code.");
     }
 
-    // 3. Hash Password
+    // 3. Verify Phone OTP (if phone is provided)
+    if (cleanPhone) {
+        if (phoneOtp) {
+            const phoneVer = await verifyPhoneOtp({ phone: cleanPhone, otpCode: phoneOtp });
+            if (!phoneVer.valid) {
+                throw new Error(phoneVer.message || "Invalid or expired mobile verification code.");
+            }
+        } else {
+            const alreadyVerified = await isPhoneVerified(cleanPhone);
+            if (!alreadyVerified) {
+                throw new Error("Please verify your mobile number with the 6-digit verification code.");
+            }
+        }
+    }
+
+    // 4. Hash Password
     const passwordHash = await hashPassword(password);
 
-    // 4. Generate clean sequential business code
+    // 5. Generate clean sequential business code
     const userCode = await getNextSequence("user");
 
-    // 5. Save User
+    // 6. Save User
     const result = await createUser({
         userCode,
         name: name.trim(),
         email: cleanEmail,
         passwordHash,
-        phone,
+        phone: cleanPhone,
         avatarUrl,
         isEmailVerified: 1
     });

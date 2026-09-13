@@ -228,11 +228,25 @@ export default function ProductDetail() {
     );
   }, [product, selectedSize, selectedColor]);
 
+  const variantStock = selectedVariant ? Number(selectedVariant.stock_quantity ?? 0) : 0;
+  const totalStock = (product?.variants?.length)
+    ? (product.variants || []).reduce((sum, v) => sum + Number(v.stock_quantity || 0), 0)
+    : Number(product?.stock_quantity || 0);
+
+  const isOutOfStock = product?.variants?.length
+    ? (selectedVariant ? variantStock <= 0 : totalStock <= 0)
+    : totalStock <= 0;
+
+  const addToCartDisabled =
+    (product?.variants?.length && !selectedVariant) ||
+    (selectedVariant && variantStock <= 0) ||
+    (!product?.variants?.length && totalStock <= 0);
+
   const primaryImage =
     product?.images?.find((img) => img.is_primary)?.image_url ||
     product?.images?.[0]?.image_url;
 
-  const performAddToCart = () => {
+  const performAddToCart = (andCheckout = false) => {
     if (product.variants?.length && !selectedVariant) {
       toast.error("Please select an available size and color.");
       return;
@@ -249,6 +263,9 @@ export default function ProductDetail() {
     }
 
     addToCart(selectedVariant ? selectedVariant.variant_id : null, qty);
+    if (andCheckout) {
+      navigate("/checkout");
+    }
   };
 
   // Replay a pending cart/wishlist action once the user is logged in
@@ -327,6 +344,23 @@ export default function ProductDetail() {
     performAddToCart();
   };
 
+  const handleBuyNow = () => {
+    if (!user) {
+      setPendingAction({
+        action: "cart",
+        slug,
+        size: selectedSize,
+        color: selectedColor,
+        qty,
+      });
+      toast("Please log in to proceed to checkout.");
+      navigate(`/auth?redirect=/product/${slug}`);
+      return;
+    }
+
+    performAddToCart(true);
+  };
+
   const handleToggleWishlist = () => {
     if (!user) {
       setPendingAction({
@@ -365,10 +399,6 @@ export default function ProductDetail() {
             : prev + 1
     );
   };
-
-  const addToCartDisabled =
-    (product.variants?.length && !selectedVariant) ||
-    (selectedVariant && selectedVariant.stock_quantity <= 0);
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10">
@@ -550,31 +580,125 @@ export default function ProductDetail() {
             </div>
           )}
 
-          {/* Qty + Cart */}
-          <div className="flex items-center gap-4 mb-6">
-            <div className="flex items-center border border-gray-200">
-              <button onClick={() => setQty(Math.max(1, qty - 1))} className="px-3 py-2 text-gray-500 hover:text-gray-900">−</button>
-              <span className="px-4 py-2 text-sm font-semibold border-x border-gray-200">{qty}</span>
-              <button onClick={() => setQty(qty + 1)} className="px-3 py-2 text-gray-500 hover:text-gray-900">+</button>
+          {/* Stock Availability Indicator */}
+          <div className="mb-5">
+            {product?.variants?.length > 0 ? (
+              selectedVariant ? (
+                variantStock > 5 ? (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                    <span>In Stock &middot; <strong className="font-semibold text-emerald-900">{variantStock} units available</strong></span>
+                  </div>
+                ) : variantStock > 0 ? (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold animate-pulse">
+                    <span className="relative flex h-2 w-2">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                    </span>
+                    <span>🔥 Hurry! Only <strong className="font-bold underline decoration-amber-500">{variantStock} left</strong> in stock — order quickly!</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                    <span>Out of Stock in this size/color — please pick another combination</span>
+                  </div>
+                )
+              ) : (
+                totalStock > 0 ? (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-blue-800 text-xs font-medium">
+                    <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                    <span>Select size & color to view available stock ({totalStock} total in stock)</span>
+                  </div>
+                ) : (
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+                    <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                    <span>Out of Stock</span>
+                  </div>
+                )
+              )
+            ) : (
+              totalStock > 5 ? (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-medium">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>In Stock &middot; <strong className="font-semibold text-emerald-900">{totalStock} units available</strong></span>
+                </div>
+              ) : totalStock > 0 ? (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs font-semibold animate-pulse">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                  </span>
+                  <span>🔥 Hurry! Only <strong className="font-bold underline decoration-amber-500">{totalStock} left</strong> in stock — order quickly!</span>
+                </div>
+              ) : (
+                <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-xs font-semibold">
+                  <span className="w-2 h-2 rounded-full bg-rose-500"></span>
+                  <span>Out of Stock</span>
+                </div>
+              )
+            )}
+          </div>
+
+          {/* Qty + Cart + Buy Now */}
+          <div className="flex flex-col gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center border border-gray-200 rounded">
+                <button
+                  type="button"
+                  onClick={() => setQty(Math.max(1, qty - 1))}
+                  disabled={qty <= 1 || addToCartDisabled}
+                  className="px-3 py-2.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  −
+                </button>
+                <span className="px-4 py-2.5 text-sm font-semibold border-x border-gray-200 min-w-[2.5rem] text-center">
+                  {qty}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setQty((prev) => (selectedVariant ? Math.min(variantStock, prev + 1) : prev + 1))}
+                  disabled={addToCartDisabled || (selectedVariant ? qty >= variantStock : false)}
+                  className="px-3 py-2.5 text-gray-500 hover:text-gray-900 disabled:opacity-30 disabled:cursor-not-allowed"
+                >
+                  +
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleAddToCart}
+                disabled={addToCartDisabled}
+                className="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-widest py-3.5 px-4 rounded hover:bg-pink-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-900 shadow-sm"
+              >
+                {addToCartDisabled ? "Out of Stock" : "Add to Cart"}
+              </button>
+
+              <button
+                type="button"
+                onClick={handleToggleWishlist}
+                className={`p-3 border rounded transition-colors ${
+                  wishlisted
+                    ? "border-pink-500 text-pink-500 bg-pink-50/50"
+                    : "border-gray-200 text-gray-400 hover:border-pink-500 hover:text-pink-500"
+                }`}
+                title={wishlisted ? "Remove from wishlist" : "Add to wishlist"}
+              >
+                <svg className="w-5 h-5" fill={wishlisted ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+              </button>
             </div>
+
             <button
-              onClick={handleAddToCart}
+              type="button"
+              onClick={handleBuyNow}
               disabled={addToCartDisabled}
-              className="flex-1 bg-gray-900 text-white text-xs font-bold uppercase tracking-widest py-3 hover:bg-pink-500 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-gray-900"
+              className="w-full bg-pink-600 text-white text-xs font-bold uppercase tracking-widest py-3.5 px-4 rounded hover:bg-pink-700 transition-colors disabled:opacity-40 disabled:cursor-not-allowed shadow-sm flex items-center justify-center gap-2"
             >
-              {addToCartDisabled ? "Out of Stock" : "Add to Cart"}
-            </button>
-            <button
-              onClick={handleToggleWishlist}
-              className={`p-3 border transition-colors ${
-                wishlisted
-                  ? "border-pink-500 text-pink-500"
-                  : "border-gray-200 text-gray-400 hover:border-pink-500 hover:text-pink-500"
-              }`}
-            >
-              <svg className="w-5 h-5" fill={wishlisted ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
               </svg>
+              Buy Now
             </button>
           </div>
 

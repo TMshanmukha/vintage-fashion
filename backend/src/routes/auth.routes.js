@@ -8,6 +8,8 @@ import {
     resetPassword,
     sendOtp,
     verifyOtp,
+    sendPhoneOtp,
+    verifyPhoneOtp,
     adminLogin,
     adminLogout,
     adminRefresh
@@ -18,6 +20,8 @@ const router = express.Router();
 
 router.post("/send-otp", sendOtp);
 router.post("/verify-otp", verifyOtp);
+router.post("/send-phone-otp", sendPhoneOtp);
+router.post("/verify-phone-otp", verifyPhoneOtp);
 router.post("/refresh", refresh);
 
 router.post("/signup", (req, res, next) => {

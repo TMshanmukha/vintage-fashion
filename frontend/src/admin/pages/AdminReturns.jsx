@@ -6,6 +6,8 @@ import toast from "react-hot-toast";
 import { getReturns, updateReturnStatus } from "../../api/orderApi";
 import useAdminSocket from "../../hooks/Useadminsocket";
 
+const STORE_RETURN_ADDRESS = "Vintage Fashion Flagship Store & Hub, #42 Fashion Boulevard, Indiranagar, Bengaluru, Karnataka - 560038";
+
 const RETURN_STATUSES = [
   { key: "all", label: "All Returns" },
   { key: "pending", label: "Pending Approval" },
@@ -23,29 +25,8 @@ const statusStyles = {
   pickup_scheduled: { bg: "bg-purple-50", text: "text-purple-700", border: "border-purple-200", dot: "bg-purple-500", label: "Pickup Scheduled" },
   picked_up: { bg: "bg-indigo-50", text: "text-indigo-700", border: "border-indigo-200", dot: "bg-indigo-500", label: "In Transit (Picked Up)" },
   received: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200", dot: "bg-blue-500", label: "Received at Hub" },
-  refunded: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", label: "Refunded & Closed" },
+  refunded: { bg: "bg-emerald-50", text: "text-emerald-700", border: "border-emerald-200", dot: "bg-emerald-500", label: "Refunded & Settled" },
   rejected: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200", dot: "bg-red-500", label: "Rejected" },
-};
-
-const NEXT_ACTIONS = {
-  pending: [
-    { action: "approve", label: "Approve Return", className: "bg-sky-600 hover:bg-sky-700 text-white" },
-    { action: "reject", label: "Reject", className: "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200" },
-  ],
-  approved: [
-    { action: "schedule_pickup", label: "Schedule Courier Pickup", className: "bg-purple-600 hover:bg-purple-700 text-white" },
-  ],
-  pickup_scheduled: [
-    { action: "picked_up", label: "Mark Picked Up", className: "bg-indigo-600 hover:bg-indigo-700 text-white" },
-  ],
-  picked_up: [
-    { action: "received", label: "Mark Received at Hub", className: "bg-blue-600 hover:bg-blue-700 text-white" },
-  ],
-  received: [
-    { action: "process_refund", label: "Process Refund via Razorpay", className: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm" },
-  ],
-  rejected: [],
-  refunded: [],
 };
 
 const formatStatusLabel = (s) =>
@@ -69,6 +50,63 @@ const parsePhotos = (photos) => {
     }
   }
   return [];
+};
+
+const calculateReturnFinancials = (r) => {
+  const totalPaid = Number(r.total_amount || 0);
+  const forwardShipping = Number(r.shipping_fee || 0);
+  const returnShipping = forwardShipping > 0 ? forwardShipping : 89;
+  const totalShippingDeductions = forwardShipping + returnShipping;
+  const calculatedRefund = Math.max(1, totalPaid - totalShippingDeductions);
+  const netRefund = r.refund_amount != null ? Number(r.refund_amount) : calculatedRefund;
+  const shippingDeduction = r.shipping_deduction != null ? Number(r.shipping_deduction) : totalShippingDeductions;
+  const isLocal = r.delivery_method === "LOCAL" || r.return_delivery_method === "LOCAL";
+
+  return {
+    totalPaid,
+    subtotal: Number(r.subtotal || 0),
+    discountAmount: Number(r.discount_amount || 0),
+    forwardShipping,
+    returnShipping,
+    totalShippingDeductions: shippingDeduction,
+    netRefund,
+    isLocal,
+  };
+};
+
+const getNextActions = (r) => {
+  const isLocal = r.delivery_method === "LOCAL" || r.return_delivery_method === "LOCAL";
+  switch (r.status) {
+    case "pending":
+      return [
+        { action: "approve", label: "Approve Return", className: "bg-sky-600 hover:bg-sky-700 text-white" },
+        { action: "reject", label: "Reject", className: "bg-red-50 hover:bg-red-100 text-red-600 border border-red-200" },
+      ];
+    case "approved":
+      return isLocal
+        ? [{ action: "schedule_pickup", label: "Schedule Store Local Pickup", className: "bg-emerald-600 hover:bg-emerald-700 text-white" }]
+        : [{ action: "schedule_pickup", label: "Schedule Courier Pickup", className: "bg-purple-600 hover:bg-purple-700 text-white" }];
+    case "pickup_scheduled":
+      return isLocal
+        ? [{ action: "picked_up", label: "Mark Picked Up by Store Rider", className: "bg-indigo-600 hover:bg-indigo-700 text-white" }]
+        : [{ action: "picked_up", label: "Mark Picked Up by Courier", className: "bg-indigo-600 hover:bg-indigo-700 text-white" }];
+    case "picked_up":
+      return [
+        { action: "received", label: "Mark Received at Store Hub", className: "bg-blue-600 hover:bg-blue-700 text-white" },
+      ];
+    case "received": {
+      const { netRefund } = calculateReturnFinancials(r);
+      return [
+        {
+          action: "process_refund",
+          label: `Process Refund (${formatCurrency(netRefund)})`,
+          className: "bg-emerald-600 hover:bg-emerald-700 text-white shadow-sm font-bold",
+        },
+      ];
+    }
+    default:
+      return [];
+  }
 };
 
 export default function AdminReturns() {
@@ -110,9 +148,18 @@ export default function AdminReturns() {
   }, [loadReturns]);
 
   useAdminSocket({
-    "admin:return-updated": ({ returnId, status: newStatus }) => {
+    "admin:return-updated": ({ returnId, status: newStatus, refund_amount, shipping_deduction }) => {
       setReturns((current) =>
-        current.map((r) => (r.return_id === returnId ? { ...r, status: newStatus } : r))
+        current.map((r) =>
+          r.return_id === returnId
+            ? {
+                ...r,
+                status: newStatus,
+                refund_amount: refund_amount !== undefined ? refund_amount : r.refund_amount,
+                shipping_deduction: shipping_deduction !== undefined ? shipping_deduction : r.shipping_deduction,
+              }
+            : r
+        )
       );
     },
   });
@@ -125,13 +172,14 @@ export default function AdminReturns() {
   const confirmAction = async () => {
     if (!actionTarget) return;
     const { returnItem, action } = actionTarget;
+    const { netRefund, totalShippingDeductions } = calculateReturnFinancials(returnItem);
 
     try {
       setProcessing(true);
       await updateReturnStatus(returnItem.return_id, action);
       toast.success(
         action === "process_refund"
-          ? `Refund of ${formatCurrency(returnItem.total_amount)} processed successfully!`
+          ? `Refund of ${formatCurrency(netRefund)} processed successfully (deducted ${formatCurrency(totalShippingDeductions)} two-way shipping)!`
           : `Return status updated to ${formatStatusLabel(action)}.`
       );
       setActionTarget(null);
@@ -154,7 +202,9 @@ export default function AdminReturns() {
         r.customer_name?.toLowerCase().includes(q) ||
         r.customer_email?.toLowerCase().includes(q) ||
         r.reason?.toLowerCase().includes(q) ||
-        r.pickup_tracking_id?.toLowerCase().includes(q)
+        r.pickup_tracking_id?.toLowerCase().includes(q) ||
+        r.city?.toLowerCase().includes(q) ||
+        r.pincode?.toString().toLowerCase().includes(q)
     );
   }, [returns, search]);
 
@@ -164,7 +214,9 @@ export default function AdminReturns() {
     const pendingCount = returns.filter((r) => r.status === "pending").length;
     const inTransitCount = returns.filter((r) => ["pickup_scheduled", "picked_up", "received"].includes(r.status)).length;
     const refundedCount = returns.filter((r) => r.status === "refunded").length;
-    const totalRefundValue = returns.filter((r) => r.status === "refunded").reduce((acc, r) => acc + Number(r.total_amount || 0), 0);
+    const totalRefundValue = returns
+      .filter((r) => r.status === "refunded")
+      .reduce((acc, r) => acc + Number(r.refund_amount ?? calculateReturnFinancials(r).netRefund), 0);
 
     return { totalCount, pendingCount, inTransitCount, refundedCount, totalRefundValue };
   }, [returns]);
@@ -176,7 +228,7 @@ export default function AdminReturns() {
       <div className="flex-1 flex flex-col min-w-0 bg-gray-50/50">
         <AdminTopbar
           title="Customer Returns & Refunds"
-          description="Moderate return requests, arrange doorstep pickups, and process instant customer refunds"
+          description="Manage doorstep reverse pickups (Customer Doorstep ➔ Store Hub) and net refunds after double-shipping deductions"
         />
 
         <div className="p-4 sm:p-6 lg:p-8 space-y-6">
@@ -188,7 +240,7 @@ export default function AdminReturns() {
                 <span className="p-2 rounded-xl bg-gray-100 text-gray-700">📦</span>
               </div>
               <p className="text-2xl sm:text-3xl font-black text-gray-900 mt-2">{total}</p>
-              <p className="text-xs text-gray-400 mt-1">Across all order timelines</p>
+              <p className="text-xs text-gray-400 mt-1">Across all orders</p>
             </div>
 
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-amber-200/80 shadow-sm bg-gradient-to-br from-white to-amber-50/40">
@@ -202,11 +254,11 @@ export default function AdminReturns() {
 
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-indigo-200/80 shadow-sm bg-gradient-to-br from-white to-indigo-50/40">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-extrabold text-indigo-800 uppercase tracking-wider">In Transit</span>
+                <span className="text-xs font-extrabold text-indigo-800 uppercase tracking-wider">In Reverse Transit</span>
                 <span className="p-2 rounded-xl bg-indigo-100 text-indigo-800">🚚</span>
               </div>
               <p className="text-2xl sm:text-3xl font-black text-indigo-700 mt-2">{stats.inTransitCount}</p>
-              <p className="text-xs text-indigo-600 font-bold mt-1">Pickup or hub transit</p>
+              <p className="text-xs text-indigo-600 font-bold mt-1">Pickup or store transit</p>
             </div>
 
             <div className="bg-white p-4 sm:p-5 rounded-2xl border border-emerald-200/80 shadow-sm bg-gradient-to-br from-white to-emerald-50/40">
@@ -262,7 +314,7 @@ export default function AdminReturns() {
                   type="text"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search by Order #, Customer, Email, Tracking ID..."
+                  placeholder="Search by Order #, Customer, Pincode, Tracking ID..."
                   className="w-full pl-10 pr-4 py-2 text-xs border border-gray-200 rounded-xl focus:outline-none focus:border-gray-900 bg-gray-50/50"
                 />
                 {search && (
@@ -309,7 +361,7 @@ export default function AdminReturns() {
             {initialLoading && returns.length === 0 ? (
               <div className="p-16 text-center space-y-3">
                 <div className="w-8 h-8 border-3 border-gray-300 border-t-gray-900 rounded-full animate-spin mx-auto" />
-                <p className="text-xs text-gray-500 font-medium">Fetching returns...</p>
+                <p className="text-xs text-gray-500 font-medium">Fetching return requests...</p>
               </div>
             ) : filteredReturns.length === 0 ? (
               <div className="p-16 text-center space-y-2">
@@ -317,7 +369,7 @@ export default function AdminReturns() {
                 <h3 className="text-sm font-semibold text-gray-800">No Return Requests Found</h3>
                 <p className="text-xs text-gray-500 max-w-sm mx-auto">
                   {search
-                    ? `No returns match your search "${search}". Try clearing search filters.`
+                    ? `No returns match your search "${search}".`
                     : activeTab !== "all"
                     ? `There are currently no return requests with status "${formatStatusLabel(activeTab)}".`
                     : "There are no customer return requests in the system right now."}
@@ -328,10 +380,10 @@ export default function AdminReturns() {
                 <table className="w-full text-left text-xs">
                   <thead className="bg-gray-50/80 text-gray-600 border-b border-gray-200 uppercase tracking-wider font-bold text-[11px]">
                     <tr>
-                      <th className="py-4 px-5">Order & Date</th>
+                      <th className="py-4 px-5">Order & Pickup Route</th>
                       <th className="py-4 px-5">Customer</th>
-                      <th className="py-4 px-5">Reason & Details</th>
-                      <th className="py-4 px-5">Refund Amount</th>
+                      <th className="py-4 px-5">Reason & Proof</th>
+                      <th className="py-4 px-5">Refund Breakdown (Double Shipping Deducted)</th>
                       <th className="py-4 px-5">Status</th>
                       <th className="py-4 px-5 text-right">Action Workflow</th>
                     </tr>
@@ -339,36 +391,67 @@ export default function AdminReturns() {
                   <tbody className="divide-y divide-gray-100">
                     {filteredReturns.map((r) => {
                       const st = statusStyles[r.status] || statusStyles.pending;
-                      const actions = NEXT_ACTIONS[r.status] || [];
+                      const actions = getNextActions(r);
+                      const fin = calculateReturnFinancials(r);
 
                       return (
                         <tr key={r.return_id} className="hover:bg-gray-50/60 transition-colors">
-                          {/* Order & Date */}
-                          <td className="py-4 px-5 align-top">
-                            <div className="font-bold text-gray-900 text-sm">
-                              #{r.order_number}
+                          {/* Order & Route */}
+                          <td className="py-4 px-5 align-top max-w-xs">
+                            <div className="flex items-center gap-2">
+                              <span className="font-bold text-gray-900 text-sm">
+                                #{r.order_number}
+                              </span>
+                              <span
+                                className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                  fin.isLocal
+                                    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                                    : "bg-purple-50 text-purple-700 border border-purple-200"
+                                }`}
+                              >
+                                {fin.isLocal ? "Local Store Pickup" : "Courier Reverse Pickup"}
+                              </span>
                             </div>
                             <p className="text-[11px] text-gray-400 mt-0.5">
-                              {formatDate(r.created_at)}
+                              Requested on {formatDate(r.created_at)}
                             </p>
+
+                            {/* Taking Address & Return Destination */}
+                            <div className="mt-2 text-[11px] space-y-1 rounded-lg bg-gray-50 p-2.5 border border-gray-100">
+                              <p className="text-gray-700 font-medium leading-tight">
+                                <strong className="text-gray-900 font-semibold">📍 Taking Address:</strong>{" "}
+                                {[r.address_line1, r.address_line2, r.city, r.state, r.pincode].filter(Boolean).join(", ") || "Customer Address"}
+                              </p>
+                              <p className="text-gray-500 leading-tight">
+                                <strong className="text-gray-700 font-semibold">🏬 Return Dest:</strong> {STORE_RETURN_ADDRESS}
+                              </p>
+                            </div>
+
                             {r.pickup_tracking_id && (
-                              <span className="inline-flex items-center gap-1 mt-1.5 px-2 py-0.5 rounded-md bg-purple-50 text-purple-700 text-[10px] font-mono font-medium border border-purple-100">
-                                🚚 {r.pickup_tracking_id}
-                              </span>
+                              <div className="mt-2">
+                                <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-purple-50 text-purple-700 text-[10px] font-mono font-bold border border-purple-100">
+                                  🚚 {r.pickup_tracking_id}
+                                </span>
+                              </div>
                             )}
                           </td>
 
                           {/* Customer */}
                           <td className="py-4 px-5 align-top">
                             <div className="flex items-center gap-2.5">
-                              <div className="w-7 h-7 rounded-full bg-gray-900 text-white font-bold flex items-center justify-center text-[10px] flex-shrink-0 shadow-sm">
+                              <div className="w-8 h-8 rounded-full bg-gray-900 text-white font-bold flex items-center justify-center text-xs flex-shrink-0 shadow-sm">
                                 {(r.customer_name || "C").charAt(0).toUpperCase()}
                               </div>
                               <div>
                                 <p className="font-semibold text-gray-900">{r.customer_name || "Customer"}</p>
-                                <p className="text-[10px] text-gray-400 truncate max-w-[150px]" title={r.customer_email}>
+                                <p className="text-[11px] text-gray-500 truncate max-w-[150px]" title={r.customer_email}>
                                   {r.customer_email || "—"}
                                 </p>
+                                {r.customer_phone && r.customer_phone !== "—" && (
+                                  <p className="text-[11px] text-gray-400 font-mono mt-0.5">
+                                    📞 {r.customer_phone}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </td>
@@ -393,6 +476,7 @@ export default function AdminReturns() {
                                       type="button"
                                       onClick={() => setPreviewImage(url)}
                                       className="relative group rounded-lg overflow-hidden border border-gray-200 w-10 h-10 flex-shrink-0 cursor-pointer"
+                                      title="View proof photo"
                                     >
                                       <img
                                         src={url}
@@ -407,12 +491,31 @@ export default function AdminReturns() {
                             })()}
                           </td>
 
-                          {/* Refund Amount */}
+                          {/* Refund Breakdown (Double Shipping Deducted) */}
                           <td className="py-4 px-5 align-top">
-                            <span className="text-sm font-bold text-gray-900">
-                              {formatCurrency(r.total_amount)}
-                            </span>
-                            <p className="text-[10px] text-gray-400 mt-0.5">Prepaid / Original method</p>
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between text-[11px] text-gray-500">
+                                <span>Total Paid:</span>
+                                <span className="font-semibold text-gray-700">{formatCurrency(fin.totalPaid)}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-rose-600">
+                                <span>Forward Freight:</span>
+                                <span>- {formatCurrency(fin.forwardShipping)}</span>
+                              </div>
+                              <div className="flex items-center justify-between text-[10px] text-rose-600">
+                                <span>Return Pickup Fee:</span>
+                                <span>- {formatCurrency(fin.returnShipping)}</span>
+                              </div>
+                              <div className="pt-1 border-t border-gray-100 flex items-center justify-between">
+                                <span className="text-xs font-extrabold text-gray-900">Net Refund:</span>
+                                <span className="text-sm font-extrabold text-emerald-700">
+                                  {formatCurrency(fin.netRefund)}
+                                </span>
+                              </div>
+                              <span className="inline-block mt-1 text-[9px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                                2-way shipping deducted
+                              </span>
+                            </div>
                           </td>
 
                           {/* Status */}
@@ -440,7 +543,7 @@ export default function AdminReturns() {
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-[11px] text-gray-400 italic">No actions pending</span>
+                              <span className="text-[11px] text-gray-400 italic">No pending actions</span>
                             )}
                           </td>
                         </tr>
@@ -480,20 +583,61 @@ export default function AdminReturns() {
       </div>
 
       {/* Action Confirmation Modal */}
-      <ConfirmDialog
-        open={Boolean(actionTarget)}
-        title={`${actionTarget?.label}?`}
-        message={
-          actionTarget?.action === "process_refund"
-            ? `Process an instant real refund of ${formatCurrency(actionTarget?.returnItem?.total_amount)} via Razorpay for Order #${actionTarget?.returnItem?.order_number}? This will initiate the bank refund to the customer.`
-            : `Are you sure you want to ${actionTarget?.label?.toLowerCase()} for Order #${actionTarget?.returnItem?.order_number} (${actionTarget?.returnItem?.customer_name})?`
-        }
-        confirmText={actionTarget?.action === "process_refund" ? "Process Refund" : "Confirm"}
-        confirmColor={actionTarget?.action === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-gray-900 hover:bg-gray-800"}
-        onConfirm={confirmAction}
-        onCancel={() => setActionTarget(null)}
-        loading={processing}
-      />
+      {actionTarget && (
+        <ConfirmDialog
+          open={Boolean(actionTarget)}
+          title={actionTarget?.action === "process_refund" ? "Confirm Instant Net Refund" : `${actionTarget?.label}?`}
+          message={
+            actionTarget?.action === "process_refund" ? (
+              <div className="text-left space-y-3 text-xs">
+                <p className="text-gray-600">
+                  You are processing a refund for <strong>Order #{actionTarget.returnItem.order_number}</strong> ({actionTarget.returnItem.customer_name}).
+                </p>
+                <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 space-y-1.5 font-medium">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Original Payment:</span>
+                    <span className="font-bold text-gray-900">{formatCurrency(actionTarget.returnItem.total_amount)}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-600">
+                    <span>Less Forward Freight:</span>
+                    <span>- {formatCurrency(actionTarget.returnItem.shipping_fee || 0)}</span>
+                  </div>
+                  <div className="flex justify-between text-rose-600">
+                    <span>Less Return Logistics Fee:</span>
+                    <span>- {formatCurrency((actionTarget.returnItem.shipping_fee || 0) > 0 ? actionTarget.returnItem.shipping_fee : 89)}</span>
+                  </div>
+                  <div className="pt-2 border-t border-gray-200 flex justify-between text-sm font-extrabold text-emerald-700">
+                    <span>Net Refund to Customer:</span>
+                    <span>{formatCurrency(calculateReturnFinancials(actionTarget.returnItem).netRefund)}</span>
+                  </div>
+                </div>
+                <p className="text-gray-500 text-[11px]">
+                  This will initiate an instant net refund of{" "}
+                  <strong className="text-emerald-700">{formatCurrency(calculateReturnFinancials(actionTarget.returnItem).netRefund)}</strong> to the customer's original payment method via Razorpay and restock returned items into inventory.
+                </p>
+              </div>
+            ) : actionTarget?.action === "schedule_pickup" ? (
+              <div className="text-left space-y-2 text-xs">
+                <p className="text-gray-600">
+                  Confirm scheduling reverse pickup for <strong>Order #{actionTarget.returnItem.order_number}</strong>?
+                </p>
+                <div className="p-2.5 bg-gray-50 rounded-lg border border-gray-200 space-y-1 text-[11px]">
+                  <p><strong>📍 Taking Address:</strong> {[actionTarget.returnItem.address_line1, actionTarget.returnItem.city, actionTarget.returnItem.pincode].filter(Boolean).join(", ")}</p>
+                  <p><strong>🏬 Return Dest:</strong> {STORE_RETURN_ADDRESS}</p>
+                  <p><strong>🚚 Pickup Method:</strong> {actionTarget.returnItem.delivery_method === "LOCAL" ? "Local Store Rider" : "Shiprocket Courier Reverse Pickup"}</p>
+                </div>
+              </div>
+            ) : (
+              `Are you sure you want to ${actionTarget?.label?.toLowerCase()} for Order #${actionTarget?.returnItem?.order_number} (${actionTarget?.returnItem?.customer_name})?`
+            )
+          }
+          confirmText={actionTarget?.action === "process_refund" ? "Confirm & Process Refund" : "Confirm"}
+          confirmColor={actionTarget?.action === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-gray-900 hover:bg-gray-800"}
+          onConfirm={confirmAction}
+          onCancel={() => setActionTarget(null)}
+          loading={processing}
+        />
+      )}
 
       {/* Image Preview Modal */}
       {previewImage && (

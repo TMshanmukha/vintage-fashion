@@ -12,10 +12,11 @@ import {
   FaShieldAlt,
   FaCheckCircle,
   FaArrowRight,
+  FaMobileAlt,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 
-import { login, signup, sendOtp } from "../api/auth.api";
+import { login, signup, sendOtp, sendPhoneOtp } from "../api/auth.api";
 import useAuth from "../hooks/useAuth";
 
 const emptyForm = {
@@ -25,6 +26,7 @@ const emptyForm = {
   phone: "",
   avatar: null,
   otp: "",
+  phoneOtp: "",
 };
 
 export default function AuthPage() {
@@ -42,9 +44,14 @@ export default function AuthPage() {
   const [sendingOtp, setSendingOtp] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
 
+  // Mobile Phone OTP state
+  const [phoneOtpSent, setPhoneOtpSent] = useState(false);
+  const [sendingPhoneOtp, setSendingPhoneOtp] = useState(false);
+  const [phoneOtpCountdown, setPhoneOtpCountdown] = useState(0);
+
   const isLogin = mode === "login";
 
-  // Resend OTP countdown timer
+  // Resend Email OTP countdown timer
   useEffect(() => {
     if (otpCountdown <= 0) return;
     const timer = setInterval(() => {
@@ -53,12 +60,29 @@ export default function AuthPage() {
     return () => clearInterval(timer);
   }, [otpCountdown]);
 
+  // Resend Mobile OTP countdown timer
+  useEffect(() => {
+    if (phoneOtpCountdown <= 0) return;
+    const timer = setInterval(() => {
+      setPhoneOtpCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [phoneOtpCountdown]);
+
   const getFriendlyError = (err) => {
     const message = err?.response?.data?.message || err?.message || "";
     const lower = message.toLowerCase();
 
-    if (lower.includes("email already") || lower.includes("already registered")) {
+    if (lower.includes("email already") || (lower.includes("email") && lower.includes("already registered"))) {
       return "An account with this email already exists. Please sign in instead.";
+    }
+    if (
+      lower.includes("mobile number is already registered") ||
+      lower.includes("mobile number already") ||
+      (lower.includes("mobile") && lower.includes("already registered")) ||
+      (lower.includes("phone") && lower.includes("already registered"))
+    ) {
+      return "An account with this mobile number already exists. Please sign in instead.";
     }
     if (
       lower.includes("invalid email or password") ||
@@ -87,7 +111,7 @@ export default function AuthPage() {
     if (lower.includes("name must")) {
       return "Please provide your full name (at least 2 characters).";
     }
-    if (lower.includes("mobile number") || lower.includes("phone")) {
+    if (lower.includes("valid 10-digit") || lower.includes("valid mobile") || lower.includes("valid phone")) {
       return "Please enter a valid 10-digit mobile number (e.g. 9876543210) starting with 6, 7, 8, or 9.";
     }
     if (
@@ -157,6 +181,28 @@ export default function AuthPage() {
     }
   };
 
+  const handleSendPhoneOtp = async () => {
+    const cleanPhone = (form.phone || "").trim().replace(/\D/g, "");
+    if (!cleanPhone || !/^[6-9]\d{9}$/.test(cleanPhone)) {
+      toast.error("Please enter a valid 10-digit mobile number first (e.g. 9876543210).");
+      return;
+    }
+    setSendingPhoneOtp(true);
+    try {
+      const res = await sendPhoneOtp({
+        phone: cleanPhone,
+        name: form.name.trim() || undefined,
+      });
+      setPhoneOtpSent(true);
+      setPhoneOtpCountdown(60);
+      toast.success(res.message || `Verification code sent to +91 ${cleanPhone}`);
+    } catch (err) {
+      toast.error(getFriendlyError(err));
+    } finally {
+      setSendingPhoneOtp(false);
+    }
+  };
+
   const createSignupPayload = () => {
     const payload = new FormData();
     payload.append("name", form.name.trim());
@@ -164,7 +210,10 @@ export default function AuthPage() {
     payload.append("password", form.password);
     payload.append("otp", form.otp.trim());
     if (form.phone) {
-      payload.append("phone", form.phone.trim());
+      payload.append("phone", form.phone.trim().replace(/\D/g, ""));
+    }
+    if (form.phoneOtp) {
+      payload.append("phoneOtp", form.phoneOtp.trim());
     }
     if (form.avatar) {
       payload.append("avatar", form.avatar);
@@ -198,7 +247,6 @@ export default function AuthPage() {
 
     if (!isLogin && (!otpSent || !form.otp || form.otp.trim().length !== 6)) {
       if (!otpSent) {
-        toast.error("Please request a verification code for your email first.");
         handleSendOtp();
       } else {
         toast.error("Please enter the 6-digit verification code sent to your email.");
@@ -210,6 +258,15 @@ export default function AuthPage() {
       const cleanPhone = (form.phone || "").trim().replace(/\D/g, "");
       if (!cleanPhone || !/^[6-9]\d{9}$/.test(cleanPhone)) {
         toast.error("Please enter a valid 10-digit mobile number (e.g. 9876543210) for courier delivery.");
+        return;
+      }
+
+      if (!phoneOtpSent || !form.phoneOtp || form.phoneOtp.trim().length !== 6) {
+        if (!phoneOtpSent) {
+          handleSendPhoneOtp();
+        } else {
+          toast.error("Please enter the 6-digit verification code sent to your mobile number.");
+        }
         return;
       }
     }
@@ -576,34 +633,119 @@ export default function AuthPage() {
                     </AnimatePresence>
                   )}
 
-                  {/* Signup Phone Number */}
+                  {/* Signup Phone Number with Send OTP Button */}
                   {!isLogin && (
-                    <div>
-                      <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                        Mobile Number <span className="text-pink-500">*</span>
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 gap-1.5">
-                          <FaPhoneAlt className="w-3.5 h-3.5" />
-                          <span className="text-xs font-semibold text-gray-500 border-r border-gray-200 pr-1.5">+91</span>
+                    <div className="space-y-2">
+                      <div>
+                        <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
+                          Mobile Number <span className="text-pink-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400 gap-1.5 z-10">
+                            <FaPhoneAlt className="w-3.5 h-3.5 text-pink-600/70" />
+                            <span className="text-xs font-semibold text-gray-500 border-r border-gray-200 pr-1.5">+91</span>
+                          </div>
+                          <input
+                            type="tel"
+                            name="phone"
+                            maxLength={10}
+                            value={form.phone}
+                            onChange={(e) => {
+                              const val = e.target.value.replace(/\D/g, "");
+                              setForm((prev) => ({ ...prev, phone: val }));
+                            }}
+                            required={!isLogin}
+                            placeholder="9876543210"
+                            className="w-full bg-gray-50/60 border border-gray-200 rounded-xl pl-16 pr-32 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:bg-white focus:border-pink-500 focus:ring-3 focus:ring-pink-500/10 tracking-wider"
+                          />
+                          <div className="absolute right-1.5 top-1/2 -translate-y-1/2">
+                            <button
+                              type="button"
+                              onClick={handleSendPhoneOtp}
+                              disabled={sendingPhoneOtp || phoneOtpCountdown > 0 || (form.phone || "").replace(/\D/g, "").length !== 10}
+                              className="bg-gray-900 hover:bg-pink-600 text-white font-bold text-[11px] px-3 py-1.5 rounded-lg disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5 shadow-sm transition cursor-pointer"
+                            >
+                              {sendingPhoneOtp ? (
+                                <>
+                                  <svg className="animate-spin w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                                  </svg>
+                                  <span>Sending...</span>
+                                </>
+                              ) : phoneOtpCountdown > 0 ? (
+                                <span className="text-white/80">{phoneOtpCountdown}s</span>
+                              ) : phoneOtpSent ? (
+                                <span>Resend</span>
+                              ) : (
+                                <span>Send OTP</span>
+                              )}
+                            </button>
+                          </div>
                         </div>
-                        <input
-                          type="tel"
-                          name="phone"
-                          maxLength={10}
-                          value={form.phone}
-                          onChange={(e) => {
-                            const val = e.target.value.replace(/\D/g, "");
-                            setForm((prev) => ({ ...prev, phone: val }));
-                          }}
-                          required={!isLogin}
-                          placeholder="9876543210"
-                          className="w-full bg-gray-50/60 border border-gray-200 rounded-xl pl-16 pr-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:bg-white focus:border-pink-500 focus:ring-3 focus:ring-pink-500/10 tracking-wider"
-                        />
+                        <p className="text-[11px] text-gray-400 mt-1">
+                          Required for courier delivery calls, mobile verification, & live tracking
+                        </p>
                       </div>
-                      <p className="text-[11px] text-gray-400 mt-1">
-                        Required for courier delivery calls, OTP, & real-time tracking
-                      </p>
+
+                      {/* Mobile OTP Verification Input Box (Signup Mode Only) */}
+                      <AnimatePresence>
+                        {phoneOtpSent && (
+                          <motion.div
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: "auto" }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="overflow-hidden"
+                          >
+                            <div className="p-3.5 bg-gradient-to-br from-indigo-50/70 via-pink-50/50 to-rose-50/40 rounded-2xl border border-indigo-200/80 shadow-xs space-y-2">
+                              <div className="flex items-center justify-between text-xs">
+                                <span className="font-bold text-gray-800 flex items-center gap-1.5">
+                                  <FaMobileAlt className="text-indigo-600" />
+                                  6-Digit Mobile SMS Code <span className="text-pink-500">*</span>
+                                </span>
+                                <span className="text-[11px] text-gray-500">
+                                  {phoneOtpCountdown > 0 ? (
+                                    <span className="text-indigo-600 font-semibold">Resend in {phoneOtpCountdown}s</span>
+                                  ) : (
+                                    <button
+                                      type="button"
+                                      onClick={handleSendPhoneOtp}
+                                      disabled={sendingPhoneOtp}
+                                      className="font-bold text-indigo-600 hover:underline cursor-pointer"
+                                    >
+                                      Resend Code
+                                    </button>
+                                  )}
+                                </span>
+                              </div>
+
+                              <div className="relative">
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  name="phoneOtp"
+                                  maxLength={6}
+                                  value={form.phoneOtp}
+                                  onChange={(e) => {
+                                    const val = e.target.value.replace(/\D/g, "").slice(0, 6);
+                                    setForm((prev) => ({ ...prev, phoneOtp: val }));
+                                  }}
+                                  placeholder="0 0 0 0 0 0"
+                                  className="w-full bg-white border border-indigo-300 rounded-xl px-4 py-2.5 sm:py-3 text-center text-base sm:text-lg font-mono font-bold tracking-[0.35em] text-gray-900 placeholder:text-gray-300 outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/15"
+                                />
+                                {form.phoneOtp.length === 6 && (
+                                  <div className="absolute right-3.5 top-1/2 -translate-y-1/2 text-emerald-500">
+                                    <FaCheckCircle className="w-5 h-5" />
+                                  </div>
+                                )}
+                              </div>
+
+                              <p className="text-[11px] text-gray-500 leading-tight">
+                                We sent a 6-digit code to <span className="font-bold text-gray-700">+91 {form.phone}</span>. Please check your SMS messages.
+                              </p>
+                            </div>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
                   )}
 

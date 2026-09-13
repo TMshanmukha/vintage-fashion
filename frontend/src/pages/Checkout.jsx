@@ -822,13 +822,39 @@ export default function Checkout() {
                     <span className="text-xs text-gray-400 animate-pulse">Calculating...</span>
                   ) : shippingError ? (
                     <span className="text-xs font-semibold text-red-500">Unserviceable</span>
+                  ) : currentShippingFee === 0 ? (
+                    <span className="font-bold text-emerald-600 flex items-center justify-end gap-1">
+                      {shippingInfo?.original_shipping_fee > 0 && (
+                        <span className="line-through text-[11px] text-gray-400 font-normal">
+                          ₹ {Number(shippingInfo.original_shipping_fee).toFixed(2)}
+                        </span>
+                      )}
+                      FREE
+                    </span>
                   ) : (
-                    <span className={`font-semibold ${currentShippingFee === 0 ? "text-emerald-600" : "text-gray-800"}`}>
-                      {currentShippingFee === 0 ? "FREE" : `₹ ${currentShippingFee.toFixed(2)}`}
+                    <span className="font-semibold text-gray-800 flex items-center justify-end gap-1.5">
+                      {shippingInfo?.original_shipping_fee > 100 && (
+                        <span className="line-through text-xs text-gray-400 font-normal">
+                          ₹ {Number(shippingInfo.original_shipping_fee).toFixed(2)}
+                        </span>
+                      )}
+                      ₹ {currentShippingFee.toFixed(2)}
                     </span>
                   )}
                 </div>
               </div>
+
+              {shippingInfo?.is_free_shipping && (
+                <div className="p-2 bg-emerald-50 border border-emerald-200 rounded text-[11px] font-semibold text-emerald-800 flex items-center gap-1">
+                  🎉 Free shipping offer applied!
+                </div>
+              )}
+
+              {shippingInfo?.is_capped && (
+                <div className="p-2 bg-indigo-50 border border-indigo-200 rounded text-[11px] font-medium text-indigo-700 flex items-center gap-1">
+                  🏷️ Special ₹89 capped courier rate applied!
+                </div>
+              )}
 
               <div className="border-t border-gray-200 pt-3 flex justify-between font-bold text-base">
                 <span>Total</span>

@@ -2,6 +2,17 @@ import pool from "../config/db.js";
 import shiprocketApi from "../config/shiprocket.js";
 
 /**
+ * Parse free shipping threshold amount from announcement text (e.g. "Free shipping on above ₹2000" -> 2000)
+ */
+export function parseFreeShippingThreshold(announcementText) {
+    if (!announcementText) return 2000;
+    const match = String(announcementText).replace(/,/g, "").match(/(\d+(\.\d+)?)/);
+    if (!match) return 2000;
+    const val = Number(match[1]);
+    return Number.isFinite(val) && val > 0 ? val : 2000;
+}
+
+/**
  * Fetch store shipping & delivery configuration from website_settings
  */
 export async function getShippingSettings() {
@@ -17,7 +28,9 @@ export async function getShippingSettings() {
             local_delivery_pincodes,
             local_delivery_charge,
             courier_delivery_enabled,
-            courier_provider
+            courier_provider,
+            announcement_text,
+            announcement_enabled
         FROM website_settings
         WHERE setting_id = 1
         LIMIT 1`
@@ -44,6 +57,8 @@ export async function getShippingSettings() {
         local_delivery_charge: Number(row.local_delivery_charge || 0),
         courier_delivery_enabled: Boolean(row.courier_delivery_enabled ?? 1),
         courier_provider: row.courier_provider || "shiprocket",
+        announcement_text: row.announcement_text || "Free shipping on above ₹2000",
+        announcement_enabled: Boolean(row.announcement_enabled ?? 1),
     };
 }
 
@@ -148,6 +163,17 @@ export async function determineDeliveryMethodAndRate({
     }
 
     const settings = await getShippingSettings();
+    const freeShippingThreshold = parseFreeShippingThreshold(settings.announcement_text);
+    const subtotalNum = Number(subtotal || 0);
+    const qualifiesForFreeShipping = subtotalNum >= freeShippingThreshold && freeShippingThreshold > 0;
+
+    // Helper to calculate capped or free rate
+    const finalizeFee = (baseFee, isLocal = false) => {
+        if (qualifiesForFreeShipping) return 0;
+        if (isLocal) return Number(baseFee || 0);
+        const fee = Number(baseFee || 0);
+        return fee > 100 ? 89 : fee;
+    };
 
     // 1. Check Local Delivery
     const isLocalPincode =
@@ -155,13 +181,19 @@ export async function determineDeliveryMethodAndRate({
         settings.local_delivery_pincodes.includes(cleanDestinationPincode);
 
     if (isLocalPincode) {
+        const finalLocalFee = finalizeFee(settings.local_delivery_charge, true);
         return {
             delivery_method: "LOCAL",
-            shipping_fee: Number(settings.local_delivery_charge || 0),
+            shipping_fee: finalLocalFee,
+            original_shipping_fee: Number(settings.local_delivery_charge || 0),
             is_local: true,
+            is_free_shipping: qualifiesForFreeShipping,
+            free_shipping_threshold: freeShippingThreshold,
             courier_name: "Local Store Delivery",
             etd: "Same Day / Next Day",
-            description: "Hand-delivered directly from our Anantapur Old Town store.",
+            description: qualifiesForFreeShipping 
+                ? `Free Shipping Offer Applied (Orders above ₹${freeShippingThreshold})`
+                : "Hand-delivered directly from our Anantapur Old Town store.",
             package_metrics: calculatePackageMetrics(cartItems),
             pickup_pincode: settings.pickup_pincode,
         };
@@ -225,15 +257,24 @@ export async function determineDeliveryMethodAndRate({
 
         const chosenCourier = validCouriers[0];
         const exactRate = Math.ceil(Number(chosenCourier.rate));
+        const finalCourierFee = finalizeFee(exactRate, false);
 
         return {
             delivery_method: "COURIER",
-            shipping_fee: exactRate,
+            shipping_fee: finalCourierFee,
+            original_shipping_fee: exactRate,
+            is_capped: exactRate > 100 && !qualifiesForFreeShipping,
             is_local: false,
+            is_free_shipping: qualifiesForFreeShipping,
+            free_shipping_threshold: freeShippingThreshold,
             courier_name: chosenCourier.courier_name || "Express Courier",
             courier_company_id: chosenCourier.courier_company_id || null,
             etd: chosenCourier.etd || "3-5 Business Days",
-            description: `Shipped via ${chosenCourier.courier_name || "Courier"}`,
+            description: qualifiesForFreeShipping
+                ? `Free Shipping Offer Applied (Orders above ₹${freeShippingThreshold})`
+                : exactRate > 100
+                ? `Shipped via ${chosenCourier.courier_name || "Courier"} (Special ₹89 Rate Applied)`
+                : `Shipped via ${chosenCourier.courier_name || "Courier"}`,
             package_metrics: metrics,
             pickup_pincode: settings.pickup_pincode,
             available_couriers_count: validCouriers.length,
@@ -241,14 +282,23 @@ export async function determineDeliveryMethodAndRate({
     } catch (apiError) {
         console.warn("Shiprocket serviceability warning, applying standard courier rate:", apiError.response?.data || apiError.message);
 
+        const standardRate = 49;
+        const finalStandardFee = finalizeFee(standardRate, false);
+
         return {
             delivery_method: "COURIER",
-            shipping_fee: 49,
+            shipping_fee: finalStandardFee,
+            original_shipping_fee: standardRate,
+            is_capped: false,
             is_local: false,
+            is_free_shipping: qualifiesForFreeShipping,
+            free_shipping_threshold: freeShippingThreshold,
             courier_name: "Standard Express Courier",
             courier_company_id: null,
             etd: "3-5 Business Days",
-            description: "Standard Pan-India Express Delivery",
+            description: qualifiesForFreeShipping
+                ? `Free Shipping Offer Applied (Orders above ₹${freeShippingThreshold})`
+                : "Standard Pan-India Express Delivery",
             package_metrics: metrics,
             pickup_pincode: settings.pickup_pincode || "515001",
             available_couriers_count: 1,

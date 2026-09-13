@@ -1,11 +1,7 @@
-// Attempts to read a free-shipping threshold amount out of the storewide
-// announcement text (e.g. "Free shipping on orders above ₹1999").
-// This is a fragile approach — recommend adding a dedicated
-// `free_shipping_threshold` column to website_settings when you get a chance.
-// Keep this in sync with backend/services/checkout.service.js if you change either.
-
-export const SHIPPING_FEE = 40; // ₹ — change this whenever you want a new flat rate
-const DEFAULT_THRESHOLD = 999; // used if no number can be parsed from the announcement text
+// Free shipping threshold & capped shipping fee utility
+export const SHIPPING_FEE = 49; // ₹ standard courier fee
+export const CAPPED_SHIPPING_FEE = 89; // ₹ capped fee when courier exceeds ₹100
+export const DEFAULT_THRESHOLD = 2000; // used if no number is specified in announcement
 
 export function getFreeShippingThreshold(announcementText) {
   if (!announcementText) return DEFAULT_THRESHOLD;
@@ -17,7 +13,11 @@ export function getFreeShippingThreshold(announcementText) {
   return Number.isFinite(value) && value > 0 ? value : DEFAULT_THRESHOLD;
 }
 
-export function calculateShipping(subtotal, announcementText) {
+export function calculateShipping(subtotal, announcementText, baseShippingFee = 49) {
   const threshold = getFreeShippingThreshold(announcementText);
-  return subtotal >= threshold ? 0 : SHIPPING_FEE;
+  if (Number(subtotal) >= threshold && threshold > 0) {
+    return 0;
+  }
+  const fee = Number(baseShippingFee) || 49;
+  return fee > 100 ? CAPPED_SHIPPING_FEE : fee;
 }

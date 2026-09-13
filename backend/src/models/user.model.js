@@ -14,6 +14,22 @@ export const findUserByEmail = async (email) => {
     return rows[0];
 };
 
+export const findUserByPhone = async (phone) => {
+    if (!phone) return null;
+    const cleanPhone = String(phone).trim().replace(/\D/g, "").slice(-10);
+    const [rows] = await pool.query(
+        `
+        SELECT *
+        FROM users
+        WHERE phone = ? OR phone = ? OR phone = ? OR phone LIKE ?
+        LIMIT 1
+        `,
+        [cleanPhone, `+91${cleanPhone}`, `91${cleanPhone}`, `%${cleanPhone}`]
+    );
+
+    return rows[0];
+};
+
 export const findUserById = async (userId) => {
 
     const [rows] = await pool.query(

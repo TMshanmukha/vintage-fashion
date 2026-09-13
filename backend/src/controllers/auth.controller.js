@@ -6,7 +6,9 @@ import {
     resetPasswordService,
     adminLoginService,
     sendOtpService,
-    verifyOtpService
+    verifyOtpService,
+    sendPhoneOtpService,
+    verifyPhoneOtpService
 } from "../services/auth.service.js";
 
 import { refreshTokenService } from "../services/auth.service.js";
@@ -35,6 +37,32 @@ export const verifyOtp = async (req, res) => {
         return res.status(400).json({
             success: false,
             message: error.message || "Invalid or expired verification code."
+        });
+    }
+};
+
+export const sendPhoneOtp = async (req, res) => {
+    try {
+        const { phone, name } = req.body;
+        const result = await sendPhoneOtpService({ phone, name });
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Failed to send mobile verification code."
+        });
+    }
+};
+
+export const verifyPhoneOtp = async (req, res) => {
+    try {
+        const { phone, otp } = req.body;
+        const result = await verifyPhoneOtpService({ phone, otp });
+        return res.status(200).json(result);
+    } catch (error) {
+        return res.status(400).json({
+            success: false,
+            message: error.message || "Invalid or expired mobile verification code."
         });
     }
 };
@@ -271,7 +299,7 @@ export const signup = async (req, res) => {
 
     try {
 
-        const { name, email, password, phone, otp } = req.body;
+        const { name, email, password, phone, otp, phoneOtp } = req.body;
         const avatarUrl = req.file?.path;
 
         const result = await signupService({
@@ -280,6 +308,7 @@ export const signup = async (req, res) => {
             password,
             otp,
             phone,
+            phoneOtp: phoneOtp || req.body.phone_otp,
             avatarUrl,
             userAgent: req.headers["user-agent"],
             ipAddress: req.ip

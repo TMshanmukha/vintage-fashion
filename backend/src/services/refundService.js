@@ -13,6 +13,14 @@ export const processRefund = async ({ razorpayPaymentId, amount }) => {
         throw new Error("No Razorpay payment ID on record for this order — cannot refund.");
     }
 
+    if (razorpayPaymentId.startsWith("mock_")) {
+        return {
+            refundId: `rfnd_mock_${Date.now()}`,
+            status: "processed",
+            amount: Number(amount),
+        };
+    }
+
     const refund = await razorpay.payments.refund(razorpayPaymentId, {
         amount: Math.round(amount * 100), // Razorpay expects paise, not rupees
     });

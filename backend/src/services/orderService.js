@@ -163,6 +163,7 @@ export const changeReturnStatus = async (returnId, action) => {
 
     let nextStatus;
     let pickupTrackingId = null;
+    let extraData = {};
 
     switch (action) {
         case "approve":
@@ -179,23 +180,35 @@ export const changeReturnStatus = async (returnId, action) => {
 
             const order = await OrderModel.getOrderById(returnRequest.order_id);
             const items = await OrderModel.getOrderItems(returnRequest.order_id);
+            const isLocal = order?.delivery_method === "LOCAL";
 
-            // Real Shiprocket reverse pickup — replaces the mocked
-            // CourierService call. Pickup happens at the CUSTOMER's
-            // address (from the order), delivery destination is your
-            // registered shop pickup location.
-            const returnShipment = await ShiprocketService.createReturnShipment(
-                order,
-                returnRequest,
-                items,
-                process.env.SHIPROCKET_PICKUP_LOCATION_NAME
-            );
+            if (isLocal) {
+                // Local store pickup by store delivery team
+                pickupTrackingId = `LOCAL-RET-${order.order_number}`;
+                extraData.return_delivery_method = "LOCAL";
+            } else {
+                // Real Shiprocket reverse pickup — customer's address is origin, store is destination
+                const returnShipment = await ShiprocketService.createReturnShipment(
+                    {
+                        ...order,
+                        customer_name: returnRequest.customer_name,
+                        customer_email: returnRequest.customer_email,
+                        customer_phone: returnRequest.customer_phone,
+                        address_line1: returnRequest.address_line1,
+                        address_line2: returnRequest.address_line2,
+                        city: returnRequest.city,
+                        state: returnRequest.state,
+                        pincode: returnRequest.pincode,
+                        country: returnRequest.country,
+                    },
+                    returnRequest,
+                    items,
+                    process.env.SHIPROCKET_PICKUP_LOCATION_NAME || "Vintage Fashion Flagship Store"
+                );
 
-            // Reusing the existing pickup_tracking_id column — it's
-            // semantically "the tracking ID for this pickup," which is
-            // exactly what Shiprocket's return AWB is. No schema change
-            // needed.
-            pickupTrackingId = returnShipment.awb_code || returnShipment.order_id;
+                pickupTrackingId = returnShipment.awb_code || returnShipment.order_id || `SR-REV-${order.order_number}`;
+                extraData.return_delivery_method = "COURIER";
+            }
             break;
         }
         case "picked_up":
@@ -203,33 +216,41 @@ export const changeReturnStatus = async (returnId, action) => {
             break;
         case "received":
             nextStatus = "received";
+            // Returned goods physically received at store/warehouse, restore inventory stock
+            await OrderModel.restoreOrderStock(returnRequest.order_id);
             break;
         case "process_refund": {
-            // This is the actual money-movement step. It looks up the
-            // exact payment tied to THIS return's order — the admin never
-            // has to search for or identify who to refund; it's derived
-            // straight from the return record itself.
             const order = await OrderModel.getOrderById(returnRequest.order_id);
             const payment = await OrderModel.getOrderPayment(returnRequest.order_id);
+            const rzpPayId = payment?.transaction_id || payment?.razorpay_payment_id;
 
-            if (!payment || !payment.razorpay_payment_id) {
+            if (!payment || !rzpPayId) {
                 return { error: "NO_PAYMENT_ON_RECORD" };
             }
 
+            // DOUBLE SHIPPING CHARGES DEDUCTION:
+            // 1. Forward shipping fee (non-refundable freight)
+            // 2. Return shipping fee (reverse pickup logistics)
+            // Net refund = Subtotal - Discount - Return Shipping (or Total Amount - Double Shipping)
+            const forwardShipping = Number(order.shipping_fee || 0);
+            const returnShippingDeduction = forwardShipping > 0 ? forwardShipping : 89;
+            const totalShippingDeductions = forwardShipping + returnShippingDeduction;
+            const netRefundAmount = Math.max(1, Number(order.total_amount || 0) - totalShippingDeductions);
+
             const refund = await RefundService.processRefund({
-                razorpayPaymentId: payment.razorpay_payment_id,
-                amount: order.total_amount,
+                razorpayPaymentId: rzpPayId,
+                amount: netRefundAmount,
             });
 
             if (refund.status !== "processed" && refund.status !== "pending") {
                 return { error: "REFUND_FAILED" };
             }
 
-            // Reuses the existing payment/order status update — this is
-            // what makes revenue stats and the order's payment badge
-            // update correctly, since getOrderStats already excludes
-            // payment_status = 'refunded' from revenue.
             await OrderModel.updatePaymentStatus(returnRequest.order_id, "refunded");
+            await OrderModel.restoreOrderStock(returnRequest.order_id);
+
+            extraData.refund_amount = netRefundAmount;
+            extraData.shipping_deduction = totalShippingDeductions;
 
             nextStatus = "refunded";
             break;
@@ -238,11 +259,15 @@ export const changeReturnStatus = async (returnId, action) => {
             return { error: "INVALID_ACTION" };
     }
 
-    await ReturnModel.updateReturnStatus(returnId, nextStatus, pickupTrackingId);
+    await ReturnModel.updateReturnStatus(returnId, nextStatus, pickupTrackingId, extraData);
+
+    const notificationBody = action === "process_refund"
+        ? `Refund of ₹${(extraData.refund_amount || 0).toFixed(2)} processed for return #${returnId} (deducted ₹${extraData.shipping_deduction || 0} two-way shipping charges)`
+        : `Return #${returnId} is now ${nextStatus.replace("_", " ")}`;
 
     await NotificationService.createNotification({
         title: "Return status updated",
-        body: `Return #${returnId} is now ${nextStatus.replace("_", " ")}`,
+        body: notificationBody,
         type: "order",
         referenceId: returnRequest.order_id,
     });
@@ -251,10 +276,14 @@ export const changeReturnStatus = async (returnId, action) => {
         getIO().to(`user:${returnRequest.user_id}`).emit("return:status-changed", {
             returnId,
             status: nextStatus,
+            refund_amount: extraData.refund_amount,
+            shipping_deduction: extraData.shipping_deduction,
         });
         getIO().to("admins").emit("admin:return-updated", {
             returnId,
             status: nextStatus,
+            refund_amount: extraData.refund_amount,
+            shipping_deduction: extraData.shipping_deduction,
         });
         // Also push the order's updated payment status live, since
         // refunding changes what MyAccountPage should show for the order.
@@ -268,7 +297,13 @@ export const changeReturnStatus = async (returnId, action) => {
         console.warn("Socket emit skipped:", err.message);
     }
 
-    return { success: true, status: nextStatus };
+    return {
+        success: true,
+        status: nextStatus,
+        refund_amount: extraData.refund_amount,
+        shipping_deduction: extraData.shipping_deduction,
+        pickup_tracking_id: pickupTrackingId
+    };
 };
 
 export const changeDeliveryMethod = async (orderId, deliveryMethod) => {

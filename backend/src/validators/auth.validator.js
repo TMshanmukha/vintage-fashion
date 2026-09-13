@@ -8,6 +8,8 @@ export const signupSchema = z.object({
     .string({ required_error: "Mobile number is required for courier delivery." })
     .trim()
     .regex(/^[6-9]\d{9}$/, "Please enter a valid 10-digit mobile number (e.g. 9876543210)."),
+  otp: z.string().trim().length(6, "Email OTP must be 6 digits.").optional(),
+  phoneOtp: z.string().trim().length(6, "Mobile OTP must be 6 digits.").optional(),
 });
 
 export const loginSchema = z.object({

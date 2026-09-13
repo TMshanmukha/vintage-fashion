@@ -6,9 +6,21 @@ export const sendOtp = async ({ email, name }) => {
     return response.data;
 };
 
-// Verify OTP
+// Verify Email OTP
 export const verifyOtp = async ({ email, otp }) => {
     const response = await API.post("/auth/verify-otp", { email, otp });
+    return response.data;
+};
+
+// Send OTP for Signup Mobile Phone Verification
+export const sendPhoneOtp = async ({ phone, name }) => {
+    const response = await API.post("/auth/send-phone-otp", { phone, name });
+    return response.data;
+};
+
+// Verify Phone OTP
+export const verifyPhoneOtp = async ({ phone, otp }) => {
+    const response = await API.post("/auth/verify-phone-otp", { phone, otp });
     return response.data;
 };
 

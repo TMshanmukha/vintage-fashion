@@ -130,6 +130,15 @@ export const getOrderPayment = async (orderId) => {
 
 export const restoreOrderStock = async (orderId) => {
     try {
+        const [[order]] = await pool.query(
+            `SELECT order_id, is_stock_restored FROM orders WHERE order_id = ?`,
+            [orderId]
+        );
+
+        if (!order || order.is_stock_restored) {
+            return;
+        }
+
         const [items] = await pool.query(
             `SELECT variant_id, quantity FROM order_items WHERE order_id = ?`,
             [orderId]
@@ -140,8 +149,27 @@ export const restoreOrderStock = async (orderId) => {
                     `UPDATE product_variants SET stock_quantity = stock_quantity + ? WHERE variant_id = ?`,
                     [item.quantity, item.variant_id]
                 );
+                await pool.query(
+                    `UPDATE products p
+                     SET p.stock_quantity = (
+                         SELECT COALESCE(SUM(stock_quantity), 0)
+                         FROM product_variants
+                         WHERE product_id = p.product_id
+                     )
+                     WHERE p.product_id = (
+                         SELECT product_id
+                         FROM product_variants
+                         WHERE variant_id = ?
+                     )`,
+                    [item.variant_id]
+                );
             }
         }
+
+        await pool.query(
+            `UPDATE orders SET is_stock_restored = 1 WHERE order_id = ?`,
+            [orderId]
+        );
     } catch (err) {
         console.warn("Failed to restore order stock:", err.message);
     }
