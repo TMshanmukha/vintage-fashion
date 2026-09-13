@@ -27,6 +27,8 @@ const app = express();
 const allowedOrigins = [
   "http://localhost:5173",
   "https://vintage-fashion-xi.vercel.app",
+  "https://vintagefashion.in",
+  "https://www.vintagefashion.in",
 ];
 
 app.use(
