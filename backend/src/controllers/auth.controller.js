@@ -15,6 +15,21 @@ import { refreshTokenService } from "../services/auth.service.js";
 import { getSessionById } from "../models/session.model.js";
 import { getIO } from "../socket/index.js";
 
+const isProduction = process.env.NODE_ENV === "production" || !!process.env.RENDER;
+
+const getCookieOptions = (maxAge) => ({
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax",
+    ...(maxAge ? { maxAge } : {})
+});
+
+const getClearCookieOptions = () => ({
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? "none" : "lax"
+});
+
 export const sendOtp = async (req, res) => {
     try {
         const { email, name } = req.body;
@@ -68,15 +83,20 @@ export const verifyPhoneOtp = async (req, res) => {
 };
 
 export const refresh = async (req, res) => {
-
     try {
+        const sessionId = req.cookies?.sessionId || req.body?.sessionId;
+        const refreshToken = req.cookies?.refreshToken || req.body?.refreshToken;
 
-        const sessionId = req.cookies.sessionId;
-        const refreshToken = req.cookies.refreshToken;
+        if (!sessionId || !refreshToken) {
+            return res.status(401).json({
+                success: false,
+                message: "No active session found."
+            });
+        }
 
         const result = await refreshTokenService({ sessionId, refreshToken });
 
-        const isAdmin = !!req.cookies.adminSessionId;
+        const isAdmin = !!req.cookies?.adminSessionId;
 
         const refreshCookieName = isAdmin
             ? "adminRefreshToken"
@@ -86,12 +106,7 @@ export const refresh = async (req, res) => {
             ? 8 * 60 * 60 * 1000
             : 30 * 24 * 60 * 60 * 1000;
 
-        res.cookie(refreshCookieName, result.refreshToken, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: cookieAge
-        });
+        res.cookie(refreshCookieName, result.refreshToken, getCookieOptions(cookieAge));
 
         return res.status(200).json({
             success: true,
@@ -102,19 +117,14 @@ export const refresh = async (req, res) => {
         });
 
     } catch (error) {
-
-        console.error("Refresh Error:", error);
-
-        res.clearCookie("refreshToken");
-        res.clearCookie("sessionId");
+        res.clearCookie("refreshToken", getClearCookieOptions());
+        res.clearCookie("sessionId", getClearCookieOptions());
 
         return res.status(401).json({
             success: false,
             message: error.message || "Could not refresh session."
         });
-
     }
-
 };
 
 export const resetPassword = async (req, res) => {
@@ -182,17 +192,8 @@ export const logout = async (req, res) => {
             await logoutService(sessionId);
         }
 
-        res.clearCookie("sessionId", {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax"
-        });
-
-        res.clearCookie("refreshToken", {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax"
-        });
+        res.clearCookie("sessionId", getClearCookieOptions());
+        res.clearCookie("refreshToken", getClearCookieOptions());
 
         if (userId) {
             try {
@@ -250,19 +251,8 @@ export const login = async (req, res) => {
             ? 8 * 60 * 60 * 1000
             : 30 * 24 * 60 * 60 * 1000;
 
-        res.cookie(sessionCookieName, sessionId, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: cookieAge
-        });
-
-        res.cookie(refreshCookieName, refreshToken, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: cookieAge
-        });
+        res.cookie(sessionCookieName, sessionId, getCookieOptions(cookieAge));
+        res.cookie(refreshCookieName, refreshToken, getCookieOptions(cookieAge));
 
         try {
             getIO().to(`user:${user.id}`).emit("session:changed", { event: "login" });
@@ -316,19 +306,8 @@ export const signup = async (req, res) => {
 
         const { user, accessToken, refreshToken, sessionId } = result;
 
-        res.cookie("refreshToken", refreshToken, {
-            httpOnly: true,
-            secure: false, // true in production
-            sameSite: "lax",
-            maxAge: 30 * 24 * 60 * 60 * 1000
-        });
-
-        res.cookie("sessionId", sessionId, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: 30 * 24 * 60 * 60 * 1000
-        });
+        res.cookie("refreshToken", refreshToken, getCookieOptions(30 * 24 * 60 * 60 * 1000));
+        res.cookie("sessionId", sessionId, getCookieOptions(30 * 24 * 60 * 60 * 1000));
 
         res.status(201).json({
             success: true,
@@ -384,19 +363,8 @@ export const adminLogin = async (req, res) => {
 
         }
 
-        res.cookie("adminSessionId", sessionId, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: 8 * 60 * 60 * 1000
-        });
-
-        res.cookie("adminRefreshToken", refreshToken, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: 8 * 60 * 60 * 1000
-        });
+        res.cookie("adminSessionId", sessionId, getCookieOptions(8 * 60 * 60 * 1000));
+        res.cookie("adminRefreshToken", refreshToken, getCookieOptions(8 * 60 * 60 * 1000));
 
         try {
             getIO().to(`admin:${user.id}`).emit("session:changed", { event: "login" });
@@ -428,21 +396,22 @@ export const adminRefresh = async (req, res) => {
 
     try {
 
-        const sessionId = req.cookies.adminSessionId;
+        const sessionId = req.cookies?.adminSessionId || req.body?.sessionId;
+        const refreshToken = req.cookies?.adminRefreshToken || req.body?.refreshToken;
 
-        const refreshToken = req.cookies.adminRefreshToken;
+        if (!sessionId || !refreshToken) {
+            return res.status(401).json({
+                success: false,
+                message: "No active admin session found."
+            });
+        }
 
         const result = await refreshTokenService({
             sessionId,
             refreshToken
         });
 
-        res.cookie("adminRefreshToken", result.refreshToken, {
-            httpOnly: true,
-            secure: false,
-            sameSite: "lax",
-            maxAge: 8 * 60 * 60 * 1000
-        });
+        res.cookie("adminRefreshToken", result.refreshToken, getCookieOptions(8 * 60 * 60 * 1000));
 
         return res.status(200).json({
             success: true,
@@ -454,12 +423,12 @@ export const adminRefresh = async (req, res) => {
 
     } catch (error) {
 
-        res.clearCookie("adminRefreshToken");
-        res.clearCookie("adminSessionId");
+        res.clearCookie("adminRefreshToken", getClearCookieOptions());
+        res.clearCookie("adminSessionId", getClearCookieOptions());
 
         return res.status(401).json({
             success: false,
-            message: error.message
+            message: error.message || "Could not refresh admin session."
         });
 
     }
@@ -474,7 +443,7 @@ export const adminLogout = async (req, res) => {
 
     try {
 
-        const sessionId = req.cookies.adminSessionId;
+        const sessionId = req.cookies?.adminSessionId;
         let userId = null;
 
         if (sessionId) {
@@ -484,8 +453,8 @@ export const adminLogout = async (req, res) => {
             await logoutService(sessionId);
         }
 
-        res.clearCookie("adminSessionId");
-        res.clearCookie("adminRefreshToken");
+        res.clearCookie("adminSessionId", getClearCookieOptions());
+        res.clearCookie("adminRefreshToken", getClearCookieOptions());
 
         if (userId) {
             try {

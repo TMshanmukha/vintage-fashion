@@ -44,12 +44,19 @@ API.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
+        const hasUserSession = Boolean(
+            localStorage.getItem("accessToken") || localStorage.getItem("user")
+        );
+
         if (
             error.response?.status === 401 &&
-            !originalRequest._retry &&
-            !originalRequest.url?.includes("/auth/login") &&
-            !originalRequest.url?.includes("/auth/signup") &&
-            !originalRequest.url?.includes("/auth/refresh")
+            !originalRequest?._retry &&
+            hasUserSession &&
+            !originalRequest?.url?.includes("/auth/login") &&
+            !originalRequest?.url?.includes("/auth/signup") &&
+            !originalRequest?.url?.includes("/auth/refresh") &&
+            !originalRequest?.url?.includes("/auth/forgot-password") &&
+            !originalRequest?.url?.includes("/auth/reset-password")
         ) {
             if (isRefreshing) {
                 return new Promise((resolve, reject) => {

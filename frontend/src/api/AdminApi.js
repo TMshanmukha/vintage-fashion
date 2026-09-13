@@ -41,44 +41,39 @@ const processQueue = (error, token = null) => {
 
 // Handle expired access token
 API.interceptors.response.use(
-
     (response) => response,
 
     async (error) => {
-
         const originalRequest = error.config;
+
+        const hasAdminSession = Boolean(
+            localStorage.getItem("adminAccessToken") || localStorage.getItem("admin")
+        );
 
         if (
             error.response?.status === 401 &&
-            !originalRequest._retry
+            !originalRequest?._retry &&
+            hasAdminSession &&
+            !originalRequest?.url?.includes("/auth/admin/login") &&
+            !originalRequest?.url?.includes("/auth/admin/refresh")
         ) {
-
             if (isRefreshing) {
-
                 return new Promise((resolve, reject) => {
-
                     failedQueue.push({
                         resolve,
                         reject
                     });
-
                 }).then((token) => {
-
                     originalRequest.headers.Authorization =
                         `Bearer ${token}`;
-
                     return API(originalRequest);
-
                 });
-
             }
 
             originalRequest._retry = true;
-
             isRefreshing = true;
 
             try {
-
                 const response = await axios.post(
                     `${API_BASE_URL}/auth/admin/refresh`,
                     {},
@@ -88,46 +83,43 @@ API.interceptors.response.use(
                 );
 
                 const newToken =
-                    response.data.data.accessToken;
+                    response.data?.data?.accessToken;
 
-                localStorage.setItem(
-                    "adminAccessToken",
-                    newToken
-                );
+                if (newToken) {
+                    localStorage.setItem(
+                        "adminAccessToken",
+                        newToken
+                    );
 
-                processQueue(null, newToken);
+                    processQueue(null, newToken);
 
-                originalRequest.headers.Authorization =
-                    `Bearer ${newToken}`;
+                    originalRequest.headers.Authorization =
+                        `Bearer ${newToken}`;
 
-                return API(originalRequest);
-
+                    return API(originalRequest);
+                }
             } catch (refreshError) {
-
                 processQueue(refreshError, null);
 
+                const hadAdmin = Boolean(localStorage.getItem("admin") || localStorage.getItem("adminAccessToken"));
                 localStorage.removeItem("admin");
                 localStorage.removeItem("adminAccessToken");
 
-                window.location.href = "/admin";
-                toast.error(
-                    "Your session has expired. Please log in again."
-                );
+                if (hadAdmin && window.location.pathname.startsWith("/admin") && window.location.pathname !== "/admin/login") {
+                    window.location.href = "/admin";
+                    toast.error(
+                        "Your session has expired. Please log in again."
+                    );
+                }
 
                 return Promise.reject(refreshError);
-
             } finally {
-
                 isRefreshing = false;
-
             }
-
         }
 
         return Promise.reject(error);
-
     }
-
 );
 
 export default API;

@@ -30,8 +30,9 @@ export const attachAuthInterceptors = (api) => {
       const isAuthError = error.response?.status === 401;
       const isRefreshCall = originalRequest?.url?.includes("/auth/refresh") || originalRequest?.url?.includes("/auth/admin/refresh");
       const isLoginCall = originalRequest?.url?.includes("/auth/login") || originalRequest?.url?.includes("/auth/admin/login");
+      const hasAdminSession = Boolean(localStorage.getItem("adminAccessToken") || localStorage.getItem("admin"));
 
-      if (!isAuthError || isRefreshCall || isLoginCall || originalRequest._retry) {
+      if (!isAuthError || !hasAdminSession || isRefreshCall || isLoginCall || originalRequest?._retry) {
         return Promise.reject(error);
       }
 

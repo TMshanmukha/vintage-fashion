@@ -23,9 +23,11 @@ import shippingRoutes from "./routes/shipping.routes.js";
 import reviewRoutes from "./routes/review.routes.js";
 
 const app = express();
+app.set("trust proxy", 1);
 
 const allowedOrigins = [
   "http://localhost:5173",
+  "http://localhost:5174",
   "https://vintage-fashion-xi.vercel.app",
   "https://vintagefashion.in",
   "https://www.vintagefashion.in",
@@ -34,12 +36,12 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: function (origin, callback) {
-      console.log("Request Origin:", origin);
-
-      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || /^http:\/\/localhost:\d+$/.test(origin) || (origin && origin.endsWith(".vercel.app"))) {
         callback(null, true);
       } else {
-        console.log("Blocked Origin:", origin);
+        if (process.env.NODE_ENV !== "production") {
+          console.warn("Blocked Origin by CORS:", origin);
+        }
         callback(new Error("Not allowed by CORS"));
       }
     },

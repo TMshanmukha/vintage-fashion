@@ -56,11 +56,12 @@ export const initSocket = (httpServer) => {
             socket.join(`user:${userId}`);
         }
 
-        console.log(`Socket connected: ${role || 'guest'} (userId=${userId || 'none'}), socket=${socket.id}`);
-
-        socket.on("disconnect", () => {
-            console.log(`Socket disconnected: ${socket.id}`);
-        });
+        if (process.env.NODE_ENV !== "production") {
+            console.log(`Socket connected: ${role || 'guest'} (userId=${userId || 'none'})`);
+            socket.on("disconnect", () => {
+                console.log(`Socket disconnected: ${socket.id}`);
+            });
+        }
     });
 
     return io;
