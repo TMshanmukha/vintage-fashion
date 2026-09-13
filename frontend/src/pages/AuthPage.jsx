@@ -192,11 +192,10 @@ export default function AuthPage() {
       const res = await sendPhoneOtp({
         phone: cleanPhone,
         name: form.name.trim() || undefined,
-        email: form.email.trim() || undefined,
       });
       setPhoneOtpSent(true);
       setPhoneOtpCountdown(60);
-      toast.success(res.message || `Verification code sent to +91 ${cleanPhone}`);
+      toast.success(res.message || `Verification code sent via SMS to +91 ${cleanPhone}`);
     } catch (err) {
       toast.error(getFriendlyError(err));
     } finally {

@@ -58,8 +58,8 @@ export const verifyOtp = async (req, res) => {
 
 export const sendPhoneOtp = async (req, res) => {
     try {
-        const { phone, name, email } = req.body;
-        const result = await sendPhoneOtpService({ phone, name, email });
+        const { phone, name } = req.body;
+        const result = await sendPhoneOtpService({ phone, name });
         return res.status(200).json(result);
     } catch (error) {
         return res.status(400).json({

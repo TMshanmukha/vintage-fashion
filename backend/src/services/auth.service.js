@@ -88,7 +88,7 @@ export const verifyOtpService = async ({ email, otp }) => {
     return { success: true, message: "Email verified successfully." };
 };
 
-export const sendPhoneOtpService = async ({ phone, name, email }) => {
+export const sendPhoneOtpService = async ({ phone, name }) => {
     const cleanPhone = String(phone || "").trim().replace(/\D/g, "").slice(-10);
     if (!cleanPhone || cleanPhone.length !== 10 || !/^[6-9]\d{9}$/.test(cleanPhone)) {
         throw new Error("Please enter a valid 10-digit Indian mobile number (e.g. 9876543210).");
@@ -113,8 +113,7 @@ export const sendPhoneOtpService = async ({ phone, name, email }) => {
     const sendRes = await sendVerificationOtpSms({
         phone: cleanPhone,
         name: name || "",
-        otp,
-        email: email || ""
+        otp
     });
 
     if (!sendRes.success) {
