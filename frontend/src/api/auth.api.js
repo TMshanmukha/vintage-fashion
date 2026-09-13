@@ -13,8 +13,8 @@ export const verifyOtp = async ({ email, otp }) => {
 };
 
 // Send OTP for Signup Mobile Phone Verification
-export const sendPhoneOtp = async ({ phone, name }) => {
-    const response = await API.post("/auth/send-phone-otp", { phone, name });
+export const sendPhoneOtp = async ({ phone, name, email }) => {
+    const response = await API.post("/auth/send-phone-otp", { phone, name, email });
     return response.data;
 };
 
