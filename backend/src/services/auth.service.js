@@ -123,8 +123,7 @@ export const sendPhoneOtpService = async ({ phone, name, email }) => {
 
     return {
         success: true,
-        message: `Verification code sent to +91 ${cleanPhone}`,
-        previewOtp: sendRes.previewOtp
+        message: `Verification code sent to +91 ${cleanPhone}`
     };
 };
 

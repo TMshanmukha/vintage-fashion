@@ -181,8 +181,6 @@ export default function AuthPage() {
     }
   };
 
-  const [demoPhoneOtp, setDemoPhoneOtp] = useState(null);
-
   const handleSendPhoneOtp = async () => {
     const cleanPhone = (form.phone || "").trim().replace(/\D/g, "");
     if (!cleanPhone || !/^[6-9]\d{9}$/.test(cleanPhone)) {
@@ -198,17 +196,7 @@ export default function AuthPage() {
       });
       setPhoneOtpSent(true);
       setPhoneOtpCountdown(60);
-
-      if (res.previewOtp) {
-        setDemoPhoneOtp(res.previewOtp);
-        setForm((prev) => ({ ...prev, phoneOtp: prev.phoneOtp || res.previewOtp }));
-        toast.success(
-          `Verification code: ${res.previewOtp} (sent to +91 ${cleanPhone})`,
-          { duration: 8000 }
-        );
-      } else {
-        toast.success(res.message || `Verification code sent to +91 ${cleanPhone}`);
-      }
+      toast.success(res.message || `Verification code sent to +91 ${cleanPhone}`);
     } catch (err) {
       toast.error(getFriendlyError(err));
     } finally {
@@ -753,23 +741,8 @@ export default function AuthPage() {
                               </div>
 
                               <p className="text-[11px] text-gray-500 leading-tight">
-                                We sent a 6-digit code to <span className="font-bold text-gray-700">+91 {form.phone}</span>. Please check your SMS messages{form.email ? ` or email at ${form.email}` : ""}.
+                                We sent a 6-digit code to <span className="font-bold text-gray-700">+91 {form.phone}</span>. Please check your SMS messages.
                               </p>
-
-                              {demoPhoneOtp && (
-                                <div className="flex items-center justify-between bg-white/95 border border-indigo-200 rounded-xl px-3 py-2 text-[11px] shadow-xs">
-                                  <span className="text-gray-600 font-medium">
-                                    Demo Code: <strong className="font-mono text-indigo-700 font-bold tracking-widest text-xs">{demoPhoneOtp}</strong>
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => setForm((prev) => ({ ...prev, phoneOtp: demoPhoneOtp }))}
-                                    className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold px-2 py-1 rounded-md transition cursor-pointer"
-                                  >
-                                    Auto-fill Code
-                                  </button>
-                                </div>
-                              )}
                             </div>
                           </motion.div>
                         )}
