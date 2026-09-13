@@ -61,6 +61,7 @@ export const updateProduct = async (product, connection) => {
             slug = ?,
             description = ?,
             price = ?,
+            mrp = ?,
             original_price = ?,
             badge = ?,
             stock_quantity = ?,
@@ -70,14 +71,15 @@ export const updateProduct = async (product, connection) => {
         `,
         [
             product.category_id,
-            product.brand_id,
+            product.brand_id || null,
             product.name,
             product.slug,
-            product.description,
+            product.description || null,
             product.price,
-            product.original_price,
-            product.badge,
-            product.stock_quantity,
+            product.mrp || product.original_price || product.price,
+            product.original_price || null,
+            product.badge || null,
+            product.stock_quantity || 0,
             product.product_id
         ]
     );
@@ -510,24 +512,26 @@ export const createProduct = async (connection, product) => {
             slug,
             description,
             price,
+            mrp,
             original_price,
             badge,
             stock_quantity,
             sku
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
         [
             product.category_id,
-            product.brand_id,
+            product.brand_id || null,
             product.name,
             product.slug,
-            product.description,
+            product.description || null,
             product.price,
-            product.original_price,
-            product.badge,
-            product.stock_quantity,
-            product.sku
+            product.mrp || product.original_price || product.price,
+            product.original_price || null,
+            product.badge || null,
+            product.stock_quantity || 0,
+            product.sku || null
         ]
     );
 
