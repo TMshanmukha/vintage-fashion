@@ -6,23 +6,22 @@ import {
   deleteBrandService
 } from "../services/brand.service.js";
 
-export const getBrands = async (req, res) => {
+export const getBrands = async (req, res, next) => {
   try {
     const result = await getBrandsService(req.query);
 
     return res.status(200).json({
       success: true,
       message: "Brands fetched successfully.",
-      data: result.brands,
+      data: result.brands || [],
       pagination: result.pagination
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    next(error);
   }
 };
 
-export const getBrandBySlug = async (req, res) => {
+export const getBrandBySlug = async (req, res, next) => {
   try {
     const brand = await getBrandBySlugService(req.params);
 
@@ -35,8 +34,7 @@ export const getBrandBySlug = async (req, res) => {
     if (error.message === "Brand not found.") {
       return res.status(404).json({ success: false, message: "Brand not found." });
     }
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Internal Server Error" });
+    next(error);
   }
 };
 

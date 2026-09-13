@@ -40,7 +40,7 @@ export const restoreCategory = async (req, res) => {
 
 };
 
-export const getCategories = async (req, res) => {
+export const getCategories = async (req, res, next) => {
     try {
 
         const categories = await getCategoriesService();
@@ -48,18 +48,11 @@ export const getCategories = async (req, res) => {
         return res.status(200).json({
             success: true,
             message: "Categories fetched successfully.",
-            data: categories
+            data: categories || []
         });
 
     } catch (error) {
-
-        console.error("Get Categories Error:", error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error"
-        });
-
+        next(error);
     }
 };
 

@@ -10,29 +10,34 @@ export const getBrands = async ({ search, limit, offset }) => {
   `;
   const values = [];
 
-  if (search) {
-    sql += ` AND name LIKE ? `;
-    values.push(`%${search}%`);
+  if (search && String(search).trim()) {
+    sql += ` AND (name LIKE ? OR slug LIKE ?) `;
+    const term = `%${String(search).trim()}%`;
+    values.push(term, term);
   }
 
+  const numLimit = Math.max(1, parseInt(limit, 10) || 20);
+  const numOffset = Math.max(0, parseInt(offset, 10) || 0);
+
   sql += ` ORDER BY created_at DESC LIMIT ? OFFSET ? `;
-  values.push(limit, offset);
+  values.push(numLimit, numOffset);
 
   const [rows] = await pool.query(sql, values);
-  return rows;
+  return Array.isArray(rows) ? rows : [];
 };
 
 export const countBrands = async ({ search }) => {
   let sql = `SELECT COUNT(*) AS total FROM brands WHERE 1 = 1`;
   const values = [];
 
-  if (search) {
-    sql += ` AND name LIKE ? `;
-    values.push(`%${search}%`);
+  if (search && String(search).trim()) {
+    sql += ` AND (name LIKE ? OR slug LIKE ?) `;
+    const term = `%${String(search).trim()}%`;
+    values.push(term, term);
   }
 
   const [rows] = await pool.query(sql, values);
-  return rows[0].total;
+  return Number(rows?.[0]?.total ?? 0);
 };
 
 export const getBrandBySlug = async (slug, connection = pool) => {

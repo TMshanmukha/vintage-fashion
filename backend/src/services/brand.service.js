@@ -59,7 +59,7 @@ export const createBrandService = async (body) => {
       title: "Brand Added",
       body: `${brandID.name} was added.`,
       type: "content",
-      referenceId: brandID
+      referenceId: brandID.brand_id
   });
 
   return brandID;
