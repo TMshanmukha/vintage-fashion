@@ -1,4 +1,5 @@
 import pool from "../config/db.js";
+import { cleanAllCloudinaryImages } from "./cleanCloudinary.js";
 
 /**
  * Standard Production Client Wipe Script for Vintage Fashion.
@@ -9,7 +10,8 @@ import pool from "../config/db.js";
  * 2. Preserves website_settings (store contact, address, delivery configurations).
  * 3. Wipes all catalog items (products, variants, images, categories, brands, banners, promotions).
  * 4. Wipes all transactions (orders, items, payments, returns, carts, wishlists, reviews, notifications, sessions).
- * 5. Resets all AUTO_INCREMENTs to 1 and business_sequences to start fresh at 1001.
+ * 5. Wipes all uploaded media from Cloudinary (products, categories, brands, avatars, returns).
+ * 6. Resets all AUTO_INCREMENTs to 1 and business_sequences to start fresh at 1001.
  */
 export async function resetClientData() {
   const connection = await pool.getConnection();
@@ -106,7 +108,11 @@ export async function resetClientData() {
 
     await connection.query("SET FOREIGN_KEY_CHECKS = 1;");
     await connection.commit();
-    console.log("=== CLIENT RESET COMPLETE: CLEAN DB WITH ONLY ADMIN & SITE INFO ===");
+
+    // 7. Wipe Cloudinary images
+    await cleanAllCloudinaryImages();
+
+    console.log("=== CLIENT RESET COMPLETE: CLEAN DB & CLOUDINARY WITH ONLY ADMIN & SITE INFO ===");
   } catch (err) {
     await connection.rollback();
     console.error("Client reset failed:", err);
