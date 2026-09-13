@@ -13,23 +13,25 @@ export const getUnreadCount = async () => {
 // (login, logout, order status changes, return requests, new signups...),
 // so this is where the live push to admins happens.
 export const createNotification = async (payload) => {
-    const result = await NotificationModel.createNotification(payload);
-
     try {
-        getIO().to("admins").emit("admin:new-notification", {
-            ...payload,
-            notification_id: result?.insertId ?? result?.notification_id ?? null,
-            is_read: false,
-            created_at: new Date().toISOString(),
-        });
-    } catch (err) {
-        // Socket.IO not initialized yet (e.g. a seed/migration script run
-        // outside the normal server startup) — don't let that break the
-        // actual notification write.
-        console.warn("Socket emit skipped:", err.message);
-    }
+        const result = await NotificationModel.createNotification(payload);
 
-    return result;
+        try {
+            getIO().to("admins").emit("admin:new-notification", {
+                ...payload,
+                notification_id: result?.insertId ?? result?.notification_id ?? null,
+                is_read: false,
+                created_at: new Date().toISOString(),
+            });
+        } catch (err) {
+            console.warn("[Notification Service] Socket emit skipped:", err.message);
+        }
+
+        return result;
+    } catch (err) {
+        console.warn("[Notification Service] Failed to create notification:", err.message);
+        return null;
+    }
 };
 
 export const markRead = async (notificationId) => {
