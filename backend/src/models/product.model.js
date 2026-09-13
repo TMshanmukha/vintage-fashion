@@ -182,20 +182,20 @@ export const countProducts = async (filters) => {
 
     const [rows] = await pool.query(sql, values);
 
-    return rows[0].total;
+    return Number(rows?.[0]?.total ?? 0);
 
 };
 
 export const getProducts = async ({
-    page,
-    limit,
+    page = 1,
+    limit = 20,
     search,
     category,
     brand,
     minPrice,
     maxPrice,
     sort
-}) => {
+} = {}) => {
 
     let sql = `
         SELECT
@@ -312,16 +312,18 @@ export const getProducts = async ({
 
     }
 
-    const offset = (page - 1) * limit;
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const limitNum = Math.max(1, parseInt(limit, 10) || 20);
+    const offset = (pageNum - 1) * limitNum;
 
     sql += ` LIMIT ? OFFSET ?`;
 
-    values.push(limit);
+    values.push(limitNum);
     values.push(offset);
 
     const [rows] = await pool.query(sql, values);
 
-    return rows;
+    return Array.isArray(rows) ? rows : [];
 };
 
 export const getProductBySlug = async (slug) => {
