@@ -67,7 +67,7 @@ export default function TermsPolicy() {
           </h2>
           <div className="space-y-3 text-xs sm:text-sm text-gray-600 leading-relaxed">
             <p>
-              By accessing, browsing, or registering an account on Vintage Fashion (accessible at vintage-fashion-xi.vercel.app), you agree to comply with and be bound by these Terms of Service.
+              By accessing, browsing, or registering an account on Vintage Fashion (accessible at vintagefashion.in), you agree to comply with and be bound by these Terms of Service.
             </p>
             <ul className="list-disc list-inside space-y-1.5 pl-2">
               <li>You must be at least 18 years old or browsing with the consent of a parent or guardian.</li>

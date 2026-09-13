@@ -4,4 +4,4 @@ Disallow: /admin/
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://vintage-fashion-xi.vercel.app/sitemap.xml
+Sitemap: https://vintagefashion.in/sitemap.xml

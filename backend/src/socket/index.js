@@ -7,6 +7,8 @@ const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "https://vintage-fashion-xi.vercel.app",
+  "https://vintagefashion.in",
+  "https://www.vintagefashion.in",
 ];
 
 // Rooms: every connected admin joins "admins" and "admin:userId"; every connected customer

@@ -8,7 +8,7 @@ const getStoreUrl = () => {
     if (raw && typeof raw === "string" && !raw.includes("localhost") && (raw.startsWith("https://") || raw.startsWith("http://"))) {
         return raw.replace(/\/+$/, "");
     }
-    return "https://vintage-fashion-xi.vercel.app";
+    return "https://vintagefashion.in";
 };
 
 const STORE_URL = getStoreUrl();

@@ -6,7 +6,7 @@ export const sendResetPasswordEmail = async ({
     token
 }) => {
     const frontendUrl = (!process.env.FRONTEND_URL || process.env.FRONTEND_URL.includes("localhost"))
-        ? "https://vintage-fashion-xi.vercel.app"
+        ? "https://vintagefashion.in"
         : process.env.FRONTEND_URL;
     const resetLink = `${frontendUrl}/reset-password?resetId=${resetId}&token=${token}`;
 
@@ -78,8 +78,9 @@ export const sendResetPasswordEmail = async ({
 </body>
 </html>`;
 
+    const senderEmail = process.env.RESEND_FROM_EMAIL || "Vintage Fashion <contact@vintagefashion.in>";
     const data = await resend.emails.send({
-        from: "Vintage Fashion <onboarding@resend.dev>",
+        from: senderEmail,
         to: email,
         subject: "Reset your Vintage Fashion password 🔐",
         html
