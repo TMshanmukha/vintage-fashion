@@ -3,6 +3,8 @@ import * as UserAdminService from "./userAdminService.js";
 import * as NotificationService from "./notificationService.js";
 import { sendAdminEmail } from "./emailService.js";
 
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
 export const sendToAllUsers = async ({ subject, body, imageUrl, sentBy }) => {
     const customers = await UserAdminService.listCustomers();
     const recipients = (customers || []).filter(
@@ -13,19 +15,30 @@ export const sendToAllUsers = async ({ subject, body, imageUrl, sentBy }) => {
         return 0;
     }
 
-    const results = await Promise.allSettled(
-        recipients.map((c) =>
-            sendAdminEmail({
-                to: c.email,
-                customerName: c.name || (c.email ? c.email.split("@")[0] : "Gentleman"),
-                subject,
-                body,
-                imageUrl
-            })
-        )
-    );
+    // Process in batches of 5 with a 300ms pause to safely respect Resend rate limits
+    const BATCH_SIZE = 5;
+    let successfulCount = 0;
 
-    const successfulCount = results.filter(r => r.status === "fulfilled").length;
+    for (let i = 0; i < recipients.length; i += BATCH_SIZE) {
+        const batch = recipients.slice(i, i + BATCH_SIZE);
+        const results = await Promise.allSettled(
+            batch.map((c) =>
+                sendAdminEmail({
+                    to: c.email,
+                    customerName: c.name || (c.email ? c.email.split("@")[0] : "Gentleman"),
+                    subject,
+                    body,
+                    imageUrl
+                })
+            )
+        );
+
+        successfulCount += results.filter((r) => r.status === "fulfilled").length;
+
+        if (i + BATCH_SIZE < recipients.length) {
+            await sleep(350);
+        }
+    }
 
     await EmailModel.logEmail({
         recipientType: "all",
@@ -41,7 +54,7 @@ export const sendToAllUsers = async ({ subject, body, imageUrl, sentBy }) => {
         type: "email"
     });
 
-    return successfulCount || recipients.length;
+    return successfulCount;
 };
 
 export const sendToSingleUser = async ({ userId, subject, body, imageUrl, sentBy }) => {

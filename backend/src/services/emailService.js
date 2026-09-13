@@ -248,16 +248,21 @@ export const sendWelcomeEmail = async ({ to, customerName }) => {
     });
 
     try {
-        const data = await resend.emails.send({
+        const response = await resend.emails.send({
             from: SENDER_EMAIL,
             to,
             subject,
             html
         });
-        console.log("Welcome email sent:", data);
-        return data;
+        if (response.error) {
+            console.error("Welcome email Resend error:", response.error);
+            return null;
+        }
+        console.log("Welcome email sent successfully:", response.data);
+        return response.data;
     } catch (err) {
         console.error("Failed to send welcome email:", err.message);
+        return null;
     }
 };
 
@@ -308,14 +313,18 @@ export const sendAdminEmail = async ({ to, customerName, subject, body, imageUrl
     });
 
     try {
-        const data = await resend.emails.send({
+        const response = await resend.emails.send({
             from: SENDER_EMAIL,
             to,
             subject: personalizedSubject,
             html
         });
-        console.log(`Admin email dispatched to ${to} (${recipientName}):`, data);
-        return data;
+        if (response.error) {
+            console.error(`Resend API error sending to ${to}:`, response.error);
+            throw new Error(response.error.message || "Failed to deliver admin email");
+        }
+        console.log(`Admin email dispatched to ${to} (${recipientName}):`, response.data);
+        return response.data;
     } catch (err) {
         console.error(`Failed to send admin email to ${to}:`, err.message);
         throw err;
@@ -441,16 +450,21 @@ export const sendOrderConfirmationEmail = async ({
     });
 
     try {
-        const data = await resend.emails.send({
+        const response = await resend.emails.send({
             from: SENDER_EMAIL,
             to,
             subject,
             html
         });
-        console.log("Order confirmation email sent:", data);
-        return data;
+        if (response.error) {
+            console.error("Order confirmation Resend error:", response.error);
+            return null;
+        }
+        console.log("Order confirmation email sent successfully:", response.data);
+        return response.data;
     } catch (err) {
         console.error("Failed to send order confirmation email:", err.message);
+        return null;
     }
 };
 
@@ -504,15 +518,20 @@ export const sendShipmentCreatedEmail = async ({ to, customerName, orderNumber, 
     });
 
     try {
-        const data = await resend.emails.send({
+        const response = await resend.emails.send({
             from: SENDER_EMAIL,
             to,
             subject,
             html
         });
-        console.log("Shipment created email sent:", data);
-        return data;
+        if (response.error) {
+            console.error("Shipment email Resend error:", response.error);
+            return null;
+        }
+        console.log("Shipment created email sent successfully:", response.data);
+        return response.data;
     } catch (err) {
         console.error("Failed to send shipment email:", err.message);
+        return null;
     }
-};
+};

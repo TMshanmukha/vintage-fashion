@@ -25,12 +25,11 @@ export const getAllCustomers = async () => {
 };
 
 export const getCustomerById = async (userId) => {
-
     const [rows] = await pool.query(
         `
         SELECT user_id, name, email, phone, avatar_url, account_status, created_at
         FROM users
-        WHERE user_id = ? AND role = 'customer'
+        WHERE user_id = ?
         LIMIT 1
         `,
         [userId]
