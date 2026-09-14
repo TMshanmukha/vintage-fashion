@@ -109,7 +109,9 @@ export default function MyAccountPage() {
         }
       } catch (err) {
         console.error(err);
-        toast.error("Couldn't load your orders.");
+        if (err?.response?.status !== 401 && !err?.isAuthExpired) {
+          toast.error("Couldn't load your orders.");
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -204,7 +206,9 @@ export default function MyAccountPage() {
       setOrderDetail(detail);
     } catch (err) {
       console.error(err);
-      toast.error("Couldn't load order details.");
+      if (err?.response?.status !== 401 && !err?.isAuthExpired) {
+        toast.error("Couldn't load order details.");
+      }
     } finally {
       setDetailLoading(false);
     }

@@ -36,7 +36,7 @@ export default function AdminCategories() {
       setCategories(list);
     } catch (error) {
       console.error(error);
-      if (!isSilent) {
+      if (!isSilent && error.response?.status !== 401 && !error.isAuthExpired) {
         toast.error(error.response?.data?.message || "Failed to load categories.");
       }
     } finally {

@@ -178,7 +178,7 @@ export default function AdminDashboard() {
       }
     } catch (err) {
       console.error("Dashboard Load Error:", err);
-      if (!isBackground) {
+      if (!isBackground && err.response?.status !== 401 && !err.isAuthExpired) {
         toast.error("Couldn't load dashboard data");
       }
     } finally {

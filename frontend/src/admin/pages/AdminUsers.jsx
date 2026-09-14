@@ -63,7 +63,9 @@ export default function AdminUsers() {
           }))
       );
     } catch (err) {
-      toast.error("Failed to load users.");
+      if (err?.response?.status !== 401 && !err?.isAuthExpired) {
+        toast.error("Failed to load users.");
+      }
       console.error(err);
     } finally {
       setLoading(false);

@@ -135,7 +135,9 @@ export default function AdminReturns() {
       setReturns(Array.isArray(data?.returns) ? data.returns : []);
       setTotal(data?.total || 0);
     } catch (err) {
-      toast.error("Failed to load returns.");
+      if (err?.response?.status !== 401 && !err?.isAuthExpired) {
+        toast.error("Failed to load returns.");
+      }
       console.error(err);
     } finally {
       setInitialLoading(false);

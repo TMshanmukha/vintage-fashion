@@ -141,33 +141,33 @@ export const verifyPhoneOtpService = async ({ phone, otp }) => {
 export const refreshTokenService = async ({ sessionId, refreshToken }) => {
 
     if (!sessionId || !refreshToken) {
-        throw new Error("Refresh token is required.");
+        throw new Error("Session expired. Please log in again.");
     }
 
     const session = await getSessionById(sessionId);
 
     if (!session) {
-        throw new Error("Invalid session.");
+        throw new Error("Session expired. Please log in again.");
     }
 
     if (new Date(session.expires_at) < new Date()) {
         await deleteSession(sessionId);
-        throw new Error("Session expired.");
+        throw new Error("Session expired. Please log in again.");
     }
 
     const isValid = await compareTokenHash(refreshToken, session.refresh_token_hash);
 
     if (!isValid) {
-        // Token doesn't match what's on record — treat as compromised, kill the session
+        // Token doesn't match what's on record — treat as expired, clean up session
         await deleteSession(sessionId);
-        throw new Error("Invalid refresh token.");
+        throw new Error("Session expired. Please log in again.");
     }
 
     const user = await findUserById(session.user_id);
 
     if (!user) {
         await deleteSession(sessionId);
-        throw new Error("User not found.");
+        throw new Error("Account not found. Please log in again.");
     }
 
     const accessToken = generateAccessToken({
@@ -185,10 +185,7 @@ export const refreshTokenService = async ({ sessionId, refreshToken }) => {
 
     const newRefreshTokenHash = hashToken(newRefreshToken);
 
-    const sessionDuration =
-        user.role === "admin"
-            ? 8 * 60 * 60 * 1000
-            : 30 * 24 * 60 * 60 * 1000;
+    const sessionDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
 
     await updateSessionRefreshToken(
         sessionId,
@@ -502,10 +499,7 @@ export const loginService = async ({
 
     const sessionId = uuidv4();
 
-    const sessionDuration =
-        user.role === "admin"
-            ? 8 * 60 * 60 * 1000
-            : 30 * 24 * 60 * 60 * 1000;
+    const sessionDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
 
     await createSession({
         session_id: sessionId,
@@ -592,6 +586,7 @@ export const adminLoginService = async ({
 
 
     const sessionId = uuidv4();
+    const sessionDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 
     await createSession({
@@ -601,7 +596,7 @@ export const adminLoginService = async ({
         userAgent,
         ipAddress,
         expiresAt:new Date(
-            Date.now()+8*60*60*1000
+            Date.now() + sessionDuration
         )
     });
 

@@ -46,7 +46,9 @@ export default function AdminNotifications() {
       const unread = list.filter((n) => !n.read).length;
       if (setUnreadCount) setUnreadCount(unread);
     } catch (err) {
-      toast.error("Failed to load notifications.");
+      if (err?.response?.status !== 401 && !err?.isAuthExpired) {
+        toast.error("Failed to load notifications.");
+      }
       console.error(err);
     } finally {
       setLoading(false);

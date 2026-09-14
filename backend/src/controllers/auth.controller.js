@@ -90,23 +90,15 @@ export const refresh = async (req, res) => {
         if (!sessionId || !refreshToken) {
             return res.status(401).json({
                 success: false,
-                message: "No active session found."
+                message: "Session expired. Please sign in again."
             });
         }
 
         const result = await refreshTokenService({ sessionId, refreshToken });
 
-        const isAdmin = !!req.cookies?.adminSessionId;
+        const cookieAge = 30 * 24 * 60 * 60 * 1000; // 30 days
 
-        const refreshCookieName = isAdmin
-            ? "adminRefreshToken"
-            : "refreshToken";
-
-        const cookieAge = isAdmin
-            ? 8 * 60 * 60 * 1000
-            : 30 * 24 * 60 * 60 * 1000;
-
-        res.cookie(refreshCookieName, result.refreshToken, getCookieOptions(cookieAge));
+        res.cookie("refreshToken", result.refreshToken, getCookieOptions(cookieAge));
 
         return res.status(200).json({
             success: true,
@@ -122,7 +114,7 @@ export const refresh = async (req, res) => {
 
         return res.status(401).json({
             success: false,
-            message: error.message || "Could not refresh session."
+            message: "Session expired. Please sign in again."
         });
     }
 };
@@ -247,9 +239,7 @@ export const login = async (req, res) => {
             ? "adminRefreshToken"
             : "refreshToken";
 
-        const cookieAge = isAdmin
-            ? 8 * 60 * 60 * 1000
-            : 30 * 24 * 60 * 60 * 1000;
+        const cookieAge = 30 * 24 * 60 * 60 * 1000; // 30 days
 
         res.cookie(sessionCookieName, sessionId, getCookieOptions(cookieAge));
         res.cookie(refreshCookieName, refreshToken, getCookieOptions(cookieAge));
@@ -363,8 +353,9 @@ export const adminLogin = async (req, res) => {
 
         }
 
-        res.cookie("adminSessionId", sessionId, getCookieOptions(8 * 60 * 60 * 1000));
-        res.cookie("adminRefreshToken", refreshToken, getCookieOptions(8 * 60 * 60 * 1000));
+        const cookieAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        res.cookie("adminSessionId", sessionId, getCookieOptions(cookieAge));
+        res.cookie("adminRefreshToken", refreshToken, getCookieOptions(cookieAge));
 
         try {
             getIO().to(`admin:${user.id}`).emit("session:changed", { event: "login" });
@@ -402,7 +393,7 @@ export const adminRefresh = async (req, res) => {
         if (!sessionId || !refreshToken) {
             return res.status(401).json({
                 success: false,
-                message: "No active admin session found."
+                message: "Session expired. Please log in again."
             });
         }
 
@@ -411,7 +402,8 @@ export const adminRefresh = async (req, res) => {
             refreshToken
         });
 
-        res.cookie("adminRefreshToken", result.refreshToken, getCookieOptions(8 * 60 * 60 * 1000));
+        const cookieAge = 30 * 24 * 60 * 60 * 1000; // 30 days
+        res.cookie("adminRefreshToken", result.refreshToken, getCookieOptions(cookieAge));
 
         return res.status(200).json({
             success: true,
@@ -428,7 +420,7 @@ export const adminRefresh = async (req, res) => {
 
         return res.status(401).json({
             success: false,
-            message: error.message || "Could not refresh admin session."
+            message: "Session expired. Please log in again."
         });
 
     }

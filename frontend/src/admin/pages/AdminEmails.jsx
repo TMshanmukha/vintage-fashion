@@ -117,7 +117,9 @@ export default function AdminEmails() {
         setSelectedUserId(active[0].user_id);
       }
     } catch (err) {
-      toast.error("Failed to load users list.");
+      if (err?.response?.status !== 401 && !err?.isAuthExpired) {
+        toast.error("Failed to load users list.");
+      }
       console.error(err);
     }
   };
@@ -140,7 +142,9 @@ export default function AdminEmails() {
         }))
       );
     } catch (err) {
-      toast.error("Failed to load email history.");
+      if (err?.response?.status !== 401 && !err?.isAuthExpired) {
+        toast.error("Failed to load email history.");
+      }
       console.error(err);
     }
   };

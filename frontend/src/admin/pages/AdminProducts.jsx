@@ -55,7 +55,7 @@ export default function AdminProducts() {
       setProducts(list);
     } catch (error) {
       console.error("Products load error:", error);
-      if (!isBackground) {
+      if (!isBackground && error.response?.status !== 401 && !error.isAuthExpired) {
         toast.error(error.response?.data?.message || "Failed to load products.");
       }
     } finally {

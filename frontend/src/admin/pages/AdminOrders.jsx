@@ -112,7 +112,9 @@ export default function AdminOrders() {
       setOrders(Array.isArray(data?.orders) ? data.orders : []);
       setTotal(data?.total || 0);
     } catch (err) {
-      toast.error("Failed to load orders.");
+      if (err?.response?.status !== 401 && !err?.isAuthExpired) {
+        toast.error("Failed to load orders.");
+      }
       console.error(err);
     } finally {
       setInitialLoading(false);
