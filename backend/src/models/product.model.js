@@ -111,14 +111,16 @@ export const deleteProductVariants = async (productId, connection) => {
 
 };
 
-export const countProducts = async (filters) => {
+export const countProducts = async (filters = {}) => {
 
     const {
         search,
         category,
         brand,
         minPrice,
-        maxPrice
+        maxPrice,
+        includeInactive,
+        includeOutOfStock
     } = filters;
 
     let sql = `
@@ -126,10 +128,18 @@ export const countProducts = async (filters) => {
         FROM products p
         LEFT JOIN categories c ON p.category_id = c.category_id
         LEFT JOIN brands b ON p.brand_id = b.brand_id
-        WHERE p.is_active = TRUE
+        WHERE 1 = 1
     `;
 
     const values = [];
+
+    if (!includeInactive) {
+        sql += ` AND p.is_active = TRUE AND (c.category_id IS NULL OR c.is_active = TRUE) AND (b.brand_id IS NULL OR b.is_active = TRUE) `;
+    }
+
+    if (!includeOutOfStock) {
+        sql += ` AND p.stock_quantity > 0 `;
+    }
 
     if (search) {
         const keywords = getKeywords(search);
@@ -196,12 +206,13 @@ export const getProducts = async ({
     brand,
     minPrice,
     maxPrice,
-    sort
+    sort,
+    includeInactive,
+    includeOutOfStock
 } = {}) => {
 
     let sql = `
         SELECT
-
             p.product_id,
             p.category_id,
             p.brand_id,
@@ -214,31 +225,32 @@ export const getProducts = async ({
             p.average_rating,
             p.review_count,
             p.stock_quantity,
+            p.is_active,
             p.created_at,
             p.updated_at,
-
             c.name AS category_name,
-
             b.name AS brand_name,
-
             pi.image_url
-
         FROM products p
-
         LEFT JOIN categories c
             ON p.category_id = c.category_id
-
         LEFT JOIN brands b
             ON p.brand_id = b.brand_id
-
         LEFT JOIN product_images pi
             ON p.product_id = pi.product_id
             AND pi.is_primary = TRUE
-
-        WHERE p.is_active = TRUE
+        WHERE 1 = 1
     `;
 
     const values = [];
+
+    if (!includeInactive) {
+        sql += ` AND p.is_active = TRUE AND (c.category_id IS NULL OR c.is_active = TRUE) AND (b.brand_id IS NULL OR b.is_active = TRUE) `;
+    }
+
+    if (!includeOutOfStock) {
+        sql += ` AND p.stock_quantity > 0 `;
+    }
 
     if (search) {
         const keywords = getKeywords(search);
@@ -464,10 +476,9 @@ export const getRelatedProducts = async (
         FROM products
 
         WHERE category_id = ?
-
           AND product_id <> ?
-
           AND is_active = TRUE
+          AND stock_quantity > 0
 
         LIMIT 4
         `,

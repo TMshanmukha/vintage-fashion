@@ -85,32 +85,38 @@ export default function Shop() {
     })();
   }, [activeCategory, sort, priceRange, page, searchQuery]);
 
+  const activeCategories = useMemo(() => {
+    return (categories || []).filter((c) => c.is_active !== false && c.is_active !== 0);
+  }, [categories]);
+
   const mappedProducts = useMemo(() => {
-      return products.map(product => ({
-          id: product.product_id,
-          slug: product.slug,
-          name: product.name,
+      return products
+          .filter((product) => product.is_active !== false && product.is_active !== 0 && (Number(product.stock_quantity ?? 1) > 0))
+          .map(product => ({
+              id: product.product_id,
+              slug: product.slug,
+              name: product.name,
 
-          price: Number(product.final_price ?? product.price),
+              price: Number(product.final_price ?? product.price),
 
-          originalPrice: Number(
-              product.original_price ?? product.price
-          ),
+              originalPrice: Number(
+                  product.original_price ?? product.price
+              ),
 
-          discountPercent: Number(
-              product.discount_percent ?? 0
-          ),
+              discountPercent: Number(
+                  product.discount_percent ?? 0
+              ),
 
-          badge: product.badge,
+              badge: product.badge,
 
-          image: product.image_url,
+              image: product.image_url,
 
-          images: product.image_url
-              ? [product.image_url]
-              : [],
+              images: product.image_url
+                  ? [product.image_url]
+                  : [],
 
-          rating: product.average_rating || 0,
-      }));
+              rating: product.average_rating || 0,
+          }));
   }, [products]);
 
   // Client-side filter over the current page's results. "Sale" checks real
@@ -145,14 +151,6 @@ export default function Shop() {
           )
       ];
 
-      // if (
-      //     products.some(
-      //         p => Number(p.discount_percent) > 0
-      //     )
-      // ) {
-      //     badgeTags.unshift("Sale");
-      // }
-
       return badgeTags;
 
   }, [products]);
@@ -183,7 +181,7 @@ export default function Shop() {
                   All
                 </button>
               </li>
-              {categories.map((cat) => (
+              {activeCategories.map((cat) => (
                 <li key={cat.category_id}>
                   <button
                     onClick={() => {
@@ -364,7 +362,7 @@ export default function Shop() {
                        All
                      </button>
                    </li>
-                   {categories.map((cat) => (
+                   {activeCategories.map((cat) => (
                      <li key={cat.category_id}>
                        <button
                          onClick={() => { setActiveCategory(cat.category_id); setActiveTag(null); setMobileFiltersOpen(false); }}

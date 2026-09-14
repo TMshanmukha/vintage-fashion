@@ -93,7 +93,7 @@ export default function AdminDashboard() {
       ] = await Promise.allSettled([
         getOrderStats(),
         getOrders({ limit: 50 }),
-        getProducts({ limit: 100 }),
+        getProducts({ limit: 100, includeInactive: "true", includeOutOfStock: "true" }),
         getCustomers(),
         getNotifications(),
         getEmailLog(),

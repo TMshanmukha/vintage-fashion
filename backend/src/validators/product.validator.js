@@ -79,6 +79,16 @@ export const getProductsSchema = z.object({
             "name_asc",
             "name_desc"
         ]).default("newest")
+    ),
+
+    includeInactive: z.preprocess(
+        (val) => val === "true" || val === true || val === "1" || val === 1,
+        z.boolean().default(false)
+    ),
+
+    includeOutOfStock: z.preprocess(
+        (val) => val === "true" || val === true || val === "1" || val === 1,
+        z.boolean().default(false)
     )
 
 });

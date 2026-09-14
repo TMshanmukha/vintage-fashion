@@ -42,8 +42,13 @@ export const restoreCategory = async (req, res) => {
 
 export const getCategories = async (req, res, next) => {
     try {
+        const onlyActive =
+            req.query.onlyActive === "true" ||
+            req.query.active === "true" ||
+            req.query.is_active === "true" ||
+            req.query.is_active === "1";
 
-        const categories = await getCategoriesService();
+        const categories = await getCategoriesService({ onlyActive });
 
         return res.status(200).json({
             success: true,

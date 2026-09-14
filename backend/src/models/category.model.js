@@ -1,8 +1,7 @@
 import pool from "../config/db.js";
 
-export const getAllCategories = async () => {
-    const [rows] = await pool.query(
-        `
+export const getAllCategories = async ({ onlyActive = false } = {}) => {
+    let sql = `
         SELECT
             category_id,
             parent_id,
@@ -15,9 +14,15 @@ export const getAllCategories = async () => {
             created_at,
             updated_at
         FROM categories
-        ORDER BY sort_order ASC, name ASC
-        `
-    );
+    `;
+
+    if (onlyActive) {
+        sql += ` WHERE is_active = TRUE `;
+    }
+
+    sql += ` ORDER BY sort_order ASC, name ASC `;
+
+    const [rows] = await pool.query(sql);
 
     return rows;
 };

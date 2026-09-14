@@ -77,7 +77,11 @@ export default function Collection() {
     );
     const inStock = match && (categoryCounts[match.category_id] || 0) > 0;
     return { ...seasonal, match, inStock };
-  });
+  }).filter((s) => s.inStock);
+
+  const availableCategories = categories.filter(
+    (cat) => (categoryCounts[cat.category_id] || 0) > 0
+  );
 
   return (
     <div>
@@ -98,44 +102,39 @@ export default function Collection() {
 
       <div className="max-w-7xl mx-auto px-6 py-16">
         {/* Seasonal Collections */}
-        <div className="mb-16">
-          <div className="text-center mb-10">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Seasonal Collections</h2>
-            <div className="w-10 h-0.5 bg-gray-900 mx-auto" />
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {resolvedSeasonal.map((seasonal) => (
-              <div
-                key={seasonal.label}
-                className="relative overflow-hidden group aspect-[4/3]"
-              >
-                <img
-                  src={seasonal.image}
-                  alt={seasonal.label}
-                  className={`w-full h-full object-cover transition-transform duration-700 ${seasonal.inStock ? "group-hover:scale-105" : "grayscale opacity-70"
-                    }`}
-                />
-                <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
-                <div className="absolute bottom-8 left-8">
-                  <p className="text-white/80 text-xs uppercase tracking-widest mb-1">{seasonal.year}</p>
-                  <h3 className="text-white text-3xl font-extrabold mb-4">{seasonal.label}</h3>
-                  {seasonal.inStock ? (
+        {resolvedSeasonal.length > 0 && (
+          <div className="mb-16">
+            <div className="text-center mb-10">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Seasonal Collections</h2>
+              <div className="w-10 h-0.5 bg-gray-900 mx-auto" />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {resolvedSeasonal.map((seasonal) => (
+                <div
+                  key={seasonal.label}
+                  className="relative overflow-hidden group aspect-[4/3]"
+                >
+                  <img
+                    src={seasonal.image}
+                    alt={seasonal.label}
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-black/20 group-hover:bg-black/30 transition-colors duration-300" />
+                  <div className="absolute bottom-8 left-8">
+                    <p className="text-white/80 text-xs uppercase tracking-widest mb-1">{seasonal.year}</p>
+                    <h3 className="text-white text-3xl font-extrabold mb-4">{seasonal.label}</h3>
                     <Link
                       to={`/shop?category=${seasonal.match.category_id}`}
                       className="inline-block bg-white text-gray-900 text-xs font-bold uppercase tracking-widest px-6 py-2.5 hover:bg-gray-900 hover:text-white transition-colors"
                     >
                       Shop Now
                     </Link>
-                  ) : (
-                    <span className="inline-block bg-white/70 text-gray-500 text-xs font-bold uppercase tracking-widest px-6 py-2.5 cursor-not-allowed">
-                      Products Out of Stock
-                    </span>
-                  )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
+        )}
 
         {/* Shop by Category */}
         <div>
@@ -154,41 +153,26 @@ export default function Collection() {
                 </div>
               ))}
             </div>
-          ) : categories.length === 0 ? (
-            <p className="text-sm text-gray-400 text-center py-12">No categories available yet.</p>
+          ) : availableCategories.length === 0 ? (
+            <p className="text-sm text-gray-400 text-center py-12">No categories available at the moment.</p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              {categories.map((cat) => {
+              {availableCategories.map((cat) => {
                 const count = categoryCounts[cat.category_id] || 0;
-                const outOfStock = count === 0;
 
                 return (
                   <div key={cat.category_id} className="group text-center">
-                    {outOfStock ? (
-                      <div className="cursor-not-allowed">
-                        <div className="overflow-hidden aspect-square mb-3">
-                          <img
-                            src={cat.image_url || PLACEHOLDER_IMAGE}
-                            alt={cat.name}
-                            className="w-full h-full object-cover grayscale opacity-60"
-                          />
-                        </div>
-                        <h3 className="text-sm font-bold text-gray-400">{cat.name}</h3>
-                        <p className="text-xs text-gray-400">Out of stock</p>
+                    <Link to={`/shop?category=${cat.category_id}`}>
+                      <div className="overflow-hidden aspect-square mb-3">
+                        <img
+                          src={cat.image_url || PLACEHOLDER_IMAGE}
+                          alt={cat.name}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
                       </div>
-                    ) : (
-                      <Link to={`/shop?category=${cat.category_id}`}>
-                        <div className="overflow-hidden aspect-square mb-3">
-                          <img
-                            src={cat.image_url || PLACEHOLDER_IMAGE}
-                            alt={cat.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                          />
-                        </div>
-                        <h3 className="text-sm font-bold text-gray-900 group-hover:text-pink-500 transition-colors">{cat.name}</h3>
-                        <p className="text-xs text-gray-400">{count} product{count === 1 ? "" : "s"}</p>
-                      </Link>
-                    )}
+                      <h3 className="text-sm font-bold text-gray-900 group-hover:text-pink-500 transition-colors">{cat.name}</h3>
+                      <p className="text-xs text-gray-400">{count} product{count === 1 ? "" : "s"}</p>
+                    </Link>
                   </div>
                 );
               })}

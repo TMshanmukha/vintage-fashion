@@ -33,7 +33,7 @@ export const restoreCategory = async (id) => {
 // GET /api/categories
 // Public endpoint — returns active categories cached in browser memory/session
 export const getCategoriesUser = async () => {
-    const response = await cachedAxiosGet(api, "/categories");
+    const response = await cachedAxiosGet(api, "/categories", { onlyActive: "true" });
     return response.data; // { success, message, data }
 };
 

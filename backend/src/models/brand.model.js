@@ -1,6 +1,6 @@
 import pool from "../config/db.js";
 
-export const getBrands = async ({ search, limit, offset }) => {
+export const getBrands = async ({ search, limit, offset, onlyActive = false, is_active } = {}) => {
   let sql = `
     SELECT
       brand_id, name, slug, logo_url, description,
@@ -9,6 +9,10 @@ export const getBrands = async ({ search, limit, offset }) => {
     WHERE 1 = 1
   `;
   const values = [];
+
+  if (onlyActive || is_active === true || is_active === "true" || is_active === "1" || is_active === 1) {
+    sql += ` AND is_active = TRUE `;
+  }
 
   if (search && String(search).trim()) {
     sql += ` AND (name LIKE ? OR slug LIKE ?) `;
@@ -26,9 +30,13 @@ export const getBrands = async ({ search, limit, offset }) => {
   return Array.isArray(rows) ? rows : [];
 };
 
-export const countBrands = async ({ search }) => {
+export const countBrands = async ({ search, onlyActive = false, is_active } = {}) => {
   let sql = `SELECT COUNT(*) AS total FROM brands WHERE 1 = 1`;
   const values = [];
+
+  if (onlyActive || is_active === true || is_active === "true" || is_active === "1" || is_active === 1) {
+    sql += ` AND is_active = TRUE `;
+  }
 
   if (search && String(search).trim()) {
     sql += ` AND (name LIKE ? OR slug LIKE ?) `;

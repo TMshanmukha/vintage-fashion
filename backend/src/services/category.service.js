@@ -15,8 +15,8 @@ import { generateSlug } from "../utils/slug.js";
 
 import * as NotificationService from "./notificationService.js";
 
-export const getCategoriesService = async () => {
-    const categories = await getAllCategories();
+export const getCategoriesService = async ({ onlyActive = false } = {}) => {
+    const categories = await getAllCategories({ onlyActive });
 
     return categories;
 };

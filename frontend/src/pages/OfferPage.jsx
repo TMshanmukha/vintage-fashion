@@ -21,16 +21,18 @@ function normalize(type, raw) {
       title: raw.title,
       subtitle: raw.description,
       discount: Number(raw.discount_value) || 0,
-      products: (raw.products || []).map((p) => ({
-        ...p,
-        product_id: p.product_id,
-        name: p.name || p.product_name,
-        slug: p.slug,
-        price: Number(p.final_price ?? p.price),
-        original_price: p.original_price != null ? Number(p.original_price) : Number(p.price),
-        discount_percent: Number(p.discount_percent) || Number(raw.discount_value) || 0,
-        image_url: p.image_url,
-      })),
+      products: (raw.products || [])
+        .filter((p) => p.is_active !== false && p.is_active !== 0 && (Number(p.stock_quantity ?? 1) > 0))
+        .map((p) => ({
+          ...p,
+          product_id: p.product_id,
+          name: p.name || p.product_name,
+          slug: p.slug,
+          price: Number(p.final_price ?? p.price),
+          original_price: p.original_price != null ? Number(p.original_price) : Number(p.price),
+          discount_percent: Number(p.discount_percent) || Number(raw.discount_value) || 0,
+          image_url: p.image_url,
+        })),
     };
   }
 
@@ -38,16 +40,18 @@ function normalize(type, raw) {
     title: raw.title,
     subtitle: raw.subtitle,
     discount: Number(raw.discount_percent) || 0,
-    products: (raw.products || []).map((p) => ({
-      ...p,
-      product_id: p.product_id,
-      name: p.product_name || p.name,
-      slug: p.slug,
-      price: Number(p.final_price ?? p.price),
-      original_price: p.original_price != null ? Number(p.original_price) : Number(p.price),
-      discount_percent: Number(p.discount_percent) || Number(raw.discount_percent) || 0,
-      image_url: p.image_url,
-    })),
+    products: (raw.products || [])
+      .filter((p) => p.is_active !== false && p.is_active !== 0 && (Number(p.stock_quantity ?? 1) > 0))
+      .map((p) => ({
+        ...p,
+        product_id: p.product_id,
+        name: p.product_name || p.name,
+        slug: p.slug,
+        price: Number(p.final_price ?? p.price),
+        original_price: p.original_price != null ? Number(p.original_price) : Number(p.price),
+        discount_percent: Number(p.discount_percent) || Number(raw.discount_percent) || 0,
+        image_url: p.image_url,
+      })),
   };
 }
 

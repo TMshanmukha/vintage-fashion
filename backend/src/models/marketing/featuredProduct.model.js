@@ -31,6 +31,8 @@ export async function getAllFeatured() {
       AND pi.is_primary = TRUE
 
     WHERE p.is_active = TRUE
+      AND f.is_active = TRUE
+      AND p.stock_quantity > 0
 
     ORDER BY f.display_order ASC, f.featured_id DESC
     `
