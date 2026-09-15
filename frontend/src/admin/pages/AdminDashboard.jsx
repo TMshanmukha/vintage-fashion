@@ -287,8 +287,6 @@ export default function AdminDashboard() {
 
     const totalRevFromStats = Number(stats?.total_revenue || 0);
     const totalOrdersCount = Number(stats?.total_orders || recentOrders.length || 0);
-    const hasOrderDates = Object.keys(ordersByDate).length > 0;
-
     for (let i = numDays - 1; i >= 0; i--) {
       const targetDate = new Date(now);
       targetDate.setDate(now.getDate() - i);
@@ -300,18 +298,9 @@ export default function AdminDashboard() {
         month: "short"
       });
 
-      let revenue = 0;
-      let orders = 0;
-
-      if (hasOrderDates && ordersByDate[dateKey]) {
-        revenue = ordersByDate[dateKey].revenue;
-        orders = ordersByDate[dateKey].count;
-      } else if (totalRevFromStats > 0) {
-        // Distribute smoothly if historical dates are consolidated
-        const weight = 0.8 + Math.cos((i / numDays) * Math.PI) * 0.4;
-        revenue = Math.round((totalRevFromStats / numDays) * weight);
-        orders = Math.max(1, Math.round((totalOrdersCount / numDays) * weight));
-      }
+      const dayStats = ordersByDate[dateKey];
+      const revenue = dayStats ? Number(dayStats.revenue || 0) : 0;
+      const orders = dayStats ? Number(dayStats.count || 0) : 0;
 
       days.push({
         label: dayLabel,
@@ -322,7 +311,7 @@ export default function AdminDashboard() {
     }
 
     return days;
-  }, [chartTimeframe, recentOrders, stats]);
+  }, [chartTimeframe, recentOrders]);
 
   const svgMetrics = useMemo(() => {
     if (!chartData.length) return { linePath: "", areaPath: "", points: [], maxRev: 1, width: 600, height: 180, padY: 25 };
