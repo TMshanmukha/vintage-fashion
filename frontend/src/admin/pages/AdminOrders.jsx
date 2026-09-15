@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import ConfirmDialog from "../components/ConfirmDialog";
+import CourierDispatchModal from "../components/CourierDispatchModal";
 import toast from "react-hot-toast";
 import {
   getOrders,
@@ -89,6 +90,7 @@ export default function AdminOrders() {
   const [actionLoadingId, setActionLoadingId] = useState(null);
   const [cancelTargetOrder, setCancelTargetOrder] = useState(null);
   const [cancelShipmentTarget, setCancelShipmentTarget] = useState(null);
+  const [dispatchModalOrder, setDispatchModalOrder] = useState(null);
   const limit = 20;
 
   // Debounce search input
@@ -245,11 +247,18 @@ export default function AdminOrders() {
     }
   };
 
-  const handleScheduleCourier = async (order) => {
+  const handleScheduleCourier = (order) => {
+    setDispatchModalOrder(order);
+  };
+
+  const handleConfirmDispatch = async (packageDetails) => {
+    if (!dispatchModalOrder) return;
+    const order = dispatchModalOrder;
     setActionLoadingId(order.order_id);
     try {
-      const res = await createShipment(order.order_id);
+      const res = await createShipment(order.order_id, packageDetails);
       toast.success(res.message || "Shipment created with courier.");
+      setDispatchModalOrder(null);
       loadOrders(true);
     } catch (err) {
       toast.error(err.response?.data?.message || "Failed to create shipment.");
@@ -908,6 +917,15 @@ export default function AdminOrders() {
         loading={actionLoadingId === cancelShipmentTarget?.order_id}
         onConfirm={handleCancelShipment}
         onCancel={() => setCancelShipmentTarget(null)}
+      />
+
+      {/* Courier Package Dimensions & Dispatch Modal */}
+      <CourierDispatchModal
+        open={!!dispatchModalOrder}
+        order={dispatchModalOrder}
+        loading={actionLoadingId === dispatchModalOrder?.order_id}
+        onConfirm={handleConfirmDispatch}
+        onCancel={() => setDispatchModalOrder(null)}
       />
     </AdminLayout>
   );

@@ -31,8 +31,15 @@ export async function getCourierRecommendation(params) {
 // CREATE SHIPMENT (Order + Shipment in one call — Shiprocket's
 // "Create Order" endpoint creates both simultaneously)
 // ==========================================================
-export async function createShipment(order, items = [], pickupLocationName) {
-  const metrics = calculatePackageMetrics(items);
+export async function createShipment(order, items = [], pickupLocationName, customMetrics = null) {
+  const metrics = (customMetrics && customMetrics.length && customMetrics.width && customMetrics.height && customMetrics.weight)
+    ? {
+        length: Math.max(1, Math.round(Number(customMetrics.length))),
+        width: Math.max(1, Math.round(Number(customMetrics.width))),
+        height: Math.max(1, Math.round(Number(customMetrics.height))),
+        weight: Math.max(0.05, Number(Number(customMetrics.weight).toFixed(3))),
+      }
+    : calculatePackageMetrics(items);
 
   const payload = {
     order_id: String(order.order_number),   // must be unique per Shiprocket account

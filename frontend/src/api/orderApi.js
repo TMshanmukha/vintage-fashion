@@ -48,8 +48,8 @@ export const confirmOrder = async (orderId) => {
     return data;
 };
 
-export const createShipment = async (orderId) => {
-    const { data } = await axiosAdmin.post(`/shipping/create/${orderId}`);
+export const createShipment = async (orderId, packageDetails = null) => {
+    const { data } = await axiosAdmin.post(`/shipping/create/${orderId}`, packageDetails || {});
     return data;
 };
 

@@ -41,6 +41,7 @@ export async function getCouriers(req, res, next) {
 export async function createFullShipment(req, res, next) {
   try {
     const { orderId } = req.params;
+    const { weight, length, width, height } = req.body || {};
 
     const order = await getOrderById(orderId);
     if (!order) {
@@ -66,10 +67,20 @@ export async function createFullShipment(req, res, next) {
         return res.status(400).json({ success: false, message: "Order has no items." });
       }
 
+      const customMetrics = (weight && length && width && height)
+        ? {
+            weight: Number(weight),
+            length: Number(length),
+            width: Number(width),
+            height: Number(height),
+          }
+        : null;
+
       shipmentResult = await ShiprocketService.createShipment(
         order,
         items,
-        getPickupLocationName()
+        getPickupLocationName(),
+        customMetrics
       );
     }
 
