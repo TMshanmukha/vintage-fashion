@@ -176,15 +176,15 @@ export default function ProductFormModal({
   const labelClass = "text-sm font-semibold text-gray-700";
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-5">
-      <div className="w-full max-w-6xl h-[90vh] bg-white rounded-3xl shadow-2xl flex flex-col">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-2 sm:p-4 md:p-6">
+      <div className="w-full max-w-6xl h-[94vh] sm:h-[90vh] bg-white rounded-2xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-8 py-6 border-b bg-white rounded-t-3xl">
+        <div className="flex items-center justify-between px-4 sm:px-8 py-4 sm:py-6 border-b bg-white rounded-t-2xl sm:rounded-t-3xl shrink-0">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">
+            <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
               {initialData ? "Edit Product" : "Add Product"}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-gray-500 mt-0.5 sm:mt-1">
               Manage your product details, gallery and variants.
             </p>
           </div>
@@ -192,7 +192,7 @@ export default function ProductFormModal({
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="w-10 h-10 rounded-xl hover:bg-gray-100 transition text-gray-500"
+            className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl hover:bg-gray-100 transition text-gray-500 flex items-center justify-center text-lg"
           >
             ✕
           </button>
@@ -202,16 +202,16 @@ export default function ProductFormModal({
         <form
           id="product-form"
           onSubmit={handleSubmit}
-          className="flex-1 overflow-y-auto px-8 py-8 space-y-10"
+          className="flex-1 overflow-y-auto px-4 sm:px-8 py-5 sm:py-8 space-y-8 sm:space-y-10"
         >
           {/* GENERAL INFORMATION */}
           <div>
-            <h3 className="text-lg font-bold text-gray-800 mb-6">
+            <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">
               General Information
             </h3>
 
-            <div className="grid grid-cols-2 gap-6">
-              <div className="col-span-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+              <div className="col-span-1 sm:col-span-2">
                 <label className={labelClass}>Product Name</label>
                 <input
                   type="text"
@@ -227,7 +227,7 @@ export default function ProductFormModal({
 
               {/* SKU — only shown when editing, and never editable */}
               {initialData && (
-                <div>
+                <div className="col-span-1 sm:col-span-2">
                   <label className={labelClass}>SKU</label>
                   <input
                     value={initialData.sku || ""}
@@ -280,10 +280,10 @@ export default function ProductFormModal({
                 </select>
               </div>
 
-              <div className="col-span-2">
+              <div className="col-span-1 sm:col-span-2">
                 <label className={labelClass}>Description</label>
                 <textarea
-                  rows={5}
+                  rows={4}
                   value={form.description}
                   disabled={saving}
                   onChange={(e) =>
@@ -666,7 +666,7 @@ export default function ProductFormModal({
                   Default variant
                 </label>
 
-                <div className="flex justify-end gap-3 mt-6">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 mt-4 sm:mt-6">
                   <button
                     type="button"
                     onClick={() => {
@@ -674,14 +674,14 @@ export default function ProductFormModal({
                       setVariantForm(emptyVariant);
                       setEditingVariantIndex(null);
                     }}
-                    className="px-5 py-2 rounded-xl border"
+                    className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-gray-300 text-sm font-semibold text-gray-700 hover:bg-gray-100 transition text-center"
                   >
                     Cancel
                   </button>
                   <button
                     type="button"
                     onClick={saveVariant}
-                    className="px-6 py-2 rounded-xl bg-pink-500 text-white"
+                    className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 transition text-center shadow-sm"
                   >
                     Save Variant
                   </button>
@@ -693,49 +693,49 @@ export default function ProductFormModal({
           {/* PRODUCT INFORMATION (edit only) */}
           {initialData && (
             <div>
-              <h3 className="text-lg font-bold text-gray-800 mb-6">
+              <h3 className="text-base sm:text-lg font-bold text-gray-800 mb-4 sm:mb-6">
                 Product Information
               </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
                   <p className="text-xs uppercase tracking-wider text-gray-500">
                     Product ID
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-gray-800">
+                  <p className="mt-1 sm:mt-2 text-base sm:text-lg font-semibold text-gray-800">
                     #{initialData.product_id}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
                   <p className="text-xs uppercase tracking-wider text-gray-500">
                     Rating
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-yellow-500">
+                  <p className="mt-1 sm:mt-2 text-base sm:text-lg font-semibold text-yellow-500">
                     ⭐ {initialData.average_rating || "0.00"}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
                   <p className="text-xs uppercase tracking-wider text-gray-500">
                     Reviews
                   </p>
-                  <p className="mt-2 text-lg font-semibold text-gray-800">
+                  <p className="mt-1 sm:mt-2 text-base sm:text-lg font-semibold text-gray-800">
                     {initialData.review_count || 0}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
                   <p className="text-xs uppercase tracking-wider text-gray-500">
                     Created At
                   </p>
-                  <p className="mt-2 text-sm font-medium text-gray-700">
+                  <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-gray-700">
                     {initialData.created_at
                       ? new Date(initialData.created_at).toLocaleString()
                       : "-"}
                   </p>
                 </div>
-                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-5">
+                <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-5">
                   <p className="text-xs uppercase tracking-wider text-gray-500">
                     Updated At
                   </p>
-                  <p className="mt-2 text-sm font-medium text-gray-700">
+                  <p className="mt-1 sm:mt-2 text-xs sm:text-sm font-medium text-gray-700">
                     {initialData.updated_at
                       ? new Date(initialData.updated_at).toLocaleString()
                       : "-"}
@@ -747,13 +747,13 @@ export default function ProductFormModal({
         </form>
 
         {/* FOOTER */}
-        <div className="border-t bg-white px-8 py-5 rounded-b-3xl">
-          <div className="flex justify-center gap-4">
+        <div className="border-t bg-white px-4 sm:px-8 py-3.5 sm:py-5 rounded-b-2xl sm:rounded-b-3xl shrink-0">
+          <div className="flex flex-col-reverse sm:flex-row items-center justify-end sm:justify-center gap-3 sm:gap-4 w-full">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="min-w-[180px] rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-100 transition"
+              className="w-full sm:w-auto sm:min-w-[160px] rounded-xl border border-gray-300 px-6 py-3 font-semibold text-gray-700 hover:bg-gray-100 transition text-sm text-center active:scale-[0.99]"
             >
               Cancel
             </button>
@@ -761,10 +761,10 @@ export default function ProductFormModal({
               type="submit"
               form="product-form"
               disabled={saving}
-              className="min-w-[220px] rounded-xl bg-pink-500 px-6 py-3 font-semibold text-white hover:bg-pink-600 transition flex items-center justify-center gap-3"
+              className="w-full sm:w-auto sm:min-w-[200px] rounded-xl bg-pink-500 px-6 py-3 font-semibold text-white hover:bg-pink-600 transition flex items-center justify-center gap-2 text-sm shadow-sm active:scale-[0.99]"
             >
               {saving && (
-                <span className="w-5 h-5 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
               )}
               {saving
                 ? "Saving..."
