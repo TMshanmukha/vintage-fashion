@@ -633,8 +633,33 @@ export default function AdminReturns() {
               `Are you sure you want to ${actionTarget?.label?.toLowerCase()} for Order #${actionTarget?.returnItem?.order_number} (${actionTarget?.returnItem?.customer_name})?`
             )
           }
-          confirmText={actionTarget?.action === "process_refund" ? "Confirm & Process Refund" : "Confirm"}
-          confirmColor={actionTarget?.action === "reject" ? "bg-red-600 hover:bg-red-700" : "bg-gray-900 hover:bg-gray-800"}
+          confirmText={
+            actionTarget?.action === "process_refund"
+              ? "Confirm & Process Refund"
+              : actionTarget?.action === "schedule_pickup"
+              ? "Schedule Courier Pickup"
+              : actionTarget?.action === "reject"
+              ? "Reject Return"
+              : actionTarget?.label || "Confirm"
+          }
+          variant={
+            actionTarget?.action === "reject"
+              ? "danger"
+              : actionTarget?.action === "schedule_pickup"
+              ? "purple"
+              : actionTarget?.action === "process_refund"
+              ? "success"
+              : "primary"
+          }
+          confirmColor={
+            actionTarget?.action === "reject"
+              ? "bg-red-600 hover:bg-red-700"
+              : actionTarget?.action === "schedule_pickup"
+              ? "bg-purple-600 hover:bg-purple-700"
+              : actionTarget?.action === "process_refund"
+              ? "bg-emerald-600 hover:bg-emerald-700"
+              : "bg-gray-900 hover:bg-gray-800"
+          }
           onConfirm={confirmAction}
           onCancel={() => setActionTarget(null)}
           loading={processing}

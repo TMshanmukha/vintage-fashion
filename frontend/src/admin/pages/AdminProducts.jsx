@@ -119,6 +119,12 @@ export default function AdminProducts() {
     setCurrentPage(1);
   };
 
+  const activeCategories = useMemo(() => {
+    return categories.filter(
+      (c) => Number(c.is_active) === 1 || c.is_active === true || c.is_active === undefined
+    );
+  }, [categories]);
+
   // ===========================
   // Category Counts (Instant)
   // ===========================
@@ -463,7 +469,7 @@ export default function AdminProducts() {
                 </span>
               </button>
 
-              {categories.map((c) => {
+              {activeCategories.map((c) => {
                 const catKey = c.category_id ?? c.id ?? c.name;
                 const isSelected =
                   String(selectedCategory) === String(c.category_id) ||
@@ -820,7 +826,7 @@ export default function AdminProducts() {
         onClose={() => setModalOpen(false)}
         onSave={handleSave}
         initialData={editingProduct}
-        categories={categories}
+        categories={activeCategories}
         brands={brands}
         saving={saving}
       />
