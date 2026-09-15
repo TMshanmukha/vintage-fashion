@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import toast from "react-hot-toast";
 
 import { getThumbnail } from "../../utils/cloudinary";
+import { compressImage } from "../../utils/compressImage";
 
 export default function CategoryFormModal({
     open,
@@ -79,31 +80,18 @@ export default function CategoryFormModal({
 
     };
 
-    const handleImage = (e) => {
+    const handleImage = async (e) => {
+        const rawFile = e.target.files[0];
+        if (!rawFile) return;
 
-        const file = e.target.files[0];
-
-        if (!file) return;
-
-        if (!file.type.startsWith("image/")) {
-
+        if (!rawFile.type.startsWith("image/")) {
             toast.error("Please select a valid image.");
-
             return;
-
         }
 
-        if (file.size > 2 * 1024 * 1024) {
-
-            toast.error("Image size should be less than 2 MB.");
-
-            return;
-
-        }
-
+        const file = await compressImage(rawFile, { maxWidth: 600, maxHeight: 600, quality: 0.85 });
         setImage(file);
         setPreview(URL.createObjectURL(file));
-
     };
 
     const removeImage = () => {

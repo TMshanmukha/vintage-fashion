@@ -377,13 +377,15 @@ export const createProductService = async (productData, files) => {
         strict: true
     });
 
-    const category = await getCategoryById(validatedData.category_id);
-    console.log(category);
+    const [category, brand] = await Promise.all([
+        getCategoryById(validatedData.category_id),
+        getBrandById(validatedData.brand_id)
+    ]);
+
     if (!category) {
         throw new Error("Category not found.");
     }
 
-    const brand = await getBrandById(validatedData.brand_id);
     if (!brand) {
         throw new Error("Brand not found.");
     }

@@ -29,15 +29,15 @@ export const createCategoryService = async (categoryData) => {
     // 2. Generate slug
     const slug = generateSlug(validatedData.name);
 
-    // 3. Check duplicate name
-    const existingName = await getCategoryByName(validatedData.name);
+    // 3. Parallel duplicate name & slug check
+    const [existingName, existingSlug] = await Promise.all([
+        getCategoryByName(validatedData.name),
+        getCategoryBySlug(slug)
+    ]);
 
     if (existingName) {
         throw new Error("Category name already exists.");
     }
-
-    // 4. Check duplicate slug
-    const existingSlug = await getCategoryBySlug(slug);
 
     if (existingSlug) {
         throw new Error("Category slug already exists.");
@@ -55,12 +55,12 @@ export const createCategoryService = async (categoryData) => {
 
     const insertId = await createCategory(category);
 
-    await NotificationService.createNotification({
+    NotificationService.createNotification({
         title: "Category Added",
         body: `${validatedData.name} category was created.`,
         type: "content",
         referenceId: insertId
-    });
+    }).catch(() => {});
 
     return {
         category_id: insertId,
@@ -83,19 +83,14 @@ export const updateCategoryService = async (
 
     const slug = generateSlug(validatedData.name);
 
-    const existingName = await getCategoryByName(
-        validatedData.name,
-        categoryId
-    );
+    const [existingName, existingSlug] = await Promise.all([
+        getCategoryByName(validatedData.name, categoryId),
+        getCategoryBySlug(slug, categoryId)
+    ]);
 
     if (existingName) {
         throw new Error("Category name already exists.");
     }
-
-    const existingSlug = await getCategoryBySlug(
-        slug,
-        categoryId
-    );
 
     if (existingSlug) {
         throw new Error("Category slug already exists.");

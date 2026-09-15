@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { compressImage } from "../../utils/compressImage";
 
 const emptyForm = {
   category_id: "",
@@ -73,13 +74,18 @@ export default function ProductFormModal({
 
   // ===== Images =====
 
-  const handleNewImages = (e) => {
-    const files = Array.from(e.target.files || []);
-    if (!files.length) return;
+  const handleNewImages = async (e) => {
+    const rawFiles = Array.from(e.target.files || []);
+    if (!rawFiles.length) return;
+
+    // Fast instant compression
+    const compressedFiles = await Promise.all(
+      rawFiles.map((file) => compressImage(file, { maxWidth: 1200, maxHeight: 1200, quality: 0.82 }))
+    );
 
     setNewImages((prev) => [
       ...prev,
-      ...files.map((file) => ({ file, url: URL.createObjectURL(file) }))
+      ...compressedFiles.map((file) => ({ file, url: URL.createObjectURL(file) }))
     ]);
     setImageError("");
     e.target.value = "";

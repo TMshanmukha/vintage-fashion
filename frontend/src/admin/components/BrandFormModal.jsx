@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { compressImage } from "../../utils/compressImage";
 
 const emptyForm = { name: "", description: "" };
 
@@ -35,10 +36,11 @@ export default function BrandFormModal({
 
   if (!open) return null;
 
-  const handleLogoChange = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleLogoChange = async (e) => {
+    const rawFile = e.target.files?.[0];
+    if (!rawFile) return;
 
+    const file = await compressImage(rawFile, { maxWidth: 600, maxHeight: 600, quality: 0.85 });
     setLogoFile(file);
     setLogoPreview(URL.createObjectURL(file));
     e.target.value = "";
