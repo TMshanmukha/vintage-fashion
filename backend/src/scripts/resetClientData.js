@@ -61,24 +61,10 @@ export async function resetClientData() {
     await connection.query("TRUNCATE TABLE user_sessions;");
     await connection.query("TRUNCATE TABLE user_addresses;");
 
-    // 4. Admin preservation
-    const [adminRows] = await connection.query("SELECT * FROM users WHERE role = 'admin' LIMIT 1;");
-    if (adminRows.length === 0) {
-      throw new Error("Cannot locate admin credentials to preserve!");
-    }
-    const admin = adminRows[0];
-
-    await connection.query("TRUNCATE TABLE users;");
-    await connection.query(`
-      INSERT INTO users (user_id, user_code, name, email, password_hash, phone, avatar_url, role, is_email_verified, account_status)
-      VALUES (1, 'VF-USR-1001', ?, ?, ?, ?, ?, 'admin', 1, 'active');
-    `, [
-      admin.name || 'admin',
-      admin.email,
-      admin.password_hash,
-      admin.phone || '9398393619',
-      admin.avatar_url || null
-    ]);
+    // 4. Preserve ALL Users (Admin and registered customers are untouched)
+    const [[{ maxUserId }]] = await connection.query("SELECT COALESCE(MAX(user_id), 1000) AS maxUserId FROM users;");
+    const [[{ userCount }]] = await connection.query("SELECT COUNT(*) AS userCount FROM users;");
+    console.log(`Preserving all ${userCount} registered user(s) (including admin).`);
 
     // 5. Sequence reset
     await connection.query("TRUNCATE TABLE business_sequences;");
@@ -88,8 +74,8 @@ export async function resetClientData() {
         ('product', 'VF-PRD-', 1000),
         ('order', 'VF-ORD-', 1000),
         ('return', 'VF-RET-', 1000),
-        ('user', 'VF-USR-', 1001);
-    `);
+        ('user', 'VF-USR-', ?);
+    `, [Math.max(1000 + Number(userCount), Number(maxUserId))]);
 
     // 6. Reset Auto Increments
     const tables = [
