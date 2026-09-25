@@ -38,7 +38,10 @@ export default function AdminLayout({ children }) {
   useAdminSocket({
     "admin:new-notification": (notification) => {
       setUnreadCount((c) => c + 1);
-      toast(notification?.title || "New activity");
+      const toastId = notification?.notification_id
+        ? `notif-${notification.notification_id}`
+        : `notif-${notification?.title}-${notification?.referenceId || ""}`;
+      toast(notification?.title || "New activity", { id: toastId });
     },
     "session:changed": ({ event }) => {
       if (event === "logout") {

@@ -231,13 +231,6 @@ export const updateProductService = async (params, body) => {
                     variant.variant_id
                 );
 
-                await NotificationService.createNotification({
-                    title: "Product Updated",
-                    body: `${product.name} was updated.`,
-                    type: "product",
-                    referenceId: existingProduct.product_id
-                });
-
             }
 
         }
@@ -267,7 +260,14 @@ export const updateProductService = async (params, body) => {
 
         await connection.commit();
 
-        return await getProductById(connection,product.product_id);
+        await NotificationService.createNotification({
+            title: "Product Updated",
+            body: `${product.name} was updated.`,
+            type: "product",
+            referenceId: existingProduct.product_id
+        });
+
+        return await getProductById(connection, product.product_id);
 
     } catch (error) {
 
