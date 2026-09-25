@@ -7,13 +7,14 @@ export const generateVariantSku = (
     color,
     size
 ) => {
-
-    const colorCode = color
-        ? color.substring(0, 3).toUpperCase()
+    const colorClean = (color || "").toString().trim().replace(/[^a-zA-Z0-9]/g, "");
+    const colorCode = colorClean
+        ? colorClean.substring(0, 4).toUpperCase()
         : "GEN";
 
-    const sizeCode = size
-        ? size.toUpperCase()
+    const sizeClean = (size || "").toString().trim().replace(/[^a-zA-Z0-9]/g, "");
+    const sizeCode = sizeClean
+        ? sizeClean.substring(0, 8).toUpperCase()
         : "STD";
 
     return `${productSku}-${colorCode}-${sizeCode}`;

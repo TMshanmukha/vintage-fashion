@@ -425,26 +425,19 @@ export const getProductVariants = async (productId) => {
     const [rows] = await pool.query(
         `
         SELECT
-
             variant_id,
-
+            product_id,
             size,
-
             color,
-
             color_hex,
-
+            image_url,
+            is_default,
             sku_variant,
-
             stock_quantity,
-
             price_modifier
-
         FROM product_variants
-
         WHERE product_id = ?
-
-        ORDER BY size
+        ORDER BY variant_id ASC
         `,
         [productId]
     );
@@ -608,14 +601,14 @@ export const createProductVariants = async (
             `,
             [
                 productId,
-                variant.size,
-                variant.color,
-                variant.color_hex,
-                variant.image_url,
-                variant.is_default ?? false,
-                variant.sku_variant,
-                variant.stock_quantity,
-                variant.price_modifier
+                variant.size || "",
+                variant.color || "",
+                variant.color_hex || "",
+                variant.image_url || null,
+                variant.is_default ? 1 : 0,
+                variant.sku_variant || "",
+                Number(variant.stock_quantity || 0),
+                Number(variant.price_modifier || 0)
             ]
         );
 
@@ -750,14 +743,14 @@ export const updateProductVariant = async (
         WHERE variant_id = ?
         `,
         [
-            variant.size,
-            variant.color,
-            variant.color_hex,
-            variant.image_url,
-            variant.is_default,
-            variant.sku_variant,
-            variant.stock_quantity,
-            variant.price_modifier,
+            variant.size || "",
+            variant.color || "",
+            variant.color_hex || "",
+            variant.image_url || null,
+            variant.is_default ? 1 : 0,
+            variant.sku_variant || "",
+            Number(variant.stock_quantity || 0),
+            Number(variant.price_modifier || 0),
             variant.variant_id
         ]
     );
@@ -803,14 +796,14 @@ export const createProductVariant = async (
         `,
         [
             productId,
-            variant.size,
-            variant.color,
-            variant.color_hex,
-            variant.image_url,
-            variant.is_default ?? false,
-            variant.sku_variant,
-            variant.stock_quantity,
-            variant.price_modifier
+            variant.size || "",
+            variant.color || "",
+            variant.color_hex || "",
+            variant.image_url || null,
+            variant.is_default ? 1 : 0,
+            variant.sku_variant || "",
+            Number(variant.stock_quantity || 0),
+            Number(variant.price_modifier || 0)
         ]
     );
 

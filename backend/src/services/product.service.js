@@ -114,6 +114,7 @@ export const updateProductService = async (params, body) => {
 
             product.variants = product.variants.map(variant => ({
                 ...variant,
+                variant_id: variant.variant_id ? Number(variant.variant_id) : undefined,
                 sku_variant: variant.sku_variant || ""
             }));
 
@@ -143,20 +144,32 @@ export const updateProductService = async (params, body) => {
 
         if (product.variants?.length) {
 
-            product.variants = product.variants.map((variant) => ({
+            const usedSkus = new Set();
+            product.variants = product.variants.map((variant, index) => {
 
-                ...variant,
-
-                sku_variant:
-                    variant.sku_variant ||
-
-                    generateVariantSku(
-                        existingProduct.sku,
+                let baseSku = variant.sku_variant;
+                if (!baseSku) {
+                    baseSku = generateVariantSku(
+                        existingProduct.sku || `VF-${String(product.product_id).padStart(6, "0")}`,
                         variant.color || "",
                         variant.size || ""
-                    )
+                    );
+                }
 
-            }));
+                let finalSku = baseSku;
+                let counter = 1;
+                while (usedSkus.has(finalSku)) {
+                    finalSku = `${baseSku}-${counter++}`;
+                }
+                usedSkus.add(finalSku);
+
+                return {
+                    ...variant,
+                    sku_variant: finalSku,
+                    is_default: Boolean(variant.is_default)
+                };
+
+            });
 
         }
 
@@ -423,23 +436,32 @@ export const createProductService = async (productData, files) => {
         // Generate Variant SKUs
         if (validatedData.variants?.length) {
 
-            validatedData.variants =
-                (validatedData.variants || []).map((variant) => ({
+            const usedSkus = new Set();
+            validatedData.variants = (validatedData.variants || []).map((variant, index) => {
 
-                    ...variant,
-
-                    sku_variant: generateVariantSku(
+                let baseSku = variant.sku_variant;
+                if (!baseSku) {
+                    baseSku = generateVariantSku(
                         productSku,
                         variant.color || "",
                         variant.size || ""
-                    )
+                    );
+                }
 
-            }));
+                let finalSku = baseSku;
+                let counter = 1;
+                while (usedSkus.has(finalSku)) {
+                    finalSku = `${baseSku}-${counter++}`;
+                }
+                usedSkus.add(finalSku);
 
-            validatedData.variants = validatedData.variants.map((variant) => ({
-                ...variant,
-                is_default: variant.is_default ?? false
-            }));
+                return {
+                    ...variant,
+                    sku_variant: finalSku,
+                    is_default: Boolean(variant.is_default)
+                };
+
+            });
 
             // Insert Variants
             await createProductVariants(

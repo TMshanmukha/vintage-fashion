@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
+import toast from "react-hot-toast";
 import { compressImage } from "../../utils/compressImage";
 
 const emptyForm = {
@@ -15,7 +16,7 @@ const emptyForm = {
 const emptyVariant = {
   size: "",
   color: "",
-  color_hex: "",
+  color_hex: "#000000",
   stock_quantity: "",
   price_modifier: "",
   is_default: false
@@ -39,6 +40,9 @@ export default function ProductFormModal({
   const [variantForm, setVariantForm] = useState(emptyVariant);
   const [editingVariantIndex, setEditingVariantIndex] = useState(null);
 
+  const variantFormRef = useRef(null);
+  const sizeInputRef = useRef(null);
+
   useEffect(() => {
     if (!open) return;
 
@@ -52,11 +56,13 @@ export default function ProductFormModal({
         original_price: initialData.original_price ?? "",
         badge: initialData.badge || "",
         variants: (initialData.variants || []).map((v) => ({
+          variant_id: v.variant_id,
+          sku_variant: v.sku_variant || "",
           size: v.size || "",
           color: v.color || "",
-          color_hex: v.color_hex || "",
-          stock_quantity: v.stock_quantity ?? "",
-          price_modifier: v.price_modifier ?? "",
+          color_hex: v.color_hex || "#000000",
+          stock_quantity: v.stock_quantity != null ? v.stock_quantity : "",
+          price_modifier: v.price_modifier != null ? v.price_modifier : "",
           is_default: Boolean(v.is_default)
         }))
       });
@@ -68,6 +74,9 @@ export default function ProductFormModal({
 
     setNewImages([]);
     setImageError("");
+    setShowVariantForm(false);
+    setVariantForm(emptyVariant);
+    setEditingVariantIndex(null);
   }, [initialData, open]);
 
   if (!open) return null;
@@ -125,25 +134,79 @@ export default function ProductFormModal({
 
   // ===== Variants =====
 
+  const handleOpenAddVariant = () => {
+    setVariantForm(emptyVariant);
+    setEditingVariantIndex(null);
+    setShowVariantForm(true);
+    setTimeout(() => {
+      variantFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      sizeInputRef.current?.focus();
+    }, 60);
+  };
+
+  const handleOpenEditVariant = (variant, index) => {
+    setVariantForm({
+      ...variant,
+      stock_quantity: variant.stock_quantity != null ? variant.stock_quantity : "",
+      price_modifier: variant.price_modifier != null ? variant.price_modifier : ""
+    });
+    setEditingVariantIndex(index);
+    setShowVariantForm(true);
+    setTimeout(() => {
+      variantFormRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      sizeInputRef.current?.focus();
+    }, 60);
+  };
+
   const saveVariant = () => {
-    console.log("variantForm", variantForm);
-    if (!variantForm.stock_quantity) return;
+    const size = (variantForm.size || "").trim();
+    const color = (variantForm.color || "").trim();
+
+    if (!size && !color) {
+      toast.error("Please provide at least a Size or Color for the variant.");
+      return;
+    }
+
+    const rawStock = variantForm.stock_quantity;
+    const stockQty = rawStock !== "" && rawStock !== null && rawStock !== undefined
+      ? parseInt(rawStock, 10)
+      : 0;
+
+    if (isNaN(stockQty) || stockQty < 0) {
+      toast.error("Please enter a valid stock quantity (0 or greater).");
+      return;
+    }
+
+    const rawPriceMod = variantForm.price_modifier;
+    const priceMod = rawPriceMod !== "" && rawPriceMod !== null && rawPriceMod !== undefined
+      ? parseFloat(rawPriceMod)
+      : 0;
+
+    const normalizedVariant = {
+      ...variantForm,
+      size,
+      color,
+      color_hex: variantForm.color_hex || "",
+      stock_quantity: stockQty,
+      price_modifier: isNaN(priceMod) ? 0 : priceMod,
+      is_default: Boolean(variantForm.is_default)
+    };
 
     setForm((prev) => {
-      if (editingVariantIndex !== null) {
-        const updatedVariants = [...prev.variants];
+      let updatedVariants = [...(prev.variants || [])];
+      if (normalizedVariant.is_default) {
+        updatedVariants = updatedVariants.map((v) => ({ ...v, is_default: false }));
+      }
 
-        updatedVariants[editingVariantIndex] = variantForm;
-
-        return {
-          ...prev,
-          variants: updatedVariants
-        };
+      if (editingVariantIndex !== null && editingVariantIndex >= 0 && editingVariantIndex < updatedVariants.length) {
+        updatedVariants[editingVariantIndex] = normalizedVariant;
+      } else {
+        updatedVariants.push(normalizedVariant);
       }
 
       return {
         ...prev,
-        variants: [...prev.variants, variantForm]
+        variants: updatedVariants
       };
     });
 
@@ -155,8 +218,13 @@ export default function ProductFormModal({
   const removeVariant = (index) => {
     setForm((prev) => ({
       ...prev,
-      variants: prev.variants.filter((_, i) => i !== index)
+      variants: (prev.variants || []).filter((_, i) => i !== index)
     }));
+    if (editingVariantIndex === index) {
+      setShowVariantForm(false);
+      setVariantForm(emptyVariant);
+      setEditingVariantIndex(null);
+    }
   };
 
   // ===== Submit =====
@@ -500,83 +568,97 @@ export default function ProductFormModal({
           {/* PRODUCT VARIANTS */}
           <div>
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-bold text-gray-800">
-                Product Variants
-              </h3>
+              <div>
+                <h3 className="text-lg font-bold text-gray-800">
+                  Product Variants
+                </h3>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Add unlimited sizes, colors, stock counts, and custom prices.
+                </p>
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  setVariantForm(emptyVariant);
-                  setEditingVariantIndex(null);
-                  setShowVariantForm(true);
-                }}
-                className="rounded-xl bg-pink-500 px-5 py-2 text-sm font-semibold text-white hover:bg-pink-600 transition"
+                onClick={handleOpenAddVariant}
+                className="rounded-xl bg-pink-500 px-5 py-2.5 text-sm font-semibold text-white hover:bg-pink-600 transition shadow-sm active:scale-95 flex items-center gap-1.5"
               >
-                + Add Variant
+                <span>+</span> Add Variant
               </button>
             </div>
 
             {form.variants.length === 0 ? (
-              <div className="rounded-2xl border-2 border-dashed border-gray-300 py-12 text-center">
+              <div className="rounded-2xl border-2 border-dashed border-gray-300 py-12 text-center bg-gray-50/50">
                 <div className="text-5xl mb-3">📦</div>
                 <p className="font-semibold text-gray-600">
                   No Variants Added
                 </p>
+                <p className="text-xs text-gray-400 mt-1">
+                  Click "+ Add Variant" above to add product sizes, colors, and stock.
+                </p>
               </div>
             ) : (
-              <div className="overflow-x-auto rounded-2xl border border-gray-200">
+              <div className="overflow-x-auto rounded-2xl border border-gray-200 shadow-sm">
                 <table className="w-full min-w-[500px]">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-5 py-4 text-left text-xs uppercase text-gray-500">
+                      <th className="px-5 py-4 text-left text-xs uppercase font-semibold text-gray-500">
                         Size
                       </th>
-                      <th className="px-5 py-4 text-left text-xs uppercase text-gray-500">
+                      <th className="px-5 py-4 text-left text-xs uppercase font-semibold text-gray-500">
                         Color
                       </th>
-                      <th className="px-5 py-4 text-left text-xs uppercase text-gray-500">
+                      <th className="px-5 py-4 text-left text-xs uppercase font-semibold text-gray-500">
                         Stock
                       </th>
-                      <th className="px-5 py-4 text-left text-xs uppercase text-gray-500">
+                      <th className="px-5 py-4 text-left text-xs uppercase font-semibold text-gray-500">
                         Price Modifier
                       </th>
-                      <th className="px-5 py-4 text-left text-xs uppercase text-gray-500">
+                      <th className="px-5 py-4 text-left text-xs uppercase font-semibold text-gray-500">
+                        Default
+                      </th>
+                      <th className="px-5 py-4 text-left text-xs uppercase font-semibold text-gray-500">
                         Actions
                       </th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-gray-200 bg-white">
                     {form.variants.map((variant, index) => (
-                      <tr key={index} className="border-t">
-                        <td className="px-5 py-4">{variant.size || "-"}</td>
+                      <tr key={index} className="hover:bg-gray-50/80 transition">
+                        <td className="px-5 py-4 font-medium text-gray-800">{variant.size || "-"}</td>
                         <td className="px-5 py-4">
                           <div className="flex items-center gap-2">
                             {variant.color_hex && (
                               <span
-                                className="h-4 w-4 rounded-full border"
+                                className="h-4 w-4 rounded-full border border-gray-300 shadow-xs shrink-0"
                                 style={{ backgroundColor: variant.color_hex }}
                               />
                             )}
-                            {variant.color || "-"}
+                            <span className="text-gray-700">{variant.color || "-"}</span>
                           </div>
                         </td>
                         <td className="px-5 py-4">
-                          {variant.stock_quantity}
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold ${Number(variant.stock_quantity) > 0 ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                            {variant.stock_quantity ?? 0}
+                          </span>
                         </td>
-                        <td className="px-5 py-4">
+                        <td className="px-5 py-4 font-medium text-gray-700">
                           {Number(variant.price_modifier) >= 0 ? "+" : ""}
                           ₹{variant.price_modifier || 0}
                         </td>
                         <td className="px-5 py-4">
-                          <div className="flex items-center gap-4">
+                          {variant.is_default ? (
+                            <span className="inline-block rounded-full bg-pink-100 px-2.5 py-0.5 text-xs font-semibold text-pink-700">
+                              Default
+                            </span>
+                          ) : (
+                            <span className="text-gray-400 text-xs">-</span>
+                          )}
+                        </td>
+                        <td className="px-5 py-4">
+                          <div className="flex items-center gap-3">
                             <button
                               type="button"
-                              onClick={() => {
-                                setVariantForm(variant);
-                                setEditingVariantIndex(index);
-                                setShowVariantForm(true);
-                              }}
-                              className="text-blue-600 hover:text-blue-800 font-medium"
+                              onClick={() => handleOpenEditVariant(variant, index)}
+                              className="text-blue-600 hover:text-blue-800 font-medium text-sm transition hover:underline"
                             >
                               Edit
                             </button>
@@ -584,7 +666,7 @@ export default function ProductFormModal({
                             <button
                               type="button"
                               onClick={() => removeVariant(index)}
-                              className="text-red-500 hover:text-red-700 font-medium"
+                              className="text-red-500 hover:text-red-700 font-medium text-sm transition hover:underline"
                             >
                               Delete
                             </button>
@@ -598,81 +680,143 @@ export default function ProductFormModal({
             )}
 
             {showVariantForm && (
-              <div className="mt-6 rounded-2xl border p-6 bg-gray-50">
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
-                  <input
-                    placeholder="Size (e.g. M)"
-                    value={variantForm.size}
-                    onChange={(e) =>
-                      setVariantForm({ ...variantForm, size: e.target.value })
-                    }
-                    className="rounded-xl border px-4 py-3"
-                  />
-                  <input
-                    placeholder="Color name"
-                    value={variantForm.color}
-                    onChange={(e) =>
-                      setVariantForm({
-                        ...variantForm,
-                        color: e.target.value
-                      })
-                    }
-                    className="rounded-xl border px-4 py-3"
-                  />
-                  <input
-                    type="color"
-                    value={variantForm.color_hex || "#000000"}
-                    onChange={(e) =>
-                      setVariantForm({
-                        ...variantForm,
-                        color_hex: e.target.value
-                      })
-                    }
-                    className="rounded-xl border h-[46px] px-2"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    placeholder="Stock"
-                    value={variantForm.stock_quantity}
-                    onChange={(e) =>
-                      setVariantForm({
-                        ...variantForm,
-                        stock_quantity: e.target.value
-                      })
-                    }
-                    className="rounded-xl border px-4 py-3"
-                  />
-                  <input
-                    type="number"
-                    step="0.01"
-                    placeholder="Price modifier"
-                    value={variantForm.price_modifier}
-                    onChange={(e) =>
-                      setVariantForm({
-                        ...variantForm,
-                        price_modifier: e.target.value
-                      })
-                    }
-                    className="rounded-xl border px-4 py-3"
-                  />
+              <div
+                ref={variantFormRef}
+                className="mt-6 rounded-2xl border-2 border-pink-200 bg-gradient-to-b from-pink-50/40 to-white p-5 sm:p-6 shadow-sm scroll-mt-6 transition-all animate-fadeIn"
+              >
+                <div className="flex items-center justify-between mb-4 pb-3 border-b border-pink-100">
+                  <div>
+                    <h4 className="text-sm sm:text-base font-bold text-gray-900">
+                      {editingVariantIndex !== null ? `Edit Variant #${editingVariantIndex + 1}` : "Add New Variant"}
+                    </h4>
+                    <p className="text-xs text-gray-500">
+                      {editingVariantIndex !== null ? "Modify variant attributes and stock" : "Fill details and click Save Variant"}
+                    </p>
+                  </div>
+                  <span className="text-xs font-semibold text-pink-600 bg-pink-100 px-2.5 py-1 rounded-full">
+                    {editingVariantIndex !== null ? "Editing" : "New"}
+                  </span>
                 </div>
 
-                <label className="mt-4 flex items-center gap-2 text-sm text-gray-600">
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      Size <span className="text-gray-400 font-normal">(e.g. S, M, XL, 32)</span>
+                    </label>
+                    <input
+                      ref={sizeInputRef}
+                      placeholder="Size (e.g. M)"
+                      value={variantForm.size}
+                      onChange={(e) =>
+                        setVariantForm({ ...variantForm, size: e.target.value })
+                      }
+                      className="w-full rounded-xl border border-gray-300 px-4 py-2.5 bg-white text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100 transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      Color Name <span className="text-gray-400 font-normal">(e.g. Navy)</span>
+                    </label>
+                    <input
+                      placeholder="Color name"
+                      value={variantForm.color}
+                      onChange={(e) =>
+                        setVariantForm({
+                          ...variantForm,
+                          color: e.target.value
+                        })
+                      }
+                      className="w-full rounded-xl border border-gray-300 px-4 py-2.5 bg-white text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100 transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      Color Swatch
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="color"
+                        value={variantForm.color_hex || "#000000"}
+                        onChange={(e) =>
+                          setVariantForm({
+                            ...variantForm,
+                            color_hex: e.target.value
+                          })
+                        }
+                        className="rounded-xl border border-gray-300 h-[40px] w-12 p-1 cursor-pointer bg-white shrink-0"
+                      />
+                      <input
+                        type="text"
+                        placeholder="#000000"
+                        value={variantForm.color_hex || ""}
+                        onChange={(e) =>
+                          setVariantForm({
+                            ...variantForm,
+                            color_hex: e.target.value
+                          })
+                        }
+                        className="w-full rounded-xl border border-gray-300 px-3 py-2 bg-white text-xs font-mono outline-none focus:border-pink-500 transition"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      Stock Quantity
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      placeholder="Stock (e.g. 10)"
+                      value={variantForm.stock_quantity}
+                      onChange={(e) =>
+                        setVariantForm({
+                          ...variantForm,
+                          stock_quantity: e.target.value
+                        })
+                      }
+                      className="w-full rounded-xl border border-gray-300 px-4 py-2.5 bg-white text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100 transition"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                      Price Modifier <span className="text-gray-400 font-normal">(₹)</span>
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      placeholder="+/- Price (e.g. 0)"
+                      value={variantForm.price_modifier}
+                      onChange={(e) =>
+                        setVariantForm({
+                          ...variantForm,
+                          price_modifier: e.target.value
+                        })
+                      }
+                      className="w-full rounded-xl border border-gray-300 px-4 py-2.5 bg-white text-sm outline-none focus:border-pink-500 focus:ring-2 focus:ring-pink-100 transition"
+                    />
+                  </div>
+                </div>
+
+                <label className="mt-4 inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer select-none">
                   <input
                     type="checkbox"
-                    checked={variantForm.is_default}
+                    checked={Boolean(variantForm.is_default)}
                     onChange={(e) =>
                       setVariantForm({
                         ...variantForm,
                         is_default: e.target.checked
                       })
                     }
+                    className="w-4 h-4 rounded text-pink-600 focus:ring-pink-500"
                   />
-                  Default variant
+                  <span>Default variant for catalog display</span>
                 </label>
 
-                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 mt-4 sm:mt-6">
+                <div className="flex flex-col-reverse sm:flex-row justify-end gap-2.5 sm:gap-3 mt-5 pt-4 border-t border-pink-100">
                   <button
                     type="button"
                     onClick={() => {
@@ -689,7 +833,7 @@ export default function ProductFormModal({
                     onClick={saveVariant}
                     className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-pink-500 text-white text-sm font-semibold hover:bg-pink-600 transition text-center shadow-sm"
                   >
-                    Save Variant
+                    {editingVariantIndex !== null ? "Update Variant" : "Save Variant"}
                   </button>
                 </div>
               </div>
