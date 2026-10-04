@@ -15,7 +15,7 @@ export const getAllCustomers = async () => {
             u.created_at,
             COUNT(o.order_id) AS orders_count
         FROM users u
-        LEFT JOIN orders o ON o.user_id = u.user_id
+        LEFT JOIN orders o ON o.user_id = u.user_id AND o.payment_status IN ('paid', 'success', 'refunded')
         WHERE u.role = 'customer'
         GROUP BY u.user_id
         ORDER BY u.created_at DESC
