@@ -430,18 +430,16 @@ export default function AuthPage() {
               <button
                 type="button"
                 onClick={() => setMode("login")}
-                className={`relative flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 z-10 ${
-                  isLogin ? "text-gray-900 shadow-sm bg-white" : "text-gray-500 hover:text-gray-800"
-                }`}
+                className={`relative flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 z-10 ${isLogin ? "text-gray-900 shadow-sm bg-white" : "text-gray-500 hover:text-gray-800"
+                  }`}
               >
                 Sign In
               </button>
               <button
                 type="button"
                 onClick={() => setMode("signup")}
-                className={`relative flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 z-10 ${
-                  !isLogin ? "text-gray-900 shadow-sm bg-white" : "text-gray-500 hover:text-gray-800"
-                }`}
+                className={`relative flex-1 py-2.5 text-xs sm:text-sm font-bold rounded-lg transition-all duration-200 z-10 ${!isLogin ? "text-gray-900 shadow-sm bg-white" : "text-gray-500 hover:text-gray-800"
+                  }`}
               >
                 Create Account
               </button>
@@ -518,7 +516,7 @@ export default function AuthPage() {
                           value={form.name}
                           onChange={updateField}
                           required={!isLogin}
-                          placeholder="e.g. Shanmukha Rao"
+                          placeholder="Your Full Name"
                           className="w-full bg-gray-50/60 border border-gray-200 rounded-xl pl-10 pr-4 py-2.5 sm:py-3 text-xs sm:text-sm text-gray-900 placeholder:text-gray-400 outline-none transition focus:bg-white focus:border-pink-500 focus:ring-3 focus:ring-pink-500/10"
                         />
                       </div>

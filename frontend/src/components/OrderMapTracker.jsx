@@ -42,12 +42,18 @@ function interpolate(a, b, t) {
   return { lat: a.lat + (b.lat - a.lat) * t, lng: a.lng + (b.lng - a.lng) * t };
 }
 
-async function geocodeAddress(addressText) {
-  const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(addressText)}`;
-  const res = await fetch(url);
-  const data = await res.json();
-  if (!data || data.length === 0) return null;
-  return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+async function geocodeAddress(query) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`;
+    const res = await fetch(url, { headers: { "Accept-Language": "en" } });
+    const data = await res.json();
+    if (data && data.length > 0) {
+      return { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) };
+    }
+  } catch (e) {
+    console.warn("Geocode query failed for:", query, e.message);
+  }
+  return null;
 }
 
 export default function OrderMapTracker({ order }) {
@@ -62,18 +68,27 @@ export default function OrderMapTracker({ order }) {
       setGeocoding(true);
       setGeocodeFailed(false);
 
-      const addressText = [order.address_line1, order.address_line2, order.city, order.state, order.pincode, order.country]
-        .filter(Boolean)
-        .join(", ");
+      // Tiered search queries from most specific to postal/city level
+      const queries = [
+        [order.address_line1, order.city, order.state, order.pincode, order.country].filter(Boolean).join(", "),
+        [order.city, order.state, order.pincode, order.country || "India"].filter(Boolean).join(", "),
+        [order.pincode, order.country || "India"].filter(Boolean).join(", "),
+        [order.city, order.country || "India"].filter(Boolean).join(", "),
+      ].filter((q, idx, arr) => q && arr.indexOf(q) === idx);
 
-      if (!addressText) {
+      if (queries.length === 0) {
         setGeocoding(false);
         setGeocodeFailed(true);
         return;
       }
 
       try {
-        const coords = await geocodeAddress(addressText);
+        let coords = null;
+        for (const query of queries) {
+          coords = await geocodeAddress(query);
+          if (coords) break;
+        }
+
         if (cancelled) return;
 
         if (!coords) {
