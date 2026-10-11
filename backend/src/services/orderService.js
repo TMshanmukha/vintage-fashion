@@ -65,9 +65,10 @@ export const changePaymentStatus = async (orderId, status) => {
         try {
             const order = await OrderModel.getOrderById(orderId);
             const payment = await OrderModel.getOrderPayment(orderId);
-            if (payment && payment.razorpay_payment_id && !payment.razorpay_payment_id.startsWith("mock_")) {
+            const rzpPayId = payment?.transaction_id || payment?.razorpay_payment_id;
+            if (rzpPayId && !rzpPayId.startsWith("mock_")) {
                 await RefundService.processRefund({
-                    razorpayPaymentId: payment.razorpay_payment_id,
+                    razorpayPaymentId: rzpPayId,
                     amount: order.total_amount,
                 });
             }
