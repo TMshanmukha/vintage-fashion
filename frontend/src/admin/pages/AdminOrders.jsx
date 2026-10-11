@@ -4,6 +4,7 @@ import AdminLayout from "../components/AdminLayout";
 import AdminTopbar from "../components/AdminTopbar";
 import ConfirmDialog from "../components/ConfirmDialog";
 import CourierDispatchModal from "../components/CourierDispatchModal";
+import OrderPackingModal from "../components/OrderPackingModal";
 import toast from "react-hot-toast";
 import {
   getOrders,
@@ -91,6 +92,7 @@ export default function AdminOrders() {
   const [cancelTargetOrder, setCancelTargetOrder] = useState(null);
   const [cancelShipmentTarget, setCancelShipmentTarget] = useState(null);
   const [dispatchModalOrder, setDispatchModalOrder] = useState(null);
+  const [packingModalOrderId, setPackingModalOrderId] = useState(null);
   const limit = 20;
 
   // Debounce search input
@@ -326,17 +328,27 @@ export default function AdminOrders() {
     }
   };
 
-  const handlePaymentStatusChange = async (orderId, newStatus) => {
+  const handlePaymentStatusChange = async (orderId, newStatus, currentOrder) => {
+    if (newStatus === "refunded") {
+      const amountStr = currentOrder?.total_amount ? ` (₹${Number(currentOrder.total_amount).toLocaleString("en-IN")})` : "";
+      const confirmed = window.confirm(
+        `Are you sure you want to refund this order${amountStr}?\n\nThis will trigger an automatic refund via Razorpay to the customer's account and permanently lock the payment status.`
+      );
+      if (!confirmed) return;
+    }
+    setActionLoadingId(orderId);
     try {
       await updatePaymentStatus(orderId, newStatus);
-      toast.success("Payment status updated.");
+      toast.success(newStatus === "refunded" ? "Refund processed successfully." : "Payment status updated.");
       setOrders((prev) =>
         prev.map((o) => (o.order_id === orderId ? { ...o, payment_status: newStatus } : o))
       );
       loadStats();
     } catch (err) {
-      toast.error("Failed to update payment status.");
+      toast.error(err.response?.data?.message || "Failed to update payment status.");
       console.error(err);
+    } finally {
+      setActionLoadingId(null);
     }
   };
 
@@ -567,10 +579,18 @@ export default function AdminOrders() {
                         <tr key={o.order_id} className="hover:bg-gray-50/60 transition-colors">
                           {/* Order # */}
                           <td className="py-4 px-5">
-                            <div className="font-bold text-gray-900 text-sm">
-                              #{o.order_number}
-                            </div>
-                            <span className="text-[10px] font-mono text-gray-400">ID: {o.order_id}</span>
+                            <button
+                              type="button"
+                              onClick={() => setPackingModalOrderId(o.order_id)}
+                              className="text-left group cursor-pointer focus:outline-none"
+                              title="Click to view full order items and packing checklist"
+                            >
+                              <div className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors text-sm flex items-center gap-1">
+                                #{o.order_number}
+                                <span className="text-[10px] text-gray-400 group-hover:text-indigo-500">🔍</span>
+                              </div>
+                              <span className="text-[10px] font-mono text-gray-400 group-hover:text-indigo-400">ID: {o.order_id}</span>
+                            </button>
                           </td>
 
                           {/* Customer */}
@@ -599,23 +619,30 @@ export default function AdminOrders() {
 
                           {/* Items & Amount */}
                           <td className="py-4 px-5">
-                            <div className="font-bold text-gray-900 text-sm">
-                              {formatCurrency(o.total_amount)}
-                            </div>
-                            <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
-                              <span className="text-[11px] font-medium text-gray-500">
-                                {o.item_count} {Number(o.item_count) === 1 ? "item" : "items"}
-                              </span>
-                              {Number(o.shipping_fee) > 0 ? (
-                                <span className="text-[10px] bg-gray-100 text-gray-700 font-medium px-1.5 py-0.5 rounded">
-                                  +₹{Number(o.shipping_fee)} ship
+                            <button
+                              type="button"
+                              onClick={() => setPackingModalOrderId(o.order_id)}
+                              className="text-left group cursor-pointer focus:outline-none w-full"
+                              title="Click to view items to pack (sizes, colors, quantities)"
+                            >
+                              <div className="font-bold text-gray-900 group-hover:text-indigo-600 transition-colors text-sm">
+                                {formatCurrency(o.total_amount)}
+                              </div>
+                              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                                <span className="text-[11px] font-bold bg-indigo-50 group-hover:bg-indigo-100 text-indigo-700 border border-indigo-200/80 px-2 py-0.5 rounded-md transition-colors flex items-center gap-1 shadow-2xs">
+                                  <span>📦</span> {o.item_count} {Number(o.item_count) === 1 ? "item" : "items"}
                                 </span>
-                              ) : (
-                                <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded">
-                                  Free Ship
-                                </span>
-                              )}
-                            </div>
+                                {Number(o.shipping_fee) > 0 ? (
+                                  <span className="text-[10px] bg-gray-100 text-gray-700 font-medium px-1.5 py-0.5 rounded">
+                                    +₹{Number(o.shipping_fee)} ship
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] bg-emerald-50 text-emerald-700 font-bold px-1.5 py-0.5 rounded">
+                                    Free Ship
+                                  </span>
+                                )}
+                              </div>
+                            </button>
                           </td>
 
                           {/* Order Status */}
@@ -712,19 +739,29 @@ export default function AdminOrders() {
                           {/* Payment */}
                           <td className="py-4 px-5">
                             <div className="flex items-center gap-1.5 flex-wrap">
-                              <select
-                                value={resolvedPaymentStatus}
-                                onChange={(e) => handlePaymentStatusChange(o.order_id, e.target.value)}
-                                className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border outline-none cursor-pointer ${
-                                  paymentStatusStyles[resolvedPaymentStatus] || "bg-gray-100 text-gray-700 border-gray-200"
-                                }`}
-                              >
-                                {PAYMENT_STATUSES.map((s) => (
-                                  <option key={s} value={s}>
-                                    {s === "success" ? "Paid (Success)" : s[0].toUpperCase() + s.slice(1)}
-                                  </option>
-                                ))}
-                              </select>
+                              {resolvedPaymentStatus === "refunded" ? (
+                                <span
+                                  className="inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-lg border bg-gray-100 text-gray-700 border-gray-300 select-none shadow-2xs"
+                                  title="Payment has been refunded to customer and is permanently locked."
+                                >
+                                  <span>🔒</span> Refunded
+                                </span>
+                              ) : (
+                                <select
+                                  value={resolvedPaymentStatus}
+                                  disabled={busy}
+                                  onChange={(e) => handlePaymentStatusChange(o.order_id, e.target.value, o)}
+                                  className={`text-[11px] font-bold px-2.5 py-1 rounded-lg border outline-none cursor-pointer ${
+                                    paymentStatusStyles[resolvedPaymentStatus] || "bg-gray-100 text-gray-700 border-gray-200"
+                                  }`}
+                                >
+                                  {PAYMENT_STATUSES.map((s) => (
+                                    <option key={s} value={s}>
+                                      {s === "success" ? "Paid (Success)" : s[0].toUpperCase() + s.slice(1)}
+                                    </option>
+                                  ))}
+                                </select>
+                              )}
                               {resolvedPaymentStatus === "pending" && (
                                 <button
                                   type="button"
@@ -747,6 +784,16 @@ export default function AdminOrders() {
                           {/* Actions */}
                           <td className="py-4 px-5 text-right">
                             <div className="flex items-center justify-end gap-1.5 flex-wrap">
+                              {/* Quick View Items / Pack Button */}
+                              <button
+                                type="button"
+                                onClick={() => setPackingModalOrderId(o.order_id)}
+                                className="text-xs font-bold px-2.5 py-1.5 rounded-lg bg-gray-900 text-white hover:bg-gray-800 transition-colors shadow-2xs flex items-center gap-1"
+                                title="View items to pack (sizes, quantities, and colors)"
+                              >
+                                <span>📦</span>
+                                <span>Items</span>
+                              </button>
                               {/* Pending State */}
                               {isPending && (
                                 <>
@@ -926,6 +973,16 @@ export default function AdminOrders() {
         loading={actionLoadingId === dispatchModalOrder?.order_id}
         onConfirm={handleConfirmDispatch}
         onCancel={() => setDispatchModalOrder(null)}
+      />
+
+      {/* Order Packing & Item Details Modal */}
+      <OrderPackingModal
+        open={!!packingModalOrderId}
+        orderId={packingModalOrderId}
+        onClose={() => setPackingModalOrderId(null)}
+        onConfirmOrder={handleConfirm}
+        onScheduleCourier={handleScheduleCourier}
+        onLocalStatusChange={handleLocalStatusChange}
       />
     </AdminLayout>
   );

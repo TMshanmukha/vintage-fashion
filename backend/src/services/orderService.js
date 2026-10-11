@@ -61,9 +61,18 @@ export const changeOrderStatus = async (orderId, status) => {
 };
 
 export const changePaymentStatus = async (orderId, status) => {
+    const order = await OrderModel.getOrderById(orderId);
+    if (!order) return null;
+
+    if (order.payment_status === "refunded") {
+        if (status === "refunded") {
+            return order; // Already refunded, safe no-op
+        }
+        throw new Error("This order has already been refunded. Payment status is permanently locked.");
+    }
+
     if (status === "refunded") {
         try {
-            const order = await OrderModel.getOrderById(orderId);
             const payment = await OrderModel.getOrderPayment(orderId);
             const rzpPayId = payment?.transaction_id || payment?.razorpay_payment_id;
             if (rzpPayId && !rzpPayId.startsWith("mock_")) {
@@ -74,6 +83,7 @@ export const changePaymentStatus = async (orderId, status) => {
             }
         } catch (e) {
             console.warn("Auto-refund on payment status change skipped or failed:", e.message);
+            throw new Error(`Refund failed: ${e.message}`);
         }
     }
     return OrderModel.updatePaymentStatus(orderId, status);

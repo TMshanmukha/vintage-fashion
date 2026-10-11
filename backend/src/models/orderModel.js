@@ -108,9 +108,26 @@ export const getOrderItems = async (orderId) => {
 
     const [rows] = await pool.query(
         `
-        SELECT order_item_id, variant_id, product_name, sku_variant, size, color, quantity, unit_price, total_price
-        FROM order_items
-        WHERE order_id = ?
+        SELECT
+            oi.order_item_id,
+            oi.variant_id,
+            oi.product_name,
+            oi.sku_variant,
+            oi.size,
+            oi.color,
+            oi.quantity,
+            oi.unit_price,
+            oi.total_price,
+            (
+                SELECT pi.image_url
+                FROM product_images pi
+                JOIN product_variants pv ON pv.product_id = pi.product_id
+                WHERE pv.variant_id = oi.variant_id
+                ORDER BY pi.is_primary DESC, pi.image_id ASC
+                LIMIT 1
+            ) AS product_image
+        FROM order_items oi
+        WHERE oi.order_id = ?
         `,
         [orderId]
     );
